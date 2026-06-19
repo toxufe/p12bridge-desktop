@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using Microsoft.Win32;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
 
@@ -136,6 +137,42 @@ public partial class MainWindow : Window
         });
     }
 
+    private void OnSelectCertificateFileClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "Apple Certificate (*.cer)|*.cer|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            CertificateCerPathTextBox.Text = dialog.FileName;
+        }
+    }
+
+    private void OnExportP12Click(object sender, RoutedEventArgs e)
+    {
+        CertificateP12PathTextBox.Text = string.Empty;
+
+        var result = certificateProjectService.ExportP12(new CertificateProjectP12ExportRequest(
+            CertificateProjectDirectoryTextBox.Text,
+            CertificateCerPathTextBox.Text,
+            CertificateP12PasswordBox.Password));
+
+        if (!result.IsSuccess)
+        {
+            SetCertificateStatus(FormatIssues(result.Issues), isSuccess: false);
+            return;
+        }
+
+        CertificateCerPathTextBox.Text = result.CertificatePath;
+        CertificateP12PathTextBox.Text = result.P12Path;
+        CertificateP12PasswordBox.Clear();
+        SetCertificateStatus("P12 已导出", isSuccess: true);
+    }
+
     private void ClearCertificateResult()
     {
         lastCertificateProjectDirectory = null;
@@ -143,6 +180,9 @@ public partial class MainWindow : Window
         CertificateProjectDirectoryTextBox.Text = string.Empty;
         CertificatePrivateKeyPathTextBox.Text = string.Empty;
         CertificateCsrPathTextBox.Text = string.Empty;
+        CertificateCerPathTextBox.Text = string.Empty;
+        CertificateP12PathTextBox.Text = string.Empty;
+        CertificateP12PasswordBox.Clear();
         CertificateStatusText.Text = string.Empty;
     }
 
@@ -180,6 +220,13 @@ public partial class MainWindow : Window
             CertificateProofErrorCodes.EmptySubjectCommonName => "名称必填",
             CertificateProofErrorCodes.InvalidCountryCode => "国家填两位",
             CertificateProofErrorCodes.ProjectCreateFailed => "创建失败",
+            CertificateProofErrorCodes.ProjectNotFound => "项目不存在",
+            CertificateProofErrorCodes.MissingCertificate => "CER 必填",
+            CertificateProofErrorCodes.InvalidCertificate => "证书无效",
+            CertificateProofErrorCodes.EmptyP12Password => "密码必填",
+            CertificateProofErrorCodes.MissingPrivateKey => "私钥缺失",
+            CertificateProofErrorCodes.P12ExportFailed => "P12 失败",
+            CertificateProofErrorCodes.ProjectExportFailed => "导出失败",
             _ => "生成失败"
         };
 

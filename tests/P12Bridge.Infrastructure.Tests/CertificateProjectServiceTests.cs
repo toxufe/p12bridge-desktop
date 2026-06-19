@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
 using Xunit;
@@ -87,6 +89,84 @@ public sealed class CertificateProjectServiceTests : IDisposable
         Assert.Contains(result.Issues, issue => issue.Code == CertificateProofErrorCodes.InvalidCountryCode);
     }
 
+    [Fact]
+    public void ExportP12WritesCertificateAndP12()
+    {
+        var createResult = service.Create(ValidRequest());
+        Assert.True(createResult.IsSuccess);
+        Assert.NotNull(createResult.Artifacts);
+
+        var certificatePath = Path.Combine(temporaryDirectory, "issued.cer");
+        var certificateDer = CreateCertificateDerForProjectKey(createResult.Artifacts.PrivateKeyPath);
+        File.WriteAllBytes(certificatePath, certificateDer);
+
+        var result = service.ExportP12(new CertificateProjectP12ExportRequest(
+            createResult.Artifacts.ProjectDirectory,
+            certificatePath,
+            "p12-password"));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(Path.Combine(createResult.Artifacts.ProjectDirectory, "certificate.cer"), result.CertificatePath);
+        Assert.Equal(Path.Combine(createResult.Artifacts.ProjectDirectory, "export.p12"), result.P12Path);
+
+        Assert.True(File.Exists(result.CertificatePath));
+        Assert.True(File.Exists(result.P12Path));
+
+        using var certificate = new X509Certificate2(result.P12Path, "p12-password", X509KeyStorageFlags.Exportable);
+        Assert.True(certificate.HasPrivateKey);
+
+        using var metadata = JsonDocument.Parse(File.ReadAllText(result.MetadataPath));
+        Assert.Equal("certificate.cer", metadata.RootElement.GetProperty("Certificate").GetString());
+        Assert.Equal("export.p12", metadata.RootElement.GetProperty("P12").GetString());
+    }
+
+    [Fact]
+    public void ExportP12RejectsMissingProject()
+    {
+        var result = service.ExportP12(new CertificateProjectP12ExportRequest(
+            Path.Combine(temporaryDirectory, "missing"),
+            Path.Combine(temporaryDirectory, "issued.cer"),
+            "p12-password"));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == CertificateProofErrorCodes.ProjectNotFound);
+    }
+
+    [Fact]
+    public void ExportP12RejectsMissingCertificate()
+    {
+        var createResult = service.Create(ValidRequest());
+        Assert.True(createResult.IsSuccess);
+        Assert.NotNull(createResult.Artifacts);
+
+        var result = service.ExportP12(new CertificateProjectP12ExportRequest(
+            createResult.Artifacts.ProjectDirectory,
+            Path.Combine(temporaryDirectory, "missing.cer"),
+            "p12-password"));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == CertificateProofErrorCodes.MissingCertificate);
+    }
+
+    [Fact]
+    public void ExportP12RejectsEmptyPassword()
+    {
+        var createResult = service.Create(ValidRequest());
+        Assert.True(createResult.IsSuccess);
+        Assert.NotNull(createResult.Artifacts);
+
+        var certificatePath = Path.Combine(temporaryDirectory, "issued.cer");
+        File.WriteAllBytes(certificatePath, CreateCertificateDerForProjectKey(createResult.Artifacts.PrivateKeyPath));
+
+        var result = service.ExportP12(new CertificateProjectP12ExportRequest(
+            createResult.Artifacts.ProjectDirectory,
+            certificatePath,
+            " "));
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == CertificateProofErrorCodes.EmptyP12Password);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(temporaryDirectory))
@@ -101,6 +181,39 @@ public sealed class CertificateProjectServiceTests : IDisposable
             SigningPurpose.Development,
             new CertificateSubject("Developer Name", CountryCode: "CN"),
             temporaryDirectory);
+
+    private static byte[] CreateCertificateDerForProjectKey(string privateKeyPath)
+    {
+        using var rsa = RSA.Create();
+        rsa.ImportPkcs8PrivateKey(ReadPem(privateKeyPath, "PRIVATE KEY"), out _);
+
+        var request = new CertificateRequest(
+            "CN=Developer Name",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+
+        using var certificate = request.CreateSelfSigned(
+            DateTimeOffset.UtcNow.AddDays(-1),
+            DateTimeOffset.UtcNow.AddYears(1));
+
+        return certificate.Export(X509ContentType.Cert);
+    }
+
+    private static byte[] ReadPem(string path, string label)
+    {
+        var text = File.ReadAllText(path);
+        var beginMarker = $"-----BEGIN {label}-----";
+        var endMarker = $"-----END {label}-----";
+        var begin = text.IndexOf(beginMarker, StringComparison.Ordinal) + beginMarker.Length;
+        var end = text.IndexOf(endMarker, begin, StringComparison.Ordinal);
+        var base64 = text[begin..end]
+            .Replace("\r", string.Empty, StringComparison.Ordinal)
+            .Replace("\n", string.Empty, StringComparison.Ordinal)
+            .Trim();
+
+        return Convert.FromBase64String(base64);
+    }
 
     private sealed class FixedClock(DateTimeOffset utcNow) : IClock
     {

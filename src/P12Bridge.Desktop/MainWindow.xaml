@@ -535,6 +535,40 @@
                                     <TextBox x:Name="CertificateCsrPathTextBox"
                                              Style="{StaticResource InputTextBoxStyle}"
                                              IsReadOnly="True" />
+
+                                    <TextBlock Text="CER" Style="{StaticResource FieldLabelStyle}" Margin="0,18,0,5" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="CertificateCerPathTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True" />
+                                        <Button Grid.Column="2"
+                                                Content="选择"
+                                                Click="OnSelectCertificateFileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                    </Grid>
+
+                                    <TextBlock Text="P12 密码" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <PasswordBox x:Name="CertificateP12PasswordBox"
+                                                 MinHeight="34"
+                                                 Padding="9,6"
+                                                 BorderBrush="{StaticResource BorderBrushSoft}"
+                                                 BorderThickness="1" />
+
+                                    <Button Content="导出"
+                                            Click="OnExportP12Click"
+                                            Style="{StaticResource ActionButtonStyle}"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,14,0,0" />
+
+                                    <TextBlock Text="P12" Style="{StaticResource FieldLabelStyle}" Margin="0,14,0,5" />
+                                    <TextBox x:Name="CertificateP12PathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
                                 </StackPanel>
                             </Border>
                         </Grid>

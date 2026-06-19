@@ -15,4 +15,6 @@ public static class CertificateProofErrorCodes
     public const string EmptyProjectName = "CERT_PROJECT_NAME_EMPTY";
     public const string MissingProjectDirectory = "CERT_PROJECT_DIRECTORY_MISSING";
     public const string ProjectCreateFailed = "CERT_PROJECT_CREATE_FAILED";
+    public const string ProjectNotFound = "CERT_PROJECT_NOT_FOUND";
+    public const string ProjectExportFailed = "CERT_PROJECT_EXPORT_FAILED";
 }
