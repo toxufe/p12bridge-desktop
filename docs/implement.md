@@ -120,10 +120,11 @@ Prerequisite upload-readiness proof:
 
 Tasks:
 
-- Create `IUploadService`.
-- Implement a first upload adapter with the safest available mechanism.
-- Normalize progress and errors.
-- Test invalid credentials and missing tool cases.
+- [x] Create `IUploadService`.
+- [x] Implement a first Transporter adapter proof with environment validation and safe verify-mode command construction.
+- [x] Normalize progress and errors.
+- [x] Test invalid credentials, missing tool cases, fake process failures, timeout/cancellation, and log redaction.
+- [ ] Run a real upload verification against a signed IPA and valid Apple credentials.
 
 Validation:
 
