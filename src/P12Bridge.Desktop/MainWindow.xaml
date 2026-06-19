@@ -1415,6 +1415,11 @@
                                                     Click="OnCheckAppleApiConnectionClick"
                                                     Style="{StaticResource ActionButtonStyle}"
                                                     Margin="10,0,0,0" />
+                                            <Button x:Name="RunAppStoreRemotePreflightButton"
+                                                    Content="远端检"
+                                                    Click="OnRunAppStoreRemotePreflightClick"
+                                                    Style="{StaticResource ActionButtonStyle}"
+                                                    Margin="10,0,0,0" />
                                             <Button x:Name="LookupAppStoreBundleIdButton"
                                                     Content="查包名"
                                                     Click="OnLookupAppStoreBundleIdClick"
@@ -1543,6 +1548,34 @@
                                                        Margin="0,14,0,0"
                                                        Text="未检查" />
                                             <StackPanel x:Name="AppleApiConnectionIssuesPanel" Margin="0,14,0,0" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,18,0,0"
+                                            Padding="0,16,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="远端检查"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AppStoreRemotePreflightStatusText"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,14,0,0"
+                                                       Text="未检查" />
+                                            <TextBox x:Name="AppStoreRemotePreflightResultTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}"
+                                                     IsReadOnly="True"
+                                                     AcceptsReturn="True"
+                                                     MinHeight="112"
+                                                     Margin="0,12,0,0"
+                                                     VerticalContentAlignment="Top"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     TextWrapping="Wrap" />
+                                            <StackPanel x:Name="AppStoreRemotePreflightIssuesPanel" Margin="0,14,0,0" />
                                         </StackPanel>
                                     </Border>
 

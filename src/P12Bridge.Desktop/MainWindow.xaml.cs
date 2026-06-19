@@ -23,6 +23,7 @@ public partial class MainWindow : Window
     private readonly IAppStoreConnectProfileLookupService appStoreConnectProfileLookupService;
     private readonly IAppStoreConnectCertificateLookupService appStoreConnectCertificateLookupService;
     private readonly IAppStoreConnectDeviceLookupService appStoreConnectDeviceLookupService;
+    private readonly IAppStoreConnectRemotePreflightService appStoreConnectRemotePreflightService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
@@ -45,6 +46,7 @@ public partial class MainWindow : Window
     private bool isAppStoreProfileLookupRunning;
     private bool isAppStoreCertificateLookupRunning;
     private bool isAppStoreDeviceLookupRunning;
+    private bool isAppStoreRemotePreflightRunning;
 
     public MainWindow()
     {
@@ -67,6 +69,7 @@ public partial class MainWindow : Window
         appStoreConnectProfileLookupService = new AppStoreConnectProfileLookupService();
         appStoreConnectCertificateLookupService = new AppStoreConnectCertificateLookupService();
         appStoreConnectDeviceLookupService = new AppStoreConnectDeviceLookupService();
+        appStoreConnectRemotePreflightService = new AppStoreConnectRemotePreflightService();
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
@@ -623,6 +626,45 @@ public partial class MainWindow : Window
         finally
         {
             SetAppleApiConnectionChecking(false);
+        }
+    }
+
+    private async void OnRunAppStoreRemotePreflightClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreRemotePreflightRunning)
+        {
+            return;
+        }
+
+        SetAppStoreRemotePreflightRunning(true);
+        ClearAppStoreRemotePreflightResult();
+        SetAppStoreRemotePreflightStatus("检查中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectRemotePreflightRequest(
+                credential,
+                IpaBundleIdTextBox.Text);
+
+            var result = await appStoreConnectRemotePreflightService.CheckAsync(request);
+            ShowAppStoreRemotePreflightResult(result);
+            RecordHistory(
+                "远端检查",
+                result.IsSuccess
+                    ? result.HasWarnings ? OperationHistoryStatus.Warning : OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                FormatAppStoreRemotePreflightSummary(result),
+                result.IsSuccess
+                    ? FormatAppStoreRemotePreflightDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreRemotePreflightRunning(false);
         }
     }
 
@@ -1512,6 +1554,7 @@ public partial class MainWindow : Window
     {
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         AppleApiConnectionIssuesPanel.Children.Clear();
+        ClearAppStoreRemotePreflightResult();
         ClearAppStoreCertificateLookupResult();
         ClearAppStoreDeviceLookupResult();
         ClearAppStoreBundleIdLookupResult();
@@ -1551,6 +1594,61 @@ public partial class MainWindow : Window
     {
         isAppleApiConnectionChecking = isChecking;
         CheckAppleApiConnectionButton.IsEnabled = !isChecking;
+    }
+
+    private void ClearAppStoreRemotePreflightResult()
+    {
+        SetAppStoreRemotePreflightStatus("未检查", (Brush)FindResource("MutedTextBrush"));
+        AppStoreRemotePreflightResultTextBox.Text = string.Empty;
+        AppStoreRemotePreflightIssuesPanel.Children.Clear();
+    }
+
+    private void SetAppStoreRemotePreflightStatus(string status, Brush foreground)
+    {
+        AppStoreRemotePreflightStatusText.Text = status;
+        AppStoreRemotePreflightStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppStoreRemotePreflightResult(AppStoreConnectRemotePreflightResult result)
+    {
+        AppStoreRemotePreflightIssuesPanel.Children.Clear();
+        AppStoreRemotePreflightResultTextBox.Text = FormatAppStoreRemotePreflightDetail(result);
+
+        if (result.IsSuccess && !result.HasWarnings)
+        {
+            SetAppStoreRemotePreflightStatus("可用", (Brush)FindResource("SuccessBrush"));
+            AppStoreRemotePreflightIssuesPanel.Children.Add(CreateUploadIssueRow("远端", "通过", true));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetAppStoreRemotePreflightStatus("有提醒", (Brush)FindResource("WarningBrush"));
+            foreach (ValidationIssue issue in result.Issues)
+            {
+                AppStoreRemotePreflightIssuesPanel.Children.Add(CreateUploadIssueRow(
+                    FormatAppStoreRemotePreflightIssueName(issue.Code),
+                    FormatAppStoreRemotePreflightIssueAction(issue.Code),
+                    false));
+            }
+
+            return;
+        }
+
+        SetAppStoreRemotePreflightStatus("检查失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppStoreRemotePreflightIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreRemotePreflightIssueName(issue.Code),
+                FormatAppStoreRemotePreflightIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppStoreRemotePreflightRunning(bool isRunning)
+    {
+        isAppStoreRemotePreflightRunning = isRunning;
+        RunAppStoreRemotePreflightButton.IsEnabled = !isRunning;
     }
 
     private void ClearAppStoreCertificateLookupResult()
@@ -2687,6 +2785,72 @@ public partial class MainWindow : Window
             AppleDeveloperAuthErrorCodes.UnexpectedAppleResponse => "重试",
             _ => "处理"
         };
+
+    private static string FormatAppStoreRemotePreflightIssueName(string code) =>
+        code switch
+        {
+            AppStoreConnectRemotePreflightErrorCodes.BundleIdMissing => "Bundle",
+            AppStoreConnectRemotePreflightErrorCodes.AppMissing => "App",
+            AppStoreConnectRemotePreflightErrorCodes.BundleIdNotRegistered => "Bundle",
+            AppStoreConnectBundleIdLookupErrorCodes.ResponseMalformed => "Bundle 响应",
+            AppStoreConnectAppLookupErrorCodes.ResponseMalformed => "App 响应",
+            AppStoreConnectBuildLookupErrorCodes.ResponseMalformed => "构建响应",
+            AppStoreConnectProfileLookupErrorCodes.ResponseMalformed => "描述响应",
+            AppStoreConnectCertificateLookupErrorCodes.ResponseMalformed => "证书响应",
+            AppStoreConnectDeviceLookupErrorCodes.ResponseMalformed => "设备响应",
+            _ => FormatAppStoreAppLookupIssueName(code)
+        };
+
+    private static string FormatAppStoreRemotePreflightIssueAction(string code) =>
+        code switch
+        {
+            AppStoreConnectRemotePreflightErrorCodes.BundleIdMissing => "检查 IPA",
+            AppStoreConnectRemotePreflightErrorCodes.AppMissing => "建 App",
+            AppStoreConnectRemotePreflightErrorCodes.BundleIdNotRegistered => "建 Bundle",
+            AppStoreConnectBundleIdLookupErrorCodes.ResponseMalformed => "重试",
+            AppStoreConnectAppLookupErrorCodes.ResponseMalformed => "重试",
+            AppStoreConnectBuildLookupErrorCodes.ResponseMalformed => "重试",
+            AppStoreConnectProfileLookupErrorCodes.ResponseMalformed => "重试",
+            AppStoreConnectCertificateLookupErrorCodes.ResponseMalformed => "重试",
+            AppStoreConnectDeviceLookupErrorCodes.ResponseMalformed => "重试",
+            _ => FormatAppStoreAppLookupIssueAction(code)
+        };
+
+    private static string FormatAppStoreRemotePreflightSummary(AppStoreConnectRemotePreflightResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return "检查失败";
+        }
+
+        return result.HasWarnings ? "有提醒" : "可用";
+    }
+
+    private static string FormatAppStoreRemotePreflightDetail(AppStoreConnectRemotePreflightResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return FormatIssueDetail(result.Issues);
+        }
+
+        var parts = new List<string>
+        {
+            $"App: {(result.Summary.AppFound ? "存在" : "未找到")}",
+            $"Bundle: {(result.Summary.BundleIdFound ? "存在" : "未找到")}",
+            $"构建: {result.Summary.BuildCount}",
+            $"描述: {result.Summary.ProfileCount}",
+            $"证书: {result.Summary.CertificateCount}",
+            $"设备: {result.Summary.DeviceCount}"
+        };
+
+        if (result.Issues.Count > 0)
+        {
+            parts.Add(string.Empty);
+            parts.Add(FormatIssueDetail(result.Issues));
+        }
+
+        return string.Join(Environment.NewLine, parts);
+    }
 
     private static string FormatAppStoreBundleIdLookupIssueName(string code) =>
         code switch
