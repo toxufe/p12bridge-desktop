@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly IUploadService uploadService;
     private readonly IAppleDeveloperAuthService appleDeveloperAuthService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
+    private readonly IOperationHistoryService operationHistoryService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
@@ -46,6 +47,7 @@ public partial class MainWindow : Window
         uploadService = new TransporterUploadService();
         appleDeveloperAuthService = new AppleDeveloperAuthService();
         localAssetLibraryService = new LocalAssetLibraryService();
+        operationHistoryService = new InMemoryOperationHistoryService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -54,7 +56,8 @@ public partial class MainWindow : Window
             ["Profiles"] = new("描述文件", "Bundle、Team、有效期", ProfilesPage),
             ["IpaCheck"] = new("IPA 检查", "版本、签名、阻断项", IpaCheckPage),
             ["Upload"] = new("IPA 上传", "上传前检查", UploadPage),
-            ["Assets"] = new("资产库", "项目、备份、历史", AssetsPage),
+            ["Assets"] = new("资产库", "项目、文件、IPA", AssetsPage),
+            ["History"] = new("历史", "操作与日志", HistoryPage),
             ["Settings"] = new("设置", "凭据、路径、隐私", SettingsPage),
         };
 
@@ -128,6 +131,11 @@ public partial class MainWindow : Window
         {
             RefreshAssets();
         }
+
+        if (pageKey == "History")
+        {
+            RefreshHistory();
+        }
     }
 
     private void SelectNavigation(string pageKey)
@@ -160,6 +168,7 @@ public partial class MainWindow : Window
         if (!result.IsSuccess || result.Artifacts is null)
         {
             SetCertificateStatus(FormatIssues(result.Issues), isSuccess: false);
+            RecordHistory("制作证书", OperationHistoryStatus.Failed, FormatIssues(result.Issues), FormatIssueDetail(result.Issues));
             return;
         }
 
@@ -169,6 +178,11 @@ public partial class MainWindow : Window
         CertificateCsrPathTextBox.Text = result.Artifacts.CertificateSigningRequestPath;
         OpenCertificateProjectButton.IsEnabled = true;
         SetCertificateStatus("已生成", isSuccess: true);
+        RecordHistory(
+            "制作证书",
+            OperationHistoryStatus.Success,
+            "已生成",
+            $"项目: {result.Artifacts.ProjectDirectory}{Environment.NewLine}CSR: {result.Artifacts.CertificateSigningRequestPath}");
     }
 
     private void OnOpenCertificateProjectClick(object sender, RoutedEventArgs e)
@@ -213,6 +227,7 @@ public partial class MainWindow : Window
         if (!result.IsSuccess)
         {
             SetCertificateStatus(FormatIssues(result.Issues), isSuccess: false);
+            RecordHistory("导出 P12", OperationHistoryStatus.Failed, FormatIssues(result.Issues), FormatIssueDetail(result.Issues));
             return;
         }
 
@@ -220,6 +235,11 @@ public partial class MainWindow : Window
         CertificateP12PathTextBox.Text = result.P12Path;
         CertificateP12PasswordBox.Clear();
         SetCertificateStatus("P12 已导出", isSuccess: true);
+        RecordHistory(
+            "导出 P12",
+            OperationHistoryStatus.Success,
+            "已导出",
+            $"P12: {result.P12Path}");
     }
 
     private void OnSelectProfileFileClick(object sender, RoutedEventArgs e)
@@ -257,10 +277,18 @@ public partial class MainWindow : Window
         if (!result.IsSuccess)
         {
             SetProfileStatus(FormatProfileIssues(result.Issues), isSuccess: false);
+            RecordHistory("导入描述", OperationHistoryStatus.Failed, FormatProfileIssues(result.Issues), FormatIssueDetail(result.Issues));
             return;
         }
 
         SetProfileStatus("已导入", isSuccess: true);
+        RecordHistory(
+            "导入描述",
+            OperationHistoryStatus.Success,
+            "已导入",
+            result.Profile is null
+                ? result.ImportedPath
+                : $"{result.Profile.BundleIdentifier}{Environment.NewLine}{result.ImportedPath}");
     }
 
     private void OnSelectIpaFileClick(object sender, RoutedEventArgs e)
@@ -298,15 +326,29 @@ public partial class MainWindow : Window
         if (!result.IsSuccess)
         {
             SetIpaStatus(FormatIpaIssues(result.Issues), isSuccess: false);
+            RecordHistory("检查 IPA", OperationHistoryStatus.Failed, FormatIpaIssues(result.Issues), FormatIssueDetail(result.Issues));
             return;
         }
 
         SetIpaStatus("检查通过", isSuccess: true);
+        RecordHistory(
+            "检查 IPA",
+            OperationHistoryStatus.Success,
+            "检查通过",
+            result.Metadata is null
+                ? result.ImportedPath
+                : $"{result.Metadata.BundleIdentifier} / {result.Metadata.ShortVersion} ({result.Metadata.BuildVersion}){Environment.NewLine}{result.ImportedPath}");
     }
 
     private void OnCheckUploadReadinessClick(object sender, RoutedEventArgs e)
     {
-        EvaluateUploadReadiness();
+        var result = EvaluateUploadReadiness();
+        RecordHistory(
+            "上传检查",
+            ToHistoryStatus(result.Status),
+            FormatUploadStatus(result.Status),
+            string.Join(Environment.NewLine, result.Checks.Select(check =>
+                $"{FormatUploadCheckName(check.Code)}: {FormatUploadCheckStatus(check.Status)} / {FormatUploadCheckAction(check)}")));
     }
 
     private void OnUploadGoIpaClick(object sender, RoutedEventArgs e)
@@ -335,7 +377,43 @@ public partial class MainWindow : Window
 
     private void OnRefreshAssetsClick(object sender, RoutedEventArgs e)
     {
-        RefreshAssets();
+        RefreshAssets(recordHistory: true);
+    }
+
+    private void OnRefreshHistoryClick(object sender, RoutedEventArgs e)
+    {
+        RefreshHistory();
+    }
+
+    private void OnClearHistoryClick(object sender, RoutedEventArgs e)
+    {
+        operationHistoryService.Clear();
+        RefreshHistory();
+    }
+
+    private void OnCopyHistoryClick(object sender, RoutedEventArgs e)
+    {
+        var text = HistoryListBox.SelectedItem is HistoryListItem selectedItem
+            ? selectedItem.CopyText
+            : FormatHistoryCopy(operationHistoryService.List().Items);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            HistoryStatusText.Text = "暂无记录";
+            HistoryStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
+            return;
+        }
+
+        Clipboard.SetText(text);
+        HistoryStatusText.Text = "已复制";
+        HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+    }
+
+    private void OnHistorySelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        HistoryDetailTextBox.Text = HistoryListBox.SelectedItem is HistoryListItem selectedItem
+            ? selectedItem.Detail
+            : string.Empty;
     }
 
     private void OnOpenSelectedAssetClick(object sender, RoutedEventArgs e)
@@ -453,6 +531,11 @@ public partial class MainWindow : Window
 
             var result = await appleDeveloperAuthService.CheckConnectionAsync(credential);
             ShowAppleApiConnectionResult(result);
+            RecordHistory(
+                "账号检查",
+                result.IsSuccess ? OperationHistoryStatus.Success : OperationHistoryStatus.Failed,
+                result.IsSuccess ? "已连接" : "未连接",
+                FormatIssueDetail(result.Issues));
         }
         finally
         {
@@ -492,10 +575,15 @@ public partial class MainWindow : Window
             var result = await uploadService.UploadAsync(request, progress, cancellation.Token);
             ShowUploadVerifyResult(result);
             ShowUploadVerifyEnvironmentResult(result);
+            RecordHistory(
+                FormatUploadActionName(executionMode),
+                result.IsSuccess ? OperationHistoryStatus.Success : OperationHistoryStatus.Failed,
+                FormatUploadResultStatus(executionMode, result.IsSuccess),
+                FormatUploadResultDetail(result));
         }
         catch (OperationCanceledException)
         {
-            ShowUploadVerifyResult(UploadResult.Failure(
+            var cancelledResult = UploadResult.Failure(
                 null,
                 string.Empty,
                 string.Empty,
@@ -503,7 +591,13 @@ public partial class MainWindow : Window
                     UploadErrorCodes.ProcessCancelled,
                     ValidationSeverity.Error,
                     "Transporter verification was cancelled.",
-                    "Run the verification again when ready.")));
+                    "Run the verification again when ready."));
+            ShowUploadVerifyResult(cancelledResult);
+            RecordHistory(
+                FormatUploadActionName(executionMode),
+                OperationHistoryStatus.Failed,
+                FormatUploadResultStatus(executionMode, isSuccess: false),
+                FormatUploadResultDetail(cancelledResult));
         }
         finally
         {
@@ -529,7 +623,7 @@ public partial class MainWindow : Window
         uploadVerificationCancellation?.Cancel();
     }
 
-    private void EvaluateUploadReadiness()
+    private UploadReadinessResult EvaluateUploadReadiness()
     {
         RefreshUploadInputs();
 
@@ -539,6 +633,7 @@ public partial class MainWindow : Window
             lastImportedProfile));
 
         ShowUploadReadiness(result);
+        return result;
     }
 
     private void ValidateUploadEnvironment()
@@ -548,6 +643,11 @@ public partial class MainWindow : Window
         var result = uploadService.ValidateEnvironment(BuildUploadRequest(UploadExecutionMode.Verify));
         lastUploadEnvironmentValidation = result;
         ShowUploadEnvironment(result);
+        RecordHistory(
+            "环境验证",
+            result.IsSuccess ? OperationHistoryStatus.Success : OperationHistoryStatus.Failed,
+            result.IsSuccess ? "环境可用" : "环境异常",
+            FormatIssueDetail(result.Issues));
     }
 
     private void ClearCertificateResult()
@@ -630,7 +730,7 @@ public partial class MainWindow : Window
         RefreshUploadEnvironmentStatus();
     }
 
-    private void RefreshAssets()
+    private void RefreshAssets(bool recordHistory = false)
     {
         if (AssetListBox is null)
         {
@@ -649,6 +749,52 @@ public partial class MainWindow : Window
         AssetStatusText.Foreground = result.Issues.Count == 0
             ? (Brush)FindResource("SuccessBrush")
             : (Brush)FindResource("WarningBrush");
+
+        if (recordHistory)
+        {
+            RecordHistory(
+                "刷新资产",
+                result.Issues.Count == 0 ? OperationHistoryStatus.Success : OperationHistoryStatus.Warning,
+                AssetStatusText.Text,
+                result.Issues.Count == 0
+                    ? FormatAssetCounts(result.Items)
+                    : FormatIssueDetail(result.Issues));
+        }
+    }
+
+    private void RefreshHistory()
+    {
+        if (HistoryListBox is null)
+        {
+            return;
+        }
+
+        var result = operationHistoryService.List();
+        var items = result.Items
+            .Select(item => HistoryListItem.FromHistory(
+                item,
+                GetHistoryStatusText(item.Status),
+                GetHistoryStatusBrush(item.Status)))
+            .ToArray();
+
+        HistoryListBox.ItemsSource = items;
+        HistoryCountsText.Text = $"{items.Length} 条";
+
+        if (items.Length == 0)
+        {
+            HistoryStatusText.Text = "暂无记录";
+            HistoryStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
+            HistoryDetailTextBox.Text = string.Empty;
+            return;
+        }
+
+        HistoryStatusText.Text = "已刷新";
+        HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+
+        if (HistoryListBox.SelectedItem is null)
+        {
+            HistoryListBox.SelectedIndex = 0;
+        }
     }
 
     private void RefreshUploadSettingsInputs()
@@ -846,6 +992,24 @@ public partial class MainWindow : Window
                 FormatUploadIssueName(issue.Code),
                 FormatUploadIssueAction(issue.Code),
                 false));
+        }
+    }
+
+    private void RecordHistory(
+        string operation,
+        OperationHistoryStatus status,
+        string summary,
+        string? detail = null)
+    {
+        operationHistoryService.Record(new OperationHistoryRecordRequest(
+            operation,
+            status,
+            summary,
+            detail));
+
+        if (HistoryPage is not null && HistoryPage.Visibility == Visibility.Visible)
+        {
+            RefreshHistory();
         }
     }
 
@@ -1065,6 +1229,80 @@ public partial class MainWindow : Window
             ? (Brush)FindResource("SuccessBrush")
             : (Brush)FindResource("WarningBrush");
     }
+
+    private static OperationHistoryStatus ToHistoryStatus(UploadReadinessStatus status) =>
+        status switch
+        {
+            UploadReadinessStatus.Ready => OperationHistoryStatus.Success,
+            UploadReadinessStatus.ReadyWithWarnings => OperationHistoryStatus.Warning,
+            UploadReadinessStatus.Blocked => OperationHistoryStatus.Failed,
+            _ => OperationHistoryStatus.Warning
+        };
+
+    private static string GetHistoryStatusText(OperationHistoryStatus status) =>
+        status switch
+        {
+            OperationHistoryStatus.Success => "成功",
+            OperationHistoryStatus.Warning => "警告",
+            OperationHistoryStatus.Failed => "失败",
+            _ => "未知"
+        };
+
+    private Brush GetHistoryStatusBrush(OperationHistoryStatus status) =>
+        status switch
+        {
+            OperationHistoryStatus.Success => (Brush)FindResource("SuccessBrush"),
+            OperationHistoryStatus.Warning => (Brush)FindResource("WarningBrush"),
+            OperationHistoryStatus.Failed => (Brush)FindResource("DangerBrush"),
+            _ => (Brush)FindResource("MutedTextBrush")
+        };
+
+    private static string FormatIssueDetail(IReadOnlyList<ValidationIssue> issues)
+    {
+        if (issues.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        return string.Join(Environment.NewLine, issues.Select(issue =>
+        {
+            var action = string.IsNullOrWhiteSpace(issue.SuggestedAction)
+                ? string.Empty
+                : $" / {issue.SuggestedAction}";
+            return $"{issue.Code}: {issue.Message}{action}";
+        }));
+    }
+
+    private static string FormatUploadResultDetail(UploadResult result)
+    {
+        var parts = new List<string>();
+
+        if (result.ExitCode is not null)
+        {
+            parts.Add($"ExitCode: {result.ExitCode}");
+        }
+
+        if (result.Issues.Count > 0)
+        {
+            parts.Add(FormatIssueDetail(result.Issues));
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.StandardOutput))
+        {
+            parts.Add($"Output:{Environment.NewLine}{result.StandardOutput}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(result.StandardError))
+        {
+            parts.Add($"Error:{Environment.NewLine}{result.StandardError}");
+        }
+
+        return string.Join($"{Environment.NewLine}{Environment.NewLine}", parts);
+    }
+
+    private static string FormatHistoryCopy(IReadOnlyList<OperationHistoryItem> items) =>
+        string.Join($"{Environment.NewLine}{Environment.NewLine}", items.Select(item =>
+            $"{item.OccurredAt.ToLocalTime():yyyy-MM-dd HH:mm:ss} {GetHistoryStatusText(item.Status)} {item.Operation}{Environment.NewLine}{item.Summary}{Environment.NewLine}{item.Detail}".Trim()));
 
     private static string FormatIssues(IReadOnlyList<ValidationIssue> issues)
     {
@@ -1468,5 +1706,39 @@ public partial class MainWindow : Window
                 item.Name,
                 item.Path,
                 item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+    }
+
+    private sealed record HistoryListItem(
+        string Operation,
+        string StatusText,
+        Brush StatusBrush,
+        string Summary,
+        string Detail,
+        string TimeText,
+        string CopyText)
+    {
+        public static HistoryListItem FromHistory(
+            OperationHistoryItem item,
+            string statusText,
+            Brush statusBrush)
+        {
+            var localTime = item.OccurredAt.ToLocalTime();
+            var detail = string.IsNullOrWhiteSpace(item.Detail) ? item.Summary : item.Detail;
+            var copyText = $"{localTime:yyyy-MM-dd HH:mm:ss} {statusText} {item.Operation}{Environment.NewLine}{item.Summary}";
+
+            if (!string.IsNullOrWhiteSpace(item.Detail))
+            {
+                copyText = $"{copyText}{Environment.NewLine}{item.Detail}";
+            }
+
+            return new HistoryListItem(
+                item.Operation,
+                statusText,
+                statusBrush,
+                item.Summary,
+                detail,
+                localTime.ToString("MM-dd HH:mm"),
+                copyText);
+        }
     }
 }
