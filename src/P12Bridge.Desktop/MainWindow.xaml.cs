@@ -676,6 +676,21 @@ public partial class MainWindow : Window
         uploadVerificationCancellation?.Cancel();
     }
 
+    private void OnCopyUploadLogClick(object sender, RoutedEventArgs e)
+    {
+        var copyText = FormatCurrentUploadLog();
+        if (string.IsNullOrWhiteSpace(copyText))
+        {
+            SetUploadVerifyStatus("无日志", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制日志", OperationHistoryStatus.Failed, "无日志");
+            return;
+        }
+
+        Clipboard.SetText(copyText);
+        SetUploadVerifyStatus("已复制", (Brush)FindResource("SuccessBrush"));
+        RecordHistory("复制日志", OperationHistoryStatus.Success, "已复制", copyText);
+    }
+
     private UploadReadinessResult EvaluateUploadReadiness()
     {
         RefreshUploadInputs();
@@ -976,6 +991,34 @@ public partial class MainWindow : Window
     {
         UploadVerifyStatusText.Text = status;
         UploadVerifyStatusText.Foreground = foreground;
+    }
+
+    private string FormatCurrentUploadLog()
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(UploadVerifyStatusText.Text)
+            && UploadVerifyStatusText.Text != "未校验")
+        {
+            parts.Add($"状态: {UploadVerifyStatusText.Text}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UploadVerifyExitCodeTextBox.Text))
+        {
+            parts.Add($"退出码: {UploadVerifyExitCodeTextBox.Text}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UploadVerifyStdoutTextBox.Text))
+        {
+            parts.Add($"输出:{Environment.NewLine}{UploadVerifyStdoutTextBox.Text}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UploadVerifyStderrTextBox.Text))
+        {
+            parts.Add($"错误:{Environment.NewLine}{UploadVerifyStderrTextBox.Text}");
+        }
+
+        return string.Join($"{Environment.NewLine}{Environment.NewLine}", parts);
     }
 
     private void ClearAppleApiConnectionResult()

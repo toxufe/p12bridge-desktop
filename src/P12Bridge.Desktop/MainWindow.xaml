@@ -911,6 +911,10 @@
                                                         Style="{StaticResource SecondaryButtonStyle}"
                                                         IsEnabled="False"
                                                         Margin="10,0,0,0" />
+                                                <Button Content="复制"
+                                                        Click="OnCopyUploadLogClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="10,0,0,0" />
                                             </StackPanel>
                                         </Grid>
 
