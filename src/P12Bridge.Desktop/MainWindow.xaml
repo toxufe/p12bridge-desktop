@@ -141,7 +141,7 @@
                                        Foreground="#FFFFFF"
                                        FontSize="13"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="私钥与凭据默认留在本机"
+                            <TextBlock Text="私钥留本机"
                                        Foreground="{StaticResource SidebarMutedBrush}"
                                        FontSize="12"
                                        TextWrapping="Wrap"
@@ -211,7 +211,7 @@
                                FontSize="28"
                                FontWeight="SemiBold" />
                     <TextBlock x:Name="PageSubtitleText"
-                               Text="证书、描述文件、IPA 检查和上传流程总览"
+                               Text="证书到上传总览"
                                Foreground="{StaticResource MutedTextBrush}"
                                FontSize="13"
                                Margin="0,5,0,0" />
@@ -224,7 +224,7 @@
                         CornerRadius="8"
                         Padding="12,8"
                         VerticalAlignment="Center">
-                    <TextBlock Text="MVP Shell"
+                    <TextBlock Text="本地版"
                                Foreground="{StaticResource PrimaryBrush}"
                                FontSize="13"
                                FontWeight="SemiBold" />
@@ -248,7 +248,7 @@
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="生成本地私钥和 CSR，导入 Apple CER 后导出 P12。"
+                                    <TextBlock Text="生成私钥与 CSR"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -266,7 +266,7 @@
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="导入 mobileprovision，查看 Team、Bundle ID 和有效期。"
+                                    <TextBlock Text="导入描述文件"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -284,7 +284,7 @@
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="读取 Bundle ID、版本号、构建号和内嵌描述文件。"
+                                    <TextBlock Text="读取版本与签名"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -302,7 +302,7 @@
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="上传前检查通过后，再走 Transporter 上传适配器。"
+                                    <TextBlock Text="上传构建包"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -343,43 +343,47 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Row="0" Text="私钥 / CSR / P12" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="证书生成 proof 已完成" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="可导出" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="P12 就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="1" Text="描述文件解析" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="字段读取和过期判断可用" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="可解析" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="字段就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="2" Text="IPA 元数据" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Info.plist 与嵌入 Profile 可读" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="可读取" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="元数据就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="3" Text="上传前检查" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="3" Grid.Column="2" Text="阻断项和警告可归一化" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="可校验" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="3" Grid.Column="2" Text="规则就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="4" Text="API Key / JWT" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="4" Grid.Column="2" Text="App Store Connect 认证 proof 已完成" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="可认证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="4" Grid.Column="2" Text="令牌就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
-                                        <TextBlock Grid.Row="5" Text="Transporter 适配器" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="5" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="5" Grid.Column="2" Text="上传适配层已隔离" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="5" Text="上传服务" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="5" Grid.Column="1" Text="可调用" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="5" Grid.Column="2" Text="上传就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
 
                             <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel>
-                                    <TextBlock Text="当前边界"
+                                    <TextBlock Text="安全边界"
                                                Foreground="{StaticResource TextBrush}"
                                                FontSize="16"
                                                FontWeight="SemiBold" />
-                                    <TextBlock Text="本界面不会要求 Apple ID 主密码，也不会自动保存上传凭据。证书、描述文件和 IPA 的真实导入会在后续工作流任务中接入。"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="13"
-                                               TextWrapping="Wrap"
-                                               Margin="0,12,0,16" />
+                                    <StackPanel Margin="0,12,0,16">
+                                        <TextBlock Text="不收主密码"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="13" />
+                                        <TextBlock Text="凭据不自动保存"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="13"
+                                                   Margin="0,4,0,0" />
+                                    </StackPanel>
                                     <Button Content="查看设置"
                                             Tag="Settings"
                                             Click="OnModuleShortcutClick"
@@ -397,12 +401,12 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="下一步会接入本地生成私钥、CSR、导入 CER 和导出 P12 的完整流程。"
+                            <TextBlock Text="私钥、CSR、P12"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13"
                                        TextWrapping="Wrap"
                                        Margin="0,10,0,16" />
-                            <Button Content="新建证书项目"
+                            <Button Content="新建项目"
                                     Style="{StaticResource ActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     IsEnabled="False" />
@@ -417,12 +421,12 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="这里将展示导入的 mobileprovision、Bundle ID、Team ID、类型、设备数量和过期状态。"
+                            <TextBlock Text="Bundle、Team、有效期"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13"
                                        TextWrapping="Wrap"
                                        Margin="0,10,0,16" />
-                            <Button Content="导入描述文件"
+                            <Button Content="导入文件"
                                     Style="{StaticResource ActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     IsEnabled="False" />
@@ -437,7 +441,7 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="这里将展示 IPA 包名、版本、Build、Bundle ID、签名线索和上传前阻断项。"
+                            <TextBlock Text="版本、签名、阻断项"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13"
                                        TextWrapping="Wrap"
@@ -457,7 +461,7 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="上传页会在检查通过后显示 Transporter 阶段、进度、速度和可复制的脱敏日志。"
+                            <TextBlock Text="进度、日志、结果"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13"
                                        TextWrapping="Wrap"
@@ -477,12 +481,12 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="这里将集中管理证书项目、私钥位置、CSR、CER、P12、描述文件、备份和操作历史。"
+                            <TextBlock Text="项目、备份、历史"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13"
                                        TextWrapping="Wrap"
                                        Margin="0,10,0,16" />
-                            <Button Content="打开资产目录"
+                            <Button Content="打开目录"
                                     Style="{StaticResource ActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     IsEnabled="False" />
@@ -497,12 +501,12 @@
                                        Foreground="{StaticResource TextBrush}"
                                        FontSize="18"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="这里将配置 App Store Connect API Key、应用专用密码、Transporter 路径、日志脱敏和本地存储策略。"
+                            <TextBlock Text="凭据、路径、隐私"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        FontSize="13"
                                        TextWrapping="Wrap"
                                        Margin="0,10,0,16" />
-                            <Button Content="配置连接"
+                            <Button Content="配置"
                                     Style="{StaticResource ActionButtonStyle}"
                                     HorizontalAlignment="Left"
                                     IsEnabled="False" />

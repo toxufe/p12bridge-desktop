@@ -13,13 +13,13 @@ public partial class MainWindow : Window
 
         _pages = new Dictionary<string, PageDefinition>
         {
-            ["Dashboard"] = new("工作台", "证书、描述文件、IPA 检查和上传流程总览", DashboardPage),
-            ["Certificate"] = new("制作证书", "本地生成私钥、CSR，导入 CER 后导出 P12", CertificatePage),
-            ["Profiles"] = new("描述文件", "导入和校验 mobileprovision 的关键信息", ProfilesPage),
-            ["IpaCheck"] = new("IPA 检查", "读取 IPA 元数据并执行上传前校验", IpaCheckPage),
-            ["Upload"] = new("IPA 上传", "通过隔离的上传适配器提交到 App Store Connect", UploadPage),
-            ["Assets"] = new("资产库", "集中管理本地证书项目、描述文件、备份和历史记录", AssetsPage),
-            ["Settings"] = new("设置", "配置 API Key、应用专用密码、Transporter 路径和隐私策略", SettingsPage),
+            ["Dashboard"] = new("工作台", "证书到上传总览", DashboardPage),
+            ["Certificate"] = new("制作证书", "私钥、CSR、P12", CertificatePage),
+            ["Profiles"] = new("描述文件", "Bundle、Team、有效期", ProfilesPage),
+            ["IpaCheck"] = new("IPA 检查", "版本、签名、阻断项", IpaCheckPage),
+            ["Upload"] = new("IPA 上传", "进度、日志、结果", UploadPage),
+            ["Assets"] = new("资产库", "项目、备份、历史", AssetsPage),
+            ["Settings"] = new("设置", "凭据、路径、隐私", SettingsPage),
         };
 
         ShowPage("Dashboard");
