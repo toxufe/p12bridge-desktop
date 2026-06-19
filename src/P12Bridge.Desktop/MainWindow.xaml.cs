@@ -14,8 +14,13 @@ public partial class MainWindow : Window
     private readonly ICertificateProjectService certificateProjectService;
     private readonly IProvisioningProfileImportService profileImportService;
     private readonly IIpaImportService ipaImportService;
+    private readonly IUploadReadinessEvaluator uploadReadinessEvaluator;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
+    private ProvisioningProfile? lastImportedProfile;
+    private string lastImportedProfilePath = string.Empty;
+    private IpaMetadata? lastIpaMetadata;
+    private string lastIpaImportedPath = string.Empty;
 
     public MainWindow()
     {
@@ -29,6 +34,7 @@ public partial class MainWindow : Window
             new SystemClock());
         ipaImportService = new IpaImportService(
             new IpaInspector());
+        uploadReadinessEvaluator = new UploadReadinessEvaluator();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -36,7 +42,7 @@ public partial class MainWindow : Window
             ["Certificate"] = new("制作证书", "私钥、CSR、P12", CertificatePage),
             ["Profiles"] = new("描述文件", "Bundle、Team、有效期", ProfilesPage),
             ["IpaCheck"] = new("IPA 检查", "版本、签名、阻断项", IpaCheckPage),
-            ["Upload"] = new("IPA 上传", "进度、日志、结果", UploadPage),
+            ["Upload"] = new("IPA 上传", "上传前检查", UploadPage),
             ["Assets"] = new("资产库", "项目、备份、历史", AssetsPage),
             ["Settings"] = new("设置", "凭据、路径、隐私", SettingsPage),
         };
@@ -93,6 +99,11 @@ public partial class MainWindow : Window
             page.Content.Visibility = ReferenceEquals(page.Content, selectedPage.Content)
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+        }
+
+        if (pageKey == "Upload")
+        {
+            EvaluateUploadReadiness();
         }
     }
 
@@ -214,7 +225,11 @@ public partial class MainWindow : Window
         if (result.Profile is not null)
         {
             ShowProfile(result.Profile, result.ImportedPath);
+            lastImportedProfile = result.Profile;
+            lastImportedProfilePath = result.ImportedPath;
         }
+
+        RefreshUploadInputs();
 
         if (!result.IsSuccess)
         {
@@ -251,7 +266,11 @@ public partial class MainWindow : Window
         if (result.Metadata is not null)
         {
             ShowIpa(result.Metadata, result.ImportedPath);
+            lastIpaMetadata = result.Metadata;
+            lastIpaImportedPath = result.ImportedPath;
         }
+
+        RefreshUploadInputs();
 
         if (!result.IsSuccess)
         {
@@ -260,6 +279,35 @@ public partial class MainWindow : Window
         }
 
         SetIpaStatus("检查通过", isSuccess: true);
+    }
+
+    private void OnCheckUploadReadinessClick(object sender, RoutedEventArgs e)
+    {
+        EvaluateUploadReadiness();
+    }
+
+    private void OnUploadGoIpaClick(object sender, RoutedEventArgs e)
+    {
+        SelectNavigation("IpaCheck");
+        ShowPage("IpaCheck");
+    }
+
+    private void OnUploadGoProfileClick(object sender, RoutedEventArgs e)
+    {
+        SelectNavigation("Profiles");
+        ShowPage("Profiles");
+    }
+
+    private void EvaluateUploadReadiness()
+    {
+        RefreshUploadInputs();
+
+        var result = uploadReadinessEvaluator.Evaluate(new UploadReadinessRequest(
+            UploadTarget.AppStore,
+            lastIpaMetadata,
+            lastImportedProfile));
+
+        ShowUploadReadiness(result);
     }
 
     private void ClearCertificateResult()
@@ -277,6 +325,8 @@ public partial class MainWindow : Window
 
     private void ClearProfileResult()
     {
+        lastImportedProfile = null;
+        lastImportedProfilePath = string.Empty;
         ProfileNameTextBox.Text = string.Empty;
         ProfileTypeTextBox.Text = string.Empty;
         ProfileParsedStatusTextBox.Text = string.Empty;
@@ -287,10 +337,13 @@ public partial class MainWindow : Window
         ProfileExpirationTextBox.Text = string.Empty;
         ProfileImportedPathTextBox.Text = string.Empty;
         ProfileStatusText.Text = string.Empty;
+        RefreshUploadInputs();
     }
 
     private void ClearIpaResult()
     {
+        lastIpaMetadata = null;
+        lastIpaImportedPath = string.Empty;
         IpaBundleIdTextBox.Text = string.Empty;
         IpaVersionTextBox.Text = string.Empty;
         IpaBuildTextBox.Text = string.Empty;
@@ -300,6 +353,7 @@ public partial class MainWindow : Window
         IpaAppBundlePathTextBox.Text = string.Empty;
         IpaImportedPathTextBox.Text = string.Empty;
         IpaStatusText.Text = string.Empty;
+        RefreshUploadInputs();
     }
 
     private void ShowProfile(ProvisioningProfile profile, string importedPath)
@@ -325,6 +379,88 @@ public partial class MainWindow : Window
         IpaEmbeddedProfileTextBox.Text = FormatEmbeddedProfile(metadata);
         IpaAppBundlePathTextBox.Text = metadata.AppBundlePath;
         IpaImportedPathTextBox.Text = importedPath;
+    }
+
+    private void RefreshUploadInputs()
+    {
+        UploadIpaTextBox.Text = FormatUploadIpa(lastIpaMetadata, lastIpaImportedPath);
+        UploadProfileTextBox.Text = FormatUploadProfile(lastImportedProfile, lastImportedProfilePath);
+    }
+
+    private void ShowUploadReadiness(UploadReadinessResult result)
+    {
+        UploadStatusText.Text = FormatUploadStatus(result.Status);
+        UploadStatusText.Foreground = GetUploadStatusBrush(result.Status);
+        UploadChecksPanel.Children.Clear();
+
+        foreach (UploadReadinessCheck check in result.Checks)
+        {
+            UploadChecksPanel.Children.Add(CreateUploadCheckRow(check));
+        }
+    }
+
+    private FrameworkElement CreateUploadCheckRow(UploadReadinessCheck check)
+    {
+        var row = new Grid
+        {
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(96) });
+
+        var statusPill = new Border
+        {
+            Background = GetUploadCheckBrush(check.Status),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(8, 3, 8, 3),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = FormatUploadCheckStatus(check.Status),
+                Foreground = Brushes.White,
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold
+            }
+        };
+        Grid.SetColumn(statusPill, 0);
+
+        var nameText = new TextBlock
+        {
+            Text = FormatUploadCheckName(check.Code),
+            Foreground = (Brush)FindResource("TextBrush"),
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        };
+        Grid.SetColumn(nameText, 1);
+
+        var actionText = new TextBlock
+        {
+            Text = FormatUploadCheckAction(check),
+            Foreground = (Brush)FindResource("MutedTextBrush"),
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        };
+        Grid.SetColumn(actionText, 2);
+
+        row.Children.Add(statusPill);
+        row.Children.Add(nameText);
+        row.Children.Add(actionText);
+
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+            BorderBrush = (Brush)FindResource("BorderBrushSoft"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = row
+        };
     }
 
     private SigningPurpose ReadSelectedPurpose() =>
@@ -473,8 +609,122 @@ public partial class MainWindow : Window
         return $"{FormatProfileType(metadata.EmbeddedProvisioningProfile.Type)} / {FormatProfileStatus(metadata.EmbeddedProvisioningProfile.Status)}";
     }
 
+    private static string FormatUploadIpa(IpaMetadata? metadata, string importedPath)
+    {
+        if (metadata is null)
+        {
+            return "未检查";
+        }
+
+        var bundle = NonEmpty(metadata.BundleIdentifier, "Bundle 缺失");
+        var version = NonEmpty(metadata.ShortVersion, "版本缺失");
+        var build = NonEmpty(metadata.BuildVersion, "Build 缺失");
+        var path = string.IsNullOrWhiteSpace(importedPath) ? string.Empty : $" / {Path.GetFileName(importedPath)}";
+        return $"{bundle} / {version} ({build}){path}";
+    }
+
+    private static string FormatUploadProfile(ProvisioningProfile? profile, string importedPath)
+    {
+        if (profile is null)
+        {
+            return "未导入";
+        }
+
+        var path = string.IsNullOrWhiteSpace(importedPath) ? string.Empty : $" / {Path.GetFileName(importedPath)}";
+        return $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier}{path}";
+    }
+
+    private string FormatUploadStatus(UploadReadinessStatus status) =>
+        status switch
+        {
+            UploadReadinessStatus.Ready => "可上传",
+            UploadReadinessStatus.ReadyWithWarnings => "有警告",
+            UploadReadinessStatus.Blocked => "已阻断",
+            _ => "未检查"
+        };
+
+    private Brush GetUploadStatusBrush(UploadReadinessStatus status) =>
+        status switch
+        {
+            UploadReadinessStatus.Ready => (Brush)FindResource("SuccessBrush"),
+            UploadReadinessStatus.ReadyWithWarnings => (Brush)FindResource("WarningBrush"),
+            UploadReadinessStatus.Blocked => (Brush)FindResource("DangerBrush"),
+            _ => (Brush)FindResource("MutedTextBrush")
+        };
+
+    private Brush GetUploadCheckBrush(UploadReadinessCheckStatus status) =>
+        status switch
+        {
+            UploadReadinessCheckStatus.Passed => (Brush)FindResource("SuccessBrush"),
+            UploadReadinessCheckStatus.Warning => (Brush)FindResource("WarningBrush"),
+            UploadReadinessCheckStatus.Blocked => (Brush)FindResource("DangerBrush"),
+            _ => (Brush)FindResource("MutedTextBrush")
+        };
+
+    private static string FormatUploadCheckStatus(UploadReadinessCheckStatus status) =>
+        status switch
+        {
+            UploadReadinessCheckStatus.Passed => "通过",
+            UploadReadinessCheckStatus.Warning => "警告",
+            UploadReadinessCheckStatus.Blocked => "阻断",
+            _ => "未知"
+        };
+
+    private static string FormatUploadCheckName(string code) =>
+        code switch
+        {
+            UploadReadinessErrorCodes.AppStoreTargetSupported => "目标",
+            UploadReadinessErrorCodes.IpaMetadataMissing => "IPA",
+            UploadReadinessErrorCodes.IpaBundleIdMissing => "Bundle",
+            UploadReadinessErrorCodes.IpaVersionMissing => "版本",
+            UploadReadinessErrorCodes.IpaBuildMissing => "Build",
+            UploadReadinessErrorCodes.IpaSignatureMarkerMissing => "代码签名",
+            UploadReadinessErrorCodes.EmbeddedProfileMissing => "嵌入描述",
+            UploadReadinessErrorCodes.EmbeddedProfileExpired => "嵌入有效期",
+            UploadReadinessErrorCodes.EmbeddedProfileTypeInvalid => "嵌入类型",
+            UploadReadinessErrorCodes.EmbeddedProfileBundleIdMismatch => "嵌入 Bundle",
+            UploadReadinessErrorCodes.ImportedProfileMissing => "描述文件",
+            UploadReadinessErrorCodes.ImportedProfileExpired => "导入有效期",
+            UploadReadinessErrorCodes.ImportedProfileTypeInvalid => "导入类型",
+            UploadReadinessErrorCodes.ImportedProfileBundleIdMismatch => "导入 Bundle",
+            UploadReadinessErrorCodes.ImportedProfileTeamIdMismatch => "Team",
+            UploadReadinessErrorCodes.ImportedProfileUuidMismatch => "UUID",
+            _ => "检查项"
+        };
+
+    private static string FormatUploadCheckAction(UploadReadinessCheck check)
+    {
+        if (check.Status == UploadReadinessCheckStatus.Passed)
+        {
+            return check.Code == UploadReadinessErrorCodes.AppStoreTargetSupported ? "支持" : "正常";
+        }
+
+        return check.Code switch
+        {
+            UploadReadinessErrorCodes.IpaMetadataMissing => "检查 IPA",
+            UploadReadinessErrorCodes.IpaBundleIdMissing => "重打包",
+            UploadReadinessErrorCodes.IpaVersionMissing => "重打包",
+            UploadReadinessErrorCodes.IpaBuildMissing => "重打包",
+            UploadReadinessErrorCodes.IpaSignatureMarkerMissing => "重签名",
+            UploadReadinessErrorCodes.EmbeddedProfileMissing => "重签名",
+            UploadReadinessErrorCodes.EmbeddedProfileExpired => "更新描述",
+            UploadReadinessErrorCodes.EmbeddedProfileTypeInvalid => "换描述",
+            UploadReadinessErrorCodes.EmbeddedProfileBundleIdMismatch => "匹配 Bundle",
+            UploadReadinessErrorCodes.ImportedProfileMissing => "导入描述",
+            UploadReadinessErrorCodes.ImportedProfileExpired => "更新描述",
+            UploadReadinessErrorCodes.ImportedProfileTypeInvalid => "换描述",
+            UploadReadinessErrorCodes.ImportedProfileBundleIdMismatch => "匹配 Bundle",
+            UploadReadinessErrorCodes.ImportedProfileTeamIdMismatch => "匹配 Team",
+            UploadReadinessErrorCodes.ImportedProfileUuidMismatch => "可继续",
+            _ => "处理"
+        };
+    }
+
     private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
         status == ProvisioningProfileStatus.Active ? "有效" : "过期";
+
+    private static string NonEmpty(string value, string fallback) =>
+        string.IsNullOrWhiteSpace(value) ? fallback : value;
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent)
         where T : DependencyObject

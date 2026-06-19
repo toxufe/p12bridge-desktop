@@ -21,6 +21,7 @@
         <SolidColorBrush x:Key="MutedTextBrush" Color="#637083" />
         <SolidColorBrush x:Key="SuccessBrush" Color="#16835D" />
         <SolidColorBrush x:Key="WarningBrush" Color="#986A00" />
+        <SolidColorBrush x:Key="DangerBrush" Color="#B42318" />
         <SolidColorBrush x:Key="SidebarBrush" Color="#101827" />
         <SolidColorBrush x:Key="SidebarMutedBrush" Color="#AAB4C3" />
 
@@ -325,7 +326,7 @@
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="上传构建包"
+                                    <TextBlock Text="上传前检查"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -802,23 +803,68 @@
                 </Grid>
 
                 <Grid x:Name="UploadPage" Style="{StaticResource ModulePageStyle}">
-                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
-                        <StackPanel>
-                            <TextBlock Text="IPA 上传"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="18"
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="进度、日志、结果"
-                                       Foreground="{StaticResource MutedTextBrush}"
-                                       FontSize="13"
-                                       TextWrapping="Wrap"
-                                       Margin="0,10,0,16" />
-                            <Button Content="准备上传"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="False" />
-                        </StackPanel>
-                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.95*" />
+                                <ColumnDefinition Width="1.25*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="上传准备"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="目标" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <TextBox Text="App Store"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="IPA" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="UploadIpaTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="描述文件" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="UploadProfileTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="状态" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBlock x:Name="UploadStatusText"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Content="检查"
+                                                Click="OnCheckUploadReadinessClick"
+                                                Style="{StaticResource ActionButtonStyle}" />
+                                        <Button Content="IPA"
+                                                Click="OnUploadGoIpaClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0" />
+                                        <Button Content="描述"
+                                                Click="OnUploadGoProfileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="检查项"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+                                    <StackPanel x:Name="UploadChecksPanel" Margin="0,12,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
 
                 <Grid x:Name="AssetsPage" Style="{StaticResource ModulePageStyle}">
