@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private readonly IUploadService uploadService;
     private readonly IAppleDeveloperAuthService appleDeveloperAuthService;
     private readonly IAppStoreConnectAppLookupService appStoreConnectAppLookupService;
+    private readonly IAppStoreConnectBuildLookupService appStoreConnectBuildLookupService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
     private UploadExecutionMode activeUploadExecutionMode = UploadExecutionMode.Verify;
     private bool isAppleApiConnectionChecking;
     private bool isAppStoreAppLookupRunning;
+    private bool isAppStoreBuildLookupRunning;
 
     public MainWindow()
     {
@@ -52,6 +54,7 @@ public partial class MainWindow : Window
         uploadService = new TransporterUploadService();
         appleDeveloperAuthService = new AppleDeveloperAuthService();
         appStoreConnectAppLookupService = new AppStoreConnectAppLookupService();
+        appStoreConnectBuildLookupService = new AppStoreConnectBuildLookupService();
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
@@ -649,6 +652,47 @@ public partial class MainWindow : Window
         finally
         {
             SetAppStoreAppLookupRunning(false);
+        }
+    }
+
+    private async void OnLookupAppStoreBuildsClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreBuildLookupRunning)
+        {
+            return;
+        }
+
+        SetAppStoreBuildLookupRunning(true);
+        ClearAppStoreBuildLookupResult();
+        SetAppStoreBuildLookupStatus("查询中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectBuildLookupRequest(
+                credential,
+                IpaBundleIdTextBox.Text);
+
+            var result = await appStoreConnectBuildLookupService.LookupByBundleIdAsync(request);
+            ShowAppStoreBuildLookupResult(result);
+            RecordHistory(
+                "构建查询",
+                result.IsSuccess
+                    ? OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                result.IsSuccess
+                    ? FormatAppStoreBuildLookupSummary(result)
+                    : "查询失败",
+                result.IsSuccess
+                    ? FormatAppStoreBuildLookupDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreBuildLookupRunning(false);
         }
     }
 
@@ -1340,6 +1384,7 @@ public partial class MainWindow : Window
         SetAppStoreAppLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
         AppStoreAppLookupResultTextBox.Text = string.Empty;
         AppStoreAppLookupIssuesPanel.Children.Clear();
+        ClearAppStoreBuildLookupResult();
     }
 
     private void SetAppStoreAppLookupStatus(string status, Brush foreground)
@@ -1381,6 +1426,61 @@ public partial class MainWindow : Window
     {
         isAppStoreAppLookupRunning = isRunning;
         LookupAppStoreAppButton.IsEnabled = !isRunning;
+    }
+
+    private void ClearAppStoreBuildLookupResult()
+    {
+        SetAppStoreBuildLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
+        AppStoreBuildLookupResultTextBox.Text = string.Empty;
+        AppStoreBuildLookupIssuesPanel.Children.Clear();
+    }
+
+    private void SetAppStoreBuildLookupStatus(string status, Brush foreground)
+    {
+        AppStoreBuildLookupStatusText.Text = status;
+        AppStoreBuildLookupStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppStoreBuildLookupResult(AppStoreConnectBuildLookupResult result)
+    {
+        AppStoreBuildLookupIssuesPanel.Children.Clear();
+        AppStoreBuildLookupResultTextBox.Text = FormatAppStoreBuildLookupDetail(result);
+
+        if (result.IsSuccess && result.HasBuilds)
+        {
+            SetAppStoreBuildLookupStatus("已找到", (Brush)FindResource("SuccessBrush"));
+            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow("构建", $"{result.Builds.Count} 个", true));
+            return;
+        }
+
+        if (result.IsSuccess && !result.IsAppFound)
+        {
+            SetAppStoreBuildLookupStatus("App 未找到", (Brush)FindResource("WarningBrush"));
+            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow("App", "未找到", false));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetAppStoreBuildLookupStatus("无构建", (Brush)FindResource("WarningBrush"));
+            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow("构建", "无", false));
+            return;
+        }
+
+        SetAppStoreBuildLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreBuildLookupIssueName(issue.Code),
+                FormatAppStoreBuildLookupIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppStoreBuildLookupRunning(bool isRunning)
+    {
+        isAppStoreBuildLookupRunning = isRunning;
+        LookupAppStoreBuildsButton.IsEnabled = !isRunning;
     }
 
     private void ShowUploadEnvironment(UploadEnvironmentValidationResult result)
@@ -2255,6 +2355,84 @@ public partial class MainWindow : Window
 
         return string.Join(Environment.NewLine, parts);
     }
+
+    private static string FormatAppStoreBuildLookupIssueName(string code) =>
+        code switch
+        {
+            AppStoreConnectBuildLookupErrorCodes.ResponseMalformed => "响应",
+            _ => FormatAppStoreAppLookupIssueName(code)
+        };
+
+    private static string FormatAppStoreBuildLookupIssueAction(string code) =>
+        code switch
+        {
+            AppStoreConnectBuildLookupErrorCodes.ResponseMalformed => "重试",
+            _ => FormatAppStoreAppLookupIssueAction(code)
+        };
+
+    private static string FormatAppStoreBuildLookupSummary(AppStoreConnectBuildLookupResult result)
+    {
+        if (!result.IsAppFound)
+        {
+            return "App 未找到";
+        }
+
+        return result.HasBuilds ? "已找到" : "无构建";
+    }
+
+    private static string FormatAppStoreBuildLookupDetail(AppStoreConnectBuildLookupResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return FormatIssueDetail(result.Issues);
+        }
+
+        if (result.App is null)
+        {
+            return "App 未找到";
+        }
+
+        if (result.Builds.Count == 0)
+        {
+            return "无构建";
+        }
+
+        return string.Join(
+            $"{Environment.NewLine}{Environment.NewLine}",
+            result.Builds.Select(FormatAppStoreBuild));
+    }
+
+    private static string FormatAppStoreBuild(AppStoreConnectBuild build)
+    {
+        var parts = new List<string>
+        {
+            $"版本: {build.Version}",
+            $"状态: {FormatBuildProcessingState(build.ProcessingState)}",
+            $"构建 ID: {build.Id}"
+        };
+
+        if (build.UploadedDate is not null)
+        {
+            parts.Add($"上传: {build.UploadedDate.Value.ToLocalTime():yyyy-MM-dd HH:mm}");
+        }
+
+        if (build.Expired is not null)
+        {
+            parts.Add($"过期: {(build.Expired.Value ? "是" : "否")}");
+        }
+
+        return string.Join(Environment.NewLine, parts);
+    }
+
+    private static string FormatBuildProcessingState(string state) =>
+        state switch
+        {
+            "VALID" => "有效",
+            "PROCESSING" => "处理中",
+            "FAILED" => "失败",
+            "INVALID" => "无效",
+            _ => state
+        };
 
     private static bool IsUploadEnvironmentIssue(string code) =>
         code is UploadErrorCodes.TransporterPathMissing
