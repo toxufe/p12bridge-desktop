@@ -22,6 +22,7 @@ public partial class MainWindow : Window
     private readonly IAppStoreConnectBuildLookupService appStoreConnectBuildLookupService;
     private readonly IAppStoreConnectProfileLookupService appStoreConnectProfileLookupService;
     private readonly IAppStoreConnectCertificateLookupService appStoreConnectCertificateLookupService;
+    private readonly IAppStoreConnectDeviceLookupService appStoreConnectDeviceLookupService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
@@ -43,6 +44,7 @@ public partial class MainWindow : Window
     private bool isAppStoreBuildLookupRunning;
     private bool isAppStoreProfileLookupRunning;
     private bool isAppStoreCertificateLookupRunning;
+    private bool isAppStoreDeviceLookupRunning;
 
     public MainWindow()
     {
@@ -64,6 +66,7 @@ public partial class MainWindow : Window
         appStoreConnectBuildLookupService = new AppStoreConnectBuildLookupService();
         appStoreConnectProfileLookupService = new AppStoreConnectProfileLookupService();
         appStoreConnectCertificateLookupService = new AppStoreConnectCertificateLookupService();
+        appStoreConnectDeviceLookupService = new AppStoreConnectDeviceLookupService();
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
@@ -826,6 +829,45 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnLookupAppStoreDevicesClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreDeviceLookupRunning)
+        {
+            return;
+        }
+
+        SetAppStoreDeviceLookupRunning(true);
+        ClearAppStoreDeviceLookupResult();
+        SetAppStoreDeviceLookupStatus("查询中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectDeviceLookupRequest(credential);
+
+            var result = await appStoreConnectDeviceLookupService.LookupAsync(request);
+            ShowAppStoreDeviceLookupResult(result);
+            RecordHistory(
+                "设备查询",
+                result.IsSuccess
+                    ? OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                result.IsSuccess
+                    ? FormatAppStoreDeviceLookupSummary(result)
+                    : "查询失败",
+                result.IsSuccess
+                    ? FormatAppStoreDeviceLookupDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreDeviceLookupRunning(false);
+        }
+    }
+
     private async void OnRunUploadVerifyClick(object sender, RoutedEventArgs e)
     {
         await RunUploadTransporterAsync(UploadExecutionMode.Verify);
@@ -1471,6 +1513,7 @@ public partial class MainWindow : Window
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         AppleApiConnectionIssuesPanel.Children.Clear();
         ClearAppStoreCertificateLookupResult();
+        ClearAppStoreDeviceLookupResult();
         ClearAppStoreBundleIdLookupResult();
     }
 
@@ -1556,6 +1599,54 @@ public partial class MainWindow : Window
     {
         isAppStoreCertificateLookupRunning = isRunning;
         LookupAppStoreCertificatesButton.IsEnabled = !isRunning;
+    }
+
+    private void ClearAppStoreDeviceLookupResult()
+    {
+        SetAppStoreDeviceLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
+        AppStoreDeviceLookupResultTextBox.Text = string.Empty;
+        AppStoreDeviceLookupIssuesPanel.Children.Clear();
+    }
+
+    private void SetAppStoreDeviceLookupStatus(string status, Brush foreground)
+    {
+        AppStoreDeviceLookupStatusText.Text = status;
+        AppStoreDeviceLookupStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppStoreDeviceLookupResult(AppStoreConnectDeviceLookupResult result)
+    {
+        AppStoreDeviceLookupIssuesPanel.Children.Clear();
+        AppStoreDeviceLookupResultTextBox.Text = FormatAppStoreDeviceLookupDetail(result);
+
+        if (result.IsSuccess && result.HasDevices)
+        {
+            SetAppStoreDeviceLookupStatus("已找到", (Brush)FindResource("SuccessBrush"));
+            AppStoreDeviceLookupIssuesPanel.Children.Add(CreateUploadIssueRow("设备", $"{result.Devices.Count} 个", true));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetAppStoreDeviceLookupStatus("无设备", (Brush)FindResource("WarningBrush"));
+            AppStoreDeviceLookupIssuesPanel.Children.Add(CreateUploadIssueRow("设备", "无", false));
+            return;
+        }
+
+        SetAppStoreDeviceLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppStoreDeviceLookupIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreDeviceLookupIssueName(issue.Code),
+                FormatAppStoreDeviceLookupIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppStoreDeviceLookupRunning(bool isRunning)
+    {
+        isAppStoreDeviceLookupRunning = isRunning;
+        LookupAppStoreDevicesButton.IsEnabled = !isRunning;
     }
 
     private void ClearAppStoreBundleIdLookupResult()
@@ -2853,6 +2944,87 @@ public partial class MainWindow : Window
             "DISTRIBUTION" => "发布",
             "PASS_TYPE_ID" => "Pass",
             _ => type
+        };
+
+    private static string FormatAppStoreDeviceLookupIssueName(string code) =>
+        code switch
+        {
+            AppStoreConnectDeviceLookupErrorCodes.ResponseMalformed => "响应",
+            _ => FormatAppleAuthIssueName(code)
+        };
+
+    private static string FormatAppStoreDeviceLookupIssueAction(string code) =>
+        code switch
+        {
+            AppStoreConnectDeviceLookupErrorCodes.ResponseMalformed => "重试",
+            _ => FormatAppleAuthIssueAction(code)
+        };
+
+    private static string FormatAppStoreDeviceLookupSummary(AppStoreConnectDeviceLookupResult result) =>
+        result.HasDevices ? "已找到" : "无设备";
+
+    private static string FormatAppStoreDeviceLookupDetail(AppStoreConnectDeviceLookupResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return FormatIssueDetail(result.Issues);
+        }
+
+        if (result.Devices.Count == 0)
+        {
+            return "无设备";
+        }
+
+        return string.Join(
+            $"{Environment.NewLine}{Environment.NewLine}",
+            result.Devices.Select(FormatAppStoreDevice));
+    }
+
+    private static string FormatAppStoreDevice(AppStoreConnectDevice device)
+    {
+        var parts = new List<string>
+        {
+            $"名称: {NonEmpty(device.Name, device.Id)}",
+            $"UDID: {device.Udid}",
+            $"平台: {FormatBundlePlatform(device.Platform)}",
+            $"状态: {FormatDeviceStatus(device.Status)}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(device.DeviceClass))
+        {
+            parts.Add($"类型: {FormatDeviceClass(device.DeviceClass)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(device.Model))
+        {
+            parts.Add($"型号: {device.Model}");
+        }
+
+        if (device.AddedDate is not null)
+        {
+            parts.Add($"添加: {device.AddedDate.Value.ToLocalTime():yyyy-MM-dd}");
+        }
+
+        return string.Join(Environment.NewLine, parts);
+    }
+
+    private static string FormatDeviceClass(string deviceClass) =>
+        deviceClass switch
+        {
+            "IPHONE" => "iPhone",
+            "IPAD" => "iPad",
+            "IPOD" => "iPod",
+            "APPLE_WATCH" => "Watch",
+            "APPLE_TV" => "TV",
+            _ => deviceClass
+        };
+
+    private static string FormatDeviceStatus(string status) =>
+        status switch
+        {
+            "ENABLED" => "启用",
+            "DISABLED" => "停用",
+            _ => status
         };
 
     private static string FormatAppStoreProfileLookupIssueName(string code) =>
