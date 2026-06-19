@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private readonly IUploadReadinessEvaluator uploadReadinessEvaluator;
     private readonly IUploadService uploadService;
     private readonly IAppleDeveloperAuthService appleDeveloperAuthService;
+    private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
@@ -44,6 +45,7 @@ public partial class MainWindow : Window
         uploadReadinessEvaluator = new UploadReadinessEvaluator();
         uploadService = new TransporterUploadService();
         appleDeveloperAuthService = new AppleDeveloperAuthService();
+        localAssetLibraryService = new LocalAssetLibraryService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -120,6 +122,11 @@ public partial class MainWindow : Window
         {
             RefreshUploadSettingsInputs();
             RefreshUploadEnvironmentStatus();
+        }
+
+        if (pageKey == "Assets")
+        {
+            RefreshAssets();
         }
     }
 
@@ -324,6 +331,38 @@ public partial class MainWindow : Window
     {
         SelectNavigation("IpaCheck");
         ShowPage("IpaCheck");
+    }
+
+    private void OnRefreshAssetsClick(object sender, RoutedEventArgs e)
+    {
+        RefreshAssets();
+    }
+
+    private void OnOpenSelectedAssetClick(object sender, RoutedEventArgs e)
+    {
+        if (AssetListBox.SelectedItem is not AssetListItem selectedAsset)
+        {
+            AssetStatusText.Text = "未选择";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            return;
+        }
+
+        var directory = selectedAsset.Type == LocalAssetType.CertificateProject
+            ? selectedAsset.Path
+            : Path.GetDirectoryName(selectedAsset.Path);
+
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+        {
+            AssetStatusText.Text = "目录不存在";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = directory,
+            UseShellExecute = true
+        });
     }
 
     private void OnSelectTransporterClick(object sender, RoutedEventArgs e)
@@ -589,6 +628,27 @@ public partial class MainWindow : Window
         UploadProfileTextBox.Text = FormatUploadProfile(lastImportedProfile, lastImportedProfilePath);
         RefreshUploadSettingsInputs();
         RefreshUploadEnvironmentStatus();
+    }
+
+    private void RefreshAssets()
+    {
+        if (AssetListBox is null)
+        {
+            return;
+        }
+
+        var result = localAssetLibraryService.Scan(new LocalAssetLibraryRequest(
+            CertificateBaseDirectoryTextBox.Text,
+            ProfileBaseDirectoryTextBox.Text,
+            IpaBaseDirectoryTextBox.Text));
+        var items = result.Items.Select(AssetListItem.FromAsset).ToArray();
+
+        AssetListBox.ItemsSource = items;
+        AssetCountsText.Text = FormatAssetCounts(result.Items);
+        AssetStatusText.Text = result.Issues.Count == 0 ? "已刷新" : "部分失败";
+        AssetStatusText.Foreground = result.Issues.Count == 0
+            ? (Brush)FindResource("SuccessBrush")
+            : (Brush)FindResource("WarningBrush");
     }
 
     private void RefreshUploadSettingsInputs()
@@ -1145,6 +1205,24 @@ public partial class MainWindow : Window
         return $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier}{path}";
     }
 
+    private static string FormatAssetCounts(IReadOnlyList<LocalAssetItem> items)
+    {
+        var certificateCount = items.Count(item => item.Type == LocalAssetType.CertificateProject);
+        var profileCount = items.Count(item => item.Type == LocalAssetType.ProvisioningProfile);
+        var ipaCount = items.Count(item => item.Type == LocalAssetType.Ipa);
+
+        return $"证书 {certificateCount} / 描述 {profileCount} / IPA {ipaCount}";
+    }
+
+    private static string FormatLocalAssetType(LocalAssetType type) =>
+        type switch
+        {
+            LocalAssetType.CertificateProject => "证书",
+            LocalAssetType.ProvisioningProfile => "描述",
+            LocalAssetType.Ipa => "IPA",
+            _ => "资产"
+        };
+
     private static string FormatUploadActionName(UploadExecutionMode executionMode) =>
         executionMode == UploadExecutionMode.Upload ? "上传" : "校验";
 
@@ -1375,4 +1453,20 @@ public partial class MainWindow : Window
     }
 
     private sealed record PageDefinition(string Title, string Subtitle, FrameworkElement Content);
+
+    private sealed record AssetListItem(
+        LocalAssetType Type,
+        string TypeText,
+        string Name,
+        string Path,
+        string ModifiedText)
+    {
+        public static AssetListItem FromAsset(LocalAssetItem item) =>
+            new(
+                item.Type,
+                FormatLocalAssetType(item.Type),
+                item.Name,
+                item.Path,
+                item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+    }
 }
