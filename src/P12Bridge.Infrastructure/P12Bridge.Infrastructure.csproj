@@ -4,6 +4,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
     <ProjectReference Include="..\P12Bridge.Core\P12Bridge.Core.csproj" />
   </ItemGroup>
 </Project>

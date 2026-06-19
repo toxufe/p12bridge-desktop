@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
+    private readonly IUploadSettingsService uploadSettingsService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
@@ -50,6 +51,7 @@ public partial class MainWindow : Window
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
+        uploadSettingsService = new JsonUploadSettingsService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -76,6 +78,7 @@ public partial class MainWindow : Window
             "P12Bridge",
             "IPAs");
 
+        LoadUploadSettings();
         ShowPage("Dashboard");
     }
 
@@ -564,6 +567,16 @@ public partial class MainWindow : Window
         ValidateUploadEnvironment();
     }
 
+    private void OnSaveUploadSettingsClick(object sender, RoutedEventArgs e)
+    {
+        SaveUploadSettings();
+    }
+
+    private void OnClearUploadSettingsClick(object sender, RoutedEventArgs e)
+    {
+        ClearUploadSettings();
+    }
+
     private async void OnCheckAppleApiConnectionClick(object sender, RoutedEventArgs e)
     {
         if (isAppleApiConnectionChecking)
@@ -878,6 +891,110 @@ public partial class MainWindow : Window
         SetCredentialPanelsVisibility();
     }
 
+    private void LoadUploadSettings()
+    {
+        var result = uploadSettingsService.Load();
+        ApplyUploadSettings(result.Settings);
+
+        if (result.Issues.Count > 0)
+        {
+            SetUploadSettingsStatus("加载异常", (Brush)FindResource("WarningBrush"));
+            RecordHistory("加载设置", OperationHistoryStatus.Warning, "加载异常", FormatIssueDetail(result.Issues));
+            return;
+        }
+
+        if (IsEmptyUploadSettings(result.Settings))
+        {
+            SetUploadSettingsStatus("未保存", (Brush)FindResource("MutedTextBrush"));
+            RecordHistory("加载设置", OperationHistoryStatus.Warning, "未保存");
+            return;
+        }
+
+        SetUploadSettingsStatus("已加载", (Brush)FindResource("MutedTextBrush"));
+        RecordHistory("加载设置", OperationHistoryStatus.Success, "已加载", FormatUploadSettingsDetail(result.Settings));
+    }
+
+    private void SaveUploadSettings()
+    {
+        RefreshUploadSettingsInputs();
+
+        var settings = ReadUploadSettings();
+        var result = uploadSettingsService.Save(settings);
+        if (!result.IsSuccess)
+        {
+            SetUploadSettingsStatus("保存失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("保存设置", OperationHistoryStatus.Failed, "保存失败", FormatIssueDetail(result.Issues));
+            return;
+        }
+
+        SetUploadSettingsStatus("已保存", (Brush)FindResource("SuccessBrush"));
+        RecordHistory("保存设置", OperationHistoryStatus.Success, "已保存", FormatUploadSettingsDetail(settings));
+    }
+
+    private void ClearUploadSettings()
+    {
+        var result = uploadSettingsService.Clear();
+        if (!result.IsSuccess)
+        {
+            SetUploadSettingsStatus("清除失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("清除设置", OperationHistoryStatus.Failed, "清除失败", FormatIssueDetail(result.Issues));
+            return;
+        }
+
+        ApplyUploadSettings(new UploadSettings());
+        lastUploadEnvironmentValidation = null;
+        RefreshUploadEnvironmentStatus();
+        SetUploadSettingsStatus("已清除", (Brush)FindResource("SuccessBrush"));
+        RecordHistory("清除设置", OperationHistoryStatus.Success, "已清除");
+    }
+
+    private UploadSettings ReadUploadSettings()
+    {
+        var mode = ReadUploadCredentialMode();
+
+        return new UploadSettings(
+            TransporterPathTextBox.Text,
+            lastIpaImportedPath,
+            UploadAssetDescriptionPathTextBox.Text,
+            mode,
+            UploadApiKeyIdTextBox.Text,
+            UploadIssuerIdTextBox.Text,
+            AppleApiPrivateKeyPathTextBox.Text,
+            UploadAppleAccountTextBox.Text,
+            SaveSensitiveValuesCheckBox.IsChecked == true,
+            UploadJwtPasswordBox.Password,
+            UploadAppSpecificPasswordBox.Password);
+    }
+
+    private void ApplyUploadSettings(UploadSettings settings)
+    {
+        TransporterPathTextBox.Text = settings.TransporterExecutablePath;
+        UploadAssetDescriptionPathTextBox.Text = settings.AssetDescriptionPath;
+        UploadApiKeyIdTextBox.Text = settings.ApiKeyId;
+        UploadIssuerIdTextBox.Text = settings.IssuerId;
+        AppleApiPrivateKeyPathTextBox.Text = settings.PrivateKeyPath;
+        UploadAppleAccountTextBox.Text = settings.AppleAccount;
+        SaveSensitiveValuesCheckBox.IsChecked = settings.SaveSensitiveValues;
+        SetUploadCredentialMode(settings.CredentialMode);
+
+        UploadJwtPasswordBox.Password = settings.Jwt;
+        UploadAppSpecificPasswordBox.Password = settings.AppSpecificPassword;
+        lastIpaImportedPath = settings.PackagePath;
+        RefreshUploadSettingsInputs();
+        ClearAppleApiConnectionResult();
+    }
+
+    private void SetUploadSettingsStatus(string status, Brush foreground)
+    {
+        if (UploadSettingsStatusText is null)
+        {
+            return;
+        }
+
+        UploadSettingsStatusText.Text = status;
+        UploadSettingsStatusText.Foreground = foreground;
+    }
+
     private void RefreshUploadEnvironmentStatus()
     {
         if (UploadEnvironmentStatusText is null
@@ -1134,6 +1251,18 @@ public partial class MainWindow : Window
             2 => UploadCredentialMode.AppleIdAppPassword,
             _ => UploadCredentialMode.ApiKey
         };
+
+    private void SetUploadCredentialMode(UploadCredentialMode mode)
+    {
+        UploadCredentialModeComboBox.SelectedIndex = mode switch
+        {
+            UploadCredentialMode.Jwt => 1,
+            UploadCredentialMode.AppleIdAppPassword => 2,
+            _ => 0
+        };
+
+        SetCredentialPanelsVisibility();
+    }
 
     private void SetCredentialPanelsVisibility()
     {
@@ -1590,6 +1719,51 @@ public partial class MainWindow : Window
 
     private static string FormatUploadActionName(UploadExecutionMode executionMode) =>
         executionMode == UploadExecutionMode.Upload ? "上传" : "校验";
+
+    private static string FormatUploadSettingsDetail(UploadSettings settings)
+    {
+        var parts = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(settings.TransporterExecutablePath))
+        {
+            parts.Add($"Transporter: {settings.TransporterExecutablePath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.AssetDescriptionPath))
+        {
+            parts.Add($"AppStoreInfo: {settings.AssetDescriptionPath}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.PackagePath))
+        {
+            parts.Add($"IPA: {settings.PackagePath}");
+        }
+
+        parts.Add($"凭据: {FormatUploadCredentialMode(settings.CredentialMode)}");
+        parts.Add(settings.SaveSensitiveValues ? "敏感: 已保存" : "敏感: 未保存");
+        return string.Join(Environment.NewLine, parts);
+    }
+
+    private static string FormatUploadCredentialMode(UploadCredentialMode mode) =>
+        mode switch
+        {
+            UploadCredentialMode.Jwt => "JWT",
+            UploadCredentialMode.AppleIdAppPassword => "专用密码",
+            _ => "API Key"
+        };
+
+    private static bool IsEmptyUploadSettings(UploadSettings settings) =>
+        string.IsNullOrWhiteSpace(settings.TransporterExecutablePath)
+        && string.IsNullOrWhiteSpace(settings.PackagePath)
+        && string.IsNullOrWhiteSpace(settings.AssetDescriptionPath)
+        && string.IsNullOrWhiteSpace(settings.ApiKeyId)
+        && string.IsNullOrWhiteSpace(settings.IssuerId)
+        && string.IsNullOrWhiteSpace(settings.PrivateKeyPath)
+        && string.IsNullOrWhiteSpace(settings.AppleAccount)
+        && string.IsNullOrWhiteSpace(settings.Jwt)
+        && string.IsNullOrWhiteSpace(settings.AppSpecificPassword)
+        && settings.CredentialMode == UploadCredentialMode.ApiKey
+        && !settings.SaveSensitiveValues;
 
     private static string FormatUploadRunningStatus(UploadExecutionMode executionMode) =>
         executionMode == UploadExecutionMode.Upload ? "上传中" : "校验中";
