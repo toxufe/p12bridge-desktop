@@ -106,6 +106,29 @@
             <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
         </Style>
 
+        <Style x:Key="FieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,0,0,5" />
+        </Style>
+
+        <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="9,6" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Background" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="InputComboBoxStyle" TargetType="ComboBox">
+            <Setter Property="MinHeight" Value="34" />
+            <Setter Property="Padding" Value="8,5" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
         <Style x:Key="ModulePageStyle" TargetType="Grid">
             <Setter Property="Visibility" Value="Collapsed" />
         </Style>
@@ -395,23 +418,127 @@
                 </ScrollViewer>
 
                 <Grid x:Name="CertificatePage" Style="{StaticResource ModulePageStyle}">
-                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
-                        <StackPanel>
-                            <TextBlock Text="制作证书"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="18"
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="私钥、CSR、P12"
-                                       Foreground="{StaticResource MutedTextBrush}"
-                                       FontSize="13"
-                                       TextWrapping="Wrap"
-                                       Margin="0,10,0,16" />
-                            <Button Content="新建项目"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="False" />
-                        </StackPanel>
-                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1.25*" />
+                                <ColumnDefinition Width="0.9*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="新建证书"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <Grid Margin="0,16,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="12" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="0">
+                                            <TextBlock Text="项目名" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateProjectNameTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="0" Grid.Column="2">
+                                            <TextBlock Text="类型" Style="{StaticResource FieldLabelStyle}" />
+                                            <ComboBox x:Name="CertificatePurposeComboBox"
+                                                      Style="{StaticResource InputComboBoxStyle}"
+                                                      SelectedIndex="1">
+                                                <ComboBoxItem Content="开发" />
+                                                <ComboBoxItem Content="发布" />
+                                            </ComboBox>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,12,0,0">
+                                            <TextBlock Text="名称" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateCommonNameTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,12,0,0">
+                                            <TextBlock Text="邮箱" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateEmailTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,12,0,0">
+                                            <TextBlock Text="组织" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateOrganizationTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,12,0,0">
+                                            <TextBlock Text="国家" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateCountryTextBox"
+                                                     Text="CN"
+                                                     MaxLength="2"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                            <TextBlock Text="目录" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateBaseDirectoryTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+                                    </Grid>
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Content="生成"
+                                                Click="OnCreateCertificateProjectClick"
+                                                Style="{StaticResource ActionButtonStyle}" />
+                                        <Button x:Name="OpenCertificateProjectButton"
+                                                Content="打开"
+                                                Click="OnOpenCertificateProjectClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0"
+                                                IsEnabled="False" />
+                                    </StackPanel>
+
+                                    <TextBlock x:Name="CertificateStatusText"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               Margin="0,14,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="生成结果"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="项目目录" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <TextBox x:Name="CertificateProjectDirectoryTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="私钥" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="CertificatePrivateKeyPathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="CSR" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="CertificateCsrPathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
 
                 <Grid x:Name="ProfilesPage" Style="{StaticResource ModulePageStyle}">

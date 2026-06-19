@@ -12,4 +12,7 @@ public static class CertificateProofErrorCodes
     public const string EmptyP12Password = "P12_PASSWORD_EMPTY";
     public const string P12ExportFailed = "P12_EXPORT_FAILED";
     public const string CsrGenerationFailed = "CSR_GENERATION_FAILED";
+    public const string EmptyProjectName = "CERT_PROJECT_NAME_EMPTY";
+    public const string MissingProjectDirectory = "CERT_PROJECT_DIRECTORY_MISSING";
+    public const string ProjectCreateFailed = "CERT_PROJECT_CREATE_FAILED";
 }
