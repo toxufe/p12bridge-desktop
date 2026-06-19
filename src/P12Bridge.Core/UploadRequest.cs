@@ -9,4 +9,6 @@ public sealed record UploadRequest(
     string? ApiKeyId = null,
     string? IssuerId = null,
     string? Jwt = null,
+    string? AppleAccount = null,
+    string? AppSpecificPassword = null,
     TimeSpan? Timeout = null);

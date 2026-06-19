@@ -405,7 +405,7 @@
                                                FontSize="16"
                                                FontWeight="SemiBold" />
                                     <StackPanel Margin="0,12,0,16">
-                                        <TextBlock Text="不收主密码"
+                                        <TextBlock Text="本地凭据"
                                                    Foreground="{StaticResource MutedTextBrush}"
                                                    FontSize="13" />
                                         <TextBlock Text="凭据不自动保存"
@@ -1242,6 +1242,7 @@
                                               SelectionChanged="OnUploadCredentialModeChanged">
                                         <ComboBoxItem Content="API Key" Tag="ApiKey" />
                                         <ComboBoxItem Content="JWT" Tag="Jwt" />
+                                        <ComboBoxItem Content="专用密码" Tag="AppleIdAppPassword" />
                                     </ComboBox>
 
                                     <StackPanel x:Name="ApiKeyCredentialPanel">
@@ -1275,6 +1276,21 @@
                                     <StackPanel x:Name="JwtCredentialPanel" Visibility="Collapsed">
                                         <TextBlock Text="JWT" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
                                         <PasswordBox x:Name="UploadJwtPasswordBox"
+                                                     MinHeight="34"
+                                                     Padding="9,6"
+                                                     BorderBrush="{StaticResource BorderBrushSoft}"
+                                                     BorderThickness="1"
+                                                     PasswordChanged="OnUploadEnvironmentInputChanged" />
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="AppPasswordCredentialPanel" Visibility="Collapsed">
+                                        <TextBlock Text="Apple 账号" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadAppleAccountTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 TextChanged="OnUploadEnvironmentInputChanged" />
+
+                                        <TextBlock Text="专用密码" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <PasswordBox x:Name="UploadAppSpecificPasswordBox"
                                                      MinHeight="34"
                                                      Padding="9,6"
                                                      BorderBrush="{StaticResource BorderBrushSoft}"

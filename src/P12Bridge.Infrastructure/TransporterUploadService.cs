@@ -198,8 +198,17 @@ public sealed class TransporterUploadService : IUploadService
             return;
         }
 
-        arguments.Add("-jwt");
-        arguments.Add(request.Jwt ?? string.Empty);
+        if (request.CredentialMode == UploadCredentialMode.Jwt)
+        {
+            arguments.Add("-jwt");
+            arguments.Add(request.Jwt ?? string.Empty);
+            return;
+        }
+
+        arguments.Add("-u");
+        arguments.Add(request.AppleAccount ?? string.Empty);
+        arguments.Add("-p");
+        arguments.Add(request.AppSpecificPassword ?? string.Empty);
     }
 
     private static void AddAssetDescriptionIssues(List<ValidationIssue> issues, UploadRequest request)
@@ -239,16 +248,38 @@ public sealed class TransporterUploadService : IUploadService
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Jwt))
+        if (request.CredentialMode == UploadCredentialMode.Jwt)
         {
+            if (!string.IsNullOrWhiteSpace(request.Jwt))
+            {
+                return;
+            }
+
+            issues.Add(new ValidationIssue(
+                UploadErrorCodes.JwtMissing,
+                ValidationSeverity.Error,
+                "App Store Connect JWT is required.",
+                "Generate or configure a JWT before running Transporter verification."));
             return;
         }
 
-        issues.Add(new ValidationIssue(
-            UploadErrorCodes.JwtMissing,
-            ValidationSeverity.Error,
-            "App Store Connect JWT is required.",
-            "Generate or configure a JWT before running Transporter verification."));
+        if (string.IsNullOrWhiteSpace(request.AppleAccount))
+        {
+            issues.Add(new ValidationIssue(
+                UploadErrorCodes.AppleAccountMissing,
+                ValidationSeverity.Error,
+                "Apple account is required.",
+                "Enter the Apple account used for upload."));
+        }
+
+        if (string.IsNullOrWhiteSpace(request.AppSpecificPassword))
+        {
+            issues.Add(new ValidationIssue(
+                UploadErrorCodes.AppSpecificPasswordMissing,
+                ValidationSeverity.Error,
+                "App-specific password is required.",
+                "Enter an app-specific password for upload."));
+        }
     }
 
     private static string Redact(string value, UploadRequest request)
@@ -258,6 +289,11 @@ public sealed class TransporterUploadService : IUploadService
         if (!string.IsNullOrWhiteSpace(request.Jwt))
         {
             redacted = redacted.Replace(request.Jwt, "[REDACTED-JWT]", StringComparison.Ordinal);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.AppSpecificPassword))
+        {
+            redacted = redacted.Replace(request.AppSpecificPassword, "[REDACTED-PASSWORD]", StringComparison.Ordinal);
         }
 
         redacted = JwtLikePattern.Replace(redacted, "[REDACTED-JWT]");

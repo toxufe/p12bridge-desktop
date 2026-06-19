@@ -101,6 +101,28 @@ public sealed class TransporterUploadServiceTests : IDisposable
     }
 
     [Fact]
+    public void ValidateEnvironmentRejectsMissingAppleAccount()
+    {
+        var service = new TransporterUploadService(new FakeProcessRunner());
+
+        var result = service.ValidateEnvironment(ValidAppPasswordRequest() with { AppleAccount = " " });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.AppleAccountMissing);
+    }
+
+    [Fact]
+    public void ValidateEnvironmentRejectsMissingAppSpecificPassword()
+    {
+        var service = new TransporterUploadService(new FakeProcessRunner());
+
+        var result = service.ValidateEnvironment(ValidAppPasswordRequest() with { AppSpecificPassword = " " });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.AppSpecificPasswordMissing);
+    }
+
+    [Fact]
     public void ValidateEnvironmentAllowsVerifyWithoutAssetDescription()
     {
         var service = new TransporterUploadService(new FakeProcessRunner());
@@ -173,6 +195,18 @@ public sealed class TransporterUploadServiceTests : IDisposable
     }
 
     [Fact]
+    public void BuildVerifyCommandUsesAppleAccountAndAppSpecificPasswordArguments()
+    {
+        var request = ValidAppPasswordRequest();
+
+        var command = TransporterUploadService.BuildVerifyCommand(request);
+
+        Assert.Equal(
+            ["-m", "verify", "-assetFile", packagePath, "-u", "dev@example.com", "-p", "abcd-efgh-ijkl-mnop"],
+            command.Arguments);
+    }
+
+    [Fact]
     public void BuildUploadCommandUsesAssetDescriptionAndApiKeyArguments()
     {
         var request = ValidUploadRequest();
@@ -219,6 +253,29 @@ public sealed class TransporterUploadServiceTests : IDisposable
                 assetDescriptionPath,
                 "-jwt",
                 "header.payload.signature"
+            ],
+            command.Arguments);
+    }
+
+    [Fact]
+    public void BuildUploadCommandUsesAppleAccountAndAppSpecificPasswordArguments()
+    {
+        var request = ValidAppPasswordUploadRequest();
+
+        var command = TransporterUploadService.BuildUploadCommand(request);
+
+        Assert.Equal(
+            [
+                "-m",
+                "upload",
+                "-assetFile",
+                packagePath,
+                "-assetDescription",
+                assetDescriptionPath,
+                "-u",
+                "dev@example.com",
+                "-p",
+                "abcd-efgh-ijkl-mnop"
             ],
             command.Arguments);
     }
@@ -302,6 +359,26 @@ public sealed class TransporterUploadServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task UploadAsyncRedactsAppSpecificPasswordLogs()
+    {
+        var password = "abcd-efgh-ijkl-mnop";
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(1, $"stdout {password}", $"stderr {password}")
+        };
+        var service = new TransporterUploadService(runner);
+        var request = ValidAppPasswordRequest() with { AppSpecificPassword = password };
+
+        var result = await service.UploadAsync(request);
+
+        Assert.False(result.IsSuccess);
+        Assert.DoesNotContain(password, result.StandardOutput, StringComparison.Ordinal);
+        Assert.DoesNotContain(password, result.StandardError, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED-PASSWORD]", result.StandardOutput, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED-PASSWORD]", result.StandardError, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task UploadAsyncMapsTimeout()
     {
         var runner = new FakeProcessRunner
@@ -365,6 +442,22 @@ public sealed class TransporterUploadServiceTests : IDisposable
 
     private UploadRequest ValidUploadRequest() =>
         ValidRequest() with
+        {
+            ExecutionMode = UploadExecutionMode.Upload,
+            AssetDescriptionPath = assetDescriptionPath
+        };
+
+    private UploadRequest ValidAppPasswordRequest() =>
+        new(
+            transporterPath,
+            packagePath,
+            UploadCredentialMode.AppleIdAppPassword,
+            AppleAccount: "dev@example.com",
+            AppSpecificPassword: "abcd-efgh-ijkl-mnop",
+            Timeout: TimeSpan.FromSeconds(30));
+
+    private UploadRequest ValidAppPasswordUploadRequest() =>
+        ValidAppPasswordRequest() with
         {
             ExecutionMode = UploadExecutionMode.Upload,
             AssetDescriptionPath = assetDescriptionPath

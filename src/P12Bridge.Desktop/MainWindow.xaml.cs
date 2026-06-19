@@ -1079,24 +1079,33 @@ public partial class MainWindow : Window
             ApiKeyId: mode == UploadCredentialMode.ApiKey ? OptionalText(UploadApiKeyIdTextBox.Text) : null,
             IssuerId: mode == UploadCredentialMode.ApiKey ? OptionalText(UploadIssuerIdTextBox.Text) : null,
             Jwt: mode == UploadCredentialMode.Jwt ? OptionalText(UploadJwtPasswordBox.Password) : null,
+            AppleAccount: mode == UploadCredentialMode.AppleIdAppPassword ? OptionalText(UploadAppleAccountTextBox.Text) : null,
+            AppSpecificPassword: mode == UploadCredentialMode.AppleIdAppPassword ? OptionalText(UploadAppSpecificPasswordBox.Password) : null,
             Timeout: TimeSpan.FromMinutes(30));
     }
 
     private UploadCredentialMode ReadUploadCredentialMode() =>
-        UploadCredentialModeComboBox.SelectedIndex == 1
-            ? UploadCredentialMode.Jwt
-            : UploadCredentialMode.ApiKey;
+        UploadCredentialModeComboBox.SelectedIndex switch
+        {
+            1 => UploadCredentialMode.Jwt,
+            2 => UploadCredentialMode.AppleIdAppPassword,
+            _ => UploadCredentialMode.ApiKey
+        };
 
     private void SetCredentialPanelsVisibility()
     {
-        if (ApiKeyCredentialPanel is null || JwtCredentialPanel is null || UploadCredentialModeComboBox is null)
+        if (ApiKeyCredentialPanel is null
+            || JwtCredentialPanel is null
+            || AppPasswordCredentialPanel is null
+            || UploadCredentialModeComboBox is null)
         {
             return;
         }
 
-        var isJwt = ReadUploadCredentialMode() == UploadCredentialMode.Jwt;
-        ApiKeyCredentialPanel.Visibility = isJwt ? Visibility.Collapsed : Visibility.Visible;
-        JwtCredentialPanel.Visibility = isJwt ? Visibility.Visible : Visibility.Collapsed;
+        var mode = ReadUploadCredentialMode();
+        ApiKeyCredentialPanel.Visibility = mode == UploadCredentialMode.ApiKey ? Visibility.Visible : Visibility.Collapsed;
+        JwtCredentialPanel.Visibility = mode == UploadCredentialMode.Jwt ? Visibility.Visible : Visibility.Collapsed;
+        AppPasswordCredentialPanel.Visibility = mode == UploadCredentialMode.AppleIdAppPassword ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private FrameworkElement CreateUploadCheckRow(UploadReadinessCheck check)
@@ -1671,6 +1680,8 @@ public partial class MainWindow : Window
             UploadErrorCodes.AssetDescriptionNotFound => "AppStoreInfo",
             UploadErrorCodes.ApiKeyCredentialMissing => "API Key",
             UploadErrorCodes.JwtMissing => "JWT",
+            UploadErrorCodes.AppleAccountMissing => "Apple 账号",
+            UploadErrorCodes.AppSpecificPasswordMissing => "专用密码",
             UploadErrorCodes.ProcessStartFailed => "进程",
             UploadErrorCodes.ProcessTimedOut => "超时",
             UploadErrorCodes.ProcessCancelled => "取消",
@@ -1690,6 +1701,8 @@ public partial class MainWindow : Window
             UploadErrorCodes.AssetDescriptionNotFound => "选元数据",
             UploadErrorCodes.ApiKeyCredentialMissing => "填写凭据",
             UploadErrorCodes.JwtMissing => "填写 JWT",
+            UploadErrorCodes.AppleAccountMissing => "填写账号",
+            UploadErrorCodes.AppSpecificPasswordMissing => "填写密码",
             UploadErrorCodes.ProcessStartFailed => "检查权限",
             UploadErrorCodes.ProcessTimedOut => "重试",
             UploadErrorCodes.ProcessCancelled => "重试",
@@ -1736,7 +1749,9 @@ public partial class MainWindow : Window
             or UploadErrorCodes.AssetDescriptionPathMissing
             or UploadErrorCodes.AssetDescriptionNotFound
             or UploadErrorCodes.ApiKeyCredentialMissing
-            or UploadErrorCodes.JwtMissing;
+            or UploadErrorCodes.JwtMissing
+            or UploadErrorCodes.AppleAccountMissing
+            or UploadErrorCodes.AppSpecificPasswordMissing;
 
     private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
         status == ProvisioningProfileStatus.Active ? "有效" : "过期";

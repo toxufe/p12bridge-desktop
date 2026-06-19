@@ -10,6 +10,8 @@ public static class UploadErrorCodes
     public const string AssetDescriptionNotFound = "UPLOAD_ASSET_DESCRIPTION_NOT_FOUND";
     public const string ApiKeyCredentialMissing = "UPLOAD_API_KEY_CREDENTIAL_MISSING";
     public const string JwtMissing = "UPLOAD_JWT_MISSING";
+    public const string AppleAccountMissing = "UPLOAD_APPLE_ACCOUNT_MISSING";
+    public const string AppSpecificPasswordMissing = "UPLOAD_APP_SPECIFIC_PASSWORD_MISSING";
     public const string ProcessStartFailed = "UPLOAD_PROCESS_START_FAILED";
     public const string ProcessTimedOut = "UPLOAD_PROCESS_TIMED_OUT";
     public const string ProcessCancelled = "UPLOAD_PROCESS_CANCELLED";
