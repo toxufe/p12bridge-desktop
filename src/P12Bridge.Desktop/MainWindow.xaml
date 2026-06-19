@@ -1415,6 +1415,11 @@
                                                     Click="OnCheckAppleApiConnectionClick"
                                                     Style="{StaticResource ActionButtonStyle}"
                                                     Margin="10,0,0,0" />
+                                            <Button x:Name="LookupAppStoreAppButton"
+                                                    Content="查 App"
+                                                    Click="OnLookupAppStoreAppClick"
+                                                    Style="{StaticResource ActionButtonStyle}"
+                                                    Margin="10,0,0,0" />
                                         </StackPanel>
                                     </StackPanel>
 
@@ -1513,6 +1518,34 @@
                                                        Margin="0,14,0,0"
                                                        Text="未检查" />
                                             <StackPanel x:Name="AppleApiConnectionIssuesPanel" Margin="0,14,0,0" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,18,0,0"
+                                            Padding="0,16,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="App 查询"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AppStoreAppLookupStatusText"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,14,0,0"
+                                                       Text="未查询" />
+                                            <TextBox x:Name="AppStoreAppLookupResultTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}"
+                                                     IsReadOnly="True"
+                                                     AcceptsReturn="True"
+                                                     MinHeight="96"
+                                                     Margin="0,12,0,0"
+                                                     VerticalContentAlignment="Top"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     TextWrapping="Wrap" />
+                                            <StackPanel x:Name="AppStoreAppLookupIssuesPanel" Margin="0,14,0,0" />
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
