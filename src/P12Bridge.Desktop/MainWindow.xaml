@@ -417,6 +417,22 @@
                                             Tag="Settings"
                                             Click="OnModuleShortcutClick"
                                             Style="{StaticResource ActionButtonStyle}" />
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,16,0,0"
+                                            Padding="0,14,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="到期提醒"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="16"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="DashboardExpirationSummaryText"
+                                                       Text="到期 0"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13"
+                                                       Margin="0,8,0,0" />
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -968,6 +984,7 @@
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
 
                             <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
@@ -1050,6 +1067,67 @@
                                                         </StackPanel>
                                                         <TextBlock Grid.Column="2"
                                                                    Text="{Binding ModifiedText}"
+                                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                                   FontSize="12"
+                                                                   HorizontalAlignment="Right"
+                                                                   VerticalAlignment="Center" />
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top" Margin="0,12,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="到期提醒"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock x:Name="ExpirationReminderStatusText"
+                                               Text="暂无提醒"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               Margin="0,8,0,12" />
+
+                                    <ListBox x:Name="ExpirationReminderListBox"
+                                             BorderThickness="0"
+                                             Background="Transparent"
+                                             MinHeight="120">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F8FAFC"
+                                                        BorderBrush="{StaticResource BorderBrushSoft}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="6"
+                                                        Padding="10"
+                                                        Margin="0,0,0,8">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="84" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="128" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding StatusText}"
+                                                                   Foreground="{Binding StatusBrush}"
+                                                                   FontSize="12"
+                                                                   FontWeight="SemiBold"
+                                                                   VerticalAlignment="Center" />
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock Text="{Binding Name}"
+                                                                       Foreground="{StaticResource TextBrush}"
+                                                                       FontSize="13"
+                                                                       FontWeight="SemiBold"
+                                                                       TextWrapping="Wrap" />
+                                                            <TextBlock Text="{Binding Path}"
+                                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                                       FontSize="12"
+                                                                       TextWrapping="Wrap"
+                                                                       Margin="0,4,0,0" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="2"
+                                                                   Text="{Binding ExpirationText}"
                                                                    Foreground="{StaticResource MutedTextBrush}"
                                                                    FontSize="12"
                                                                    HorizontalAlignment="Right"

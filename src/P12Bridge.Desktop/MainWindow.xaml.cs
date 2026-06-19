@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
     private readonly IUploadSettingsService uploadSettingsService;
+    private readonly IAssetExpirationReminderService assetExpirationReminderService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
@@ -52,6 +53,7 @@ public partial class MainWindow : Window
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
         uploadSettingsService = new JsonUploadSettingsService();
+        assetExpirationReminderService = new AssetExpirationReminderService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -126,6 +128,11 @@ public partial class MainWindow : Window
             RefreshUploadEnvironmentStatus();
         }
 
+        if (pageKey == "Dashboard")
+        {
+            RefreshExpirationReminders();
+        }
+
         if (pageKey == "Settings")
         {
             RefreshUploadSettingsInputs();
@@ -135,6 +142,7 @@ public partial class MainWindow : Window
         if (pageKey == "Assets")
         {
             RefreshAssets();
+            RefreshExpirationReminders();
         }
 
         if (pageKey == "History")
@@ -383,6 +391,7 @@ public partial class MainWindow : Window
     private void OnRefreshAssetsClick(object sender, RoutedEventArgs e)
     {
         RefreshAssets(recordHistory: true);
+        RefreshExpirationReminders(recordHistory: true);
     }
 
     private void OnRefreshHistoryClick(object sender, RoutedEventArgs e)
@@ -839,6 +848,55 @@ public partial class MainWindow : Window
                 AssetStatusText.Text,
                 result.Issues.Count == 0
                     ? FormatAssetCounts(result.Items)
+                    : FormatIssueDetail(result.Issues));
+        }
+    }
+
+    private void RefreshExpirationReminders(bool recordHistory = false)
+    {
+        if (DashboardExpirationSummaryText is null
+            || ExpirationReminderStatusText is null
+            || ExpirationReminderListBox is null)
+        {
+            return;
+        }
+
+        var result = assetExpirationReminderService.Scan(new AssetExpirationReminderRequest(
+            CertificateBaseDirectoryTextBox.Text,
+            ProfileBaseDirectoryTextBox.Text));
+        var items = result.Reminders
+            .Select(ExpirationReminderListItem.FromReminder)
+            .ToArray();
+
+        ExpirationReminderListBox.ItemsSource = items;
+        DashboardExpirationSummaryText.Text = $"到期 {items.Length}";
+        DashboardExpirationSummaryText.Foreground = items.Length == 0
+            ? (Brush)FindResource("MutedTextBrush")
+            : (Brush)FindResource("WarningBrush");
+
+        if (items.Length == 0)
+        {
+            ExpirationReminderStatusText.Text = result.Issues.Count == 0 ? "暂无提醒" : "部分失败";
+            ExpirationReminderStatusText.Foreground = result.Issues.Count == 0
+                ? (Brush)FindResource("MutedTextBrush")
+                : (Brush)FindResource("WarningBrush");
+        }
+        else
+        {
+            ExpirationReminderStatusText.Text = FormatExpirationReminderCounts(result.Reminders);
+            ExpirationReminderStatusText.Foreground = result.Issues.Count == 0
+                ? (Brush)FindResource("WarningBrush")
+                : (Brush)FindResource("WarningBrush");
+        }
+
+        if (recordHistory)
+        {
+            RecordHistory(
+                "刷新到期",
+                result.Issues.Count == 0 ? OperationHistoryStatus.Success : OperationHistoryStatus.Warning,
+                ExpirationReminderStatusText.Text,
+                result.Issues.Count == 0
+                    ? FormatExpirationReminderCounts(result.Reminders)
                     : FormatIssueDetail(result.Issues));
         }
     }
@@ -1708,12 +1766,28 @@ public partial class MainWindow : Window
         return $"证书 {certificateCount} / 描述 {profileCount} / IPA {ipaCount}";
     }
 
+    private static string FormatExpirationReminderCounts(IReadOnlyList<AssetExpirationReminder> reminders)
+    {
+        var expiredCount = reminders.Count(reminder => reminder.Status == AssetExpirationReminderStatus.Expired);
+        var soonCount = reminders.Count(reminder => reminder.Status == AssetExpirationReminderStatus.ExpiringSoon);
+
+        return $"过期 {expiredCount} / 临期 {soonCount}";
+    }
+
     private static string FormatLocalAssetType(LocalAssetType type) =>
         type switch
         {
             LocalAssetType.CertificateProject => "证书",
             LocalAssetType.ProvisioningProfile => "描述",
             LocalAssetType.Ipa => "IPA",
+            _ => "资产"
+        };
+
+    private static string FormatExpirationReminderType(AssetExpirationReminderType type) =>
+        type switch
+        {
+            AssetExpirationReminderType.Certificate => "证书",
+            AssetExpirationReminderType.ProvisioningProfile => "描述",
             _ => "资产"
         };
 
@@ -2013,6 +2087,24 @@ public partial class MainWindow : Window
                 item.Name,
                 item.Path,
                 item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+    }
+
+    private sealed record ExpirationReminderListItem(
+        string StatusText,
+        Brush StatusBrush,
+        string Name,
+        string Path,
+        string ExpirationText)
+    {
+        public static ExpirationReminderListItem FromReminder(AssetExpirationReminder reminder) =>
+            new(
+                reminder.Status == AssetExpirationReminderStatus.Expired ? "过期" : "临期",
+                reminder.Status == AssetExpirationReminderStatus.Expired
+                    ? new SolidColorBrush(Color.FromRgb(180, 35, 24))
+                    : new SolidColorBrush(Color.FromRgb(152, 106, 0)),
+                $"{FormatExpirationReminderType(reminder.Type)} / {reminder.Name}",
+                reminder.Path,
+                reminder.ExpiresAt.ToLocalTime().ToString("yyyy-MM-dd"));
     }
 
     private sealed record HistoryListItem(
