@@ -111,7 +111,10 @@ public sealed class JsonUploadSettingsService : IUploadSettingsService
             stored.AppleAccount ?? string.Empty,
             stored.SaveSensitiveValues,
             jwt,
-            appSpecificPassword);
+            appSpecificPassword,
+            stored.CertificateDirectory ?? string.Empty,
+            stored.ProfileDirectory ?? string.Empty,
+            stored.IpaDirectory ?? string.Empty);
 
         return issues.Count == 0
             ? UploadSettingsResult.Success(settings)
@@ -131,7 +134,10 @@ public sealed class JsonUploadSettingsService : IUploadSettingsService
             AppleAccount = settings.AppleAccount,
             SaveSensitiveValues = settings.SaveSensitiveValues,
             ProtectedJwt = settings.SaveSensitiveValues ? secretProtector.Protect(settings.Jwt) : string.Empty,
-            ProtectedAppSpecificPassword = settings.SaveSensitiveValues ? secretProtector.Protect(settings.AppSpecificPassword) : string.Empty
+            ProtectedAppSpecificPassword = settings.SaveSensitiveValues ? secretProtector.Protect(settings.AppSpecificPassword) : string.Empty,
+            CertificateDirectory = settings.CertificateDirectory,
+            ProfileDirectory = settings.ProfileDirectory,
+            IpaDirectory = settings.IpaDirectory
         };
 
     private string TryUnprotect(string? protectedValue, List<ValidationIssue> issues)
@@ -204,5 +210,11 @@ public sealed class JsonUploadSettingsService : IUploadSettingsService
         public string? ProtectedJwt { get; set; }
 
         public string? ProtectedAppSpecificPassword { get; set; }
+
+        public string? CertificateDirectory { get; set; }
+
+        public string? ProfileDirectory { get; set; }
+
+        public string? IpaDirectory { get; set; }
     }
 }

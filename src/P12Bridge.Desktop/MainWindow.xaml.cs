@@ -67,18 +67,7 @@ public partial class MainWindow : Window
             ["Settings"] = new("设置", "凭据、路径、隐私", SettingsPage),
         };
 
-        CertificateBaseDirectoryTextBox.Text = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "P12Bridge",
-            "Certificates");
-        ProfileBaseDirectoryTextBox.Text = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "P12Bridge",
-            "Profiles");
-        IpaBaseDirectoryTextBox.Text = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
-            "P12Bridge",
-            "IPAs");
+        ApplyLibraryDirectoryDefaults();
 
         LoadUploadSettings();
         ShowPage("Dashboard");
@@ -1060,21 +1049,27 @@ public partial class MainWindow : Window
         var mode = ReadUploadCredentialMode();
 
         return new UploadSettings(
-            TransporterPathTextBox.Text,
-            lastIpaImportedPath,
-            UploadAssetDescriptionPathTextBox.Text,
-            mode,
-            UploadApiKeyIdTextBox.Text,
-            UploadIssuerIdTextBox.Text,
-            AppleApiPrivateKeyPathTextBox.Text,
-            UploadAppleAccountTextBox.Text,
-            SaveSensitiveValuesCheckBox.IsChecked == true,
-            UploadJwtPasswordBox.Password,
-            UploadAppSpecificPasswordBox.Password);
+            TransporterExecutablePath: TransporterPathTextBox.Text,
+            PackagePath: lastIpaImportedPath,
+            AssetDescriptionPath: UploadAssetDescriptionPathTextBox.Text,
+            CredentialMode: mode,
+            ApiKeyId: UploadApiKeyIdTextBox.Text,
+            IssuerId: UploadIssuerIdTextBox.Text,
+            PrivateKeyPath: AppleApiPrivateKeyPathTextBox.Text,
+            AppleAccount: UploadAppleAccountTextBox.Text,
+            SaveSensitiveValues: SaveSensitiveValuesCheckBox.IsChecked == true,
+            Jwt: UploadJwtPasswordBox.Password,
+            AppSpecificPassword: UploadAppSpecificPasswordBox.Password,
+            CertificateDirectory: CertificateBaseDirectoryTextBox.Text,
+            ProfileDirectory: ProfileBaseDirectoryTextBox.Text,
+            IpaDirectory: IpaBaseDirectoryTextBox.Text);
     }
 
     private void ApplyUploadSettings(UploadSettings settings)
     {
+        CertificateBaseDirectoryTextBox.Text = NonEmpty(settings.CertificateDirectory, DefaultCertificateDirectory());
+        ProfileBaseDirectoryTextBox.Text = NonEmpty(settings.ProfileDirectory, DefaultProfileDirectory());
+        IpaBaseDirectoryTextBox.Text = NonEmpty(settings.IpaDirectory, DefaultIpaDirectory());
         TransporterPathTextBox.Text = settings.TransporterExecutablePath;
         UploadAssetDescriptionPathTextBox.Text = settings.AssetDescriptionPath;
         UploadApiKeyIdTextBox.Text = settings.ApiKeyId;
@@ -1089,6 +1084,13 @@ public partial class MainWindow : Window
         lastIpaImportedPath = settings.PackagePath;
         RefreshUploadSettingsInputs();
         ClearAppleApiConnectionResult();
+    }
+
+    private void ApplyLibraryDirectoryDefaults()
+    {
+        CertificateBaseDirectoryTextBox.Text = DefaultCertificateDirectory();
+        ProfileBaseDirectoryTextBox.Text = DefaultProfileDirectory();
+        IpaBaseDirectoryTextBox.Text = DefaultIpaDirectory();
     }
 
     private void SetUploadSettingsStatus(string status, Brush foreground)
@@ -1862,6 +1864,21 @@ public partial class MainWindow : Window
             parts.Add($"IPA: {settings.PackagePath}");
         }
 
+        if (!string.IsNullOrWhiteSpace(settings.CertificateDirectory))
+        {
+            parts.Add($"证书目录: {settings.CertificateDirectory}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.ProfileDirectory))
+        {
+            parts.Add($"描述目录: {settings.ProfileDirectory}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(settings.IpaDirectory))
+        {
+            parts.Add($"IPA 目录: {settings.IpaDirectory}");
+        }
+
         parts.Add($"凭据: {FormatUploadCredentialMode(settings.CredentialMode)}");
         parts.Add(settings.SaveSensitiveValues ? "敏感: 已保存" : "敏感: 未保存");
         return string.Join(Environment.NewLine, parts);
@@ -1885,8 +1902,29 @@ public partial class MainWindow : Window
         && string.IsNullOrWhiteSpace(settings.AppleAccount)
         && string.IsNullOrWhiteSpace(settings.Jwt)
         && string.IsNullOrWhiteSpace(settings.AppSpecificPassword)
+        && string.IsNullOrWhiteSpace(settings.CertificateDirectory)
+        && string.IsNullOrWhiteSpace(settings.ProfileDirectory)
+        && string.IsNullOrWhiteSpace(settings.IpaDirectory)
         && settings.CredentialMode == UploadCredentialMode.ApiKey
         && !settings.SaveSensitiveValues;
+
+    private static string DefaultCertificateDirectory() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "P12Bridge",
+            "Certificates");
+
+    private static string DefaultProfileDirectory() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "P12Bridge",
+            "Profiles");
+
+    private static string DefaultIpaDirectory() =>
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "P12Bridge",
+            "IPAs");
 
     private static string FormatUploadRunningStatus(UploadExecutionMode executionMode) =>
         executionMode == UploadExecutionMode.Upload ? "上传中" : "校验中";

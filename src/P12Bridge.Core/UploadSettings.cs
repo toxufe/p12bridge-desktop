@@ -11,7 +11,10 @@ public sealed record UploadSettings(
     string AppleAccount = "",
     bool SaveSensitiveValues = false,
     string Jwt = "",
-    string AppSpecificPassword = "")
+    string AppSpecificPassword = "",
+    string CertificateDirectory = "",
+    string ProfileDirectory = "",
+    string IpaDirectory = "")
 {
     public override string ToString() =>
         "UploadSettings { Jwt = [REDACTED], AppSpecificPassword = [REDACTED] }";

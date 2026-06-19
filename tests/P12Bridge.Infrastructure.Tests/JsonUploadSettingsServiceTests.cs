@@ -40,7 +40,10 @@ public sealed class JsonUploadSettingsServiceTests : IDisposable
             ApiKeyId: "KEY123",
             IssuerId: "issuer",
             PrivateKeyPath: @"C:\Keys\AuthKey_KEY123.p8",
-            AppleAccount: "developer@example.com");
+            AppleAccount: "developer@example.com",
+            CertificateDirectory: @"C:\P12Bridge\Certificates",
+            ProfileDirectory: @"C:\P12Bridge\Profiles",
+            IpaDirectory: @"C:\P12Bridge\IPAs");
 
         var saveResult = service.Save(settings);
         var loadResult = service.Load();
@@ -55,6 +58,9 @@ public sealed class JsonUploadSettingsServiceTests : IDisposable
         Assert.Equal(settings.IssuerId, loadResult.Settings.IssuerId);
         Assert.Equal(settings.PrivateKeyPath, loadResult.Settings.PrivateKeyPath);
         Assert.Equal(settings.AppleAccount, loadResult.Settings.AppleAccount);
+        Assert.Equal(settings.CertificateDirectory, loadResult.Settings.CertificateDirectory);
+        Assert.Equal(settings.ProfileDirectory, loadResult.Settings.ProfileDirectory);
+        Assert.Equal(settings.IpaDirectory, loadResult.Settings.IpaDirectory);
     }
 
     [Fact]
