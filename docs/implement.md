@@ -13,7 +13,8 @@ Do not start full feature implementation until the solution skeleton and technic
 - [x] Add README.
 - [x] Add technical design.
 - [x] Add implementation plan.
-- [ ] Commit and push initial documentation.
+- [x] Commit initial documentation locally.
+- [ ] Push initial documentation.
 
 Validation:
 
@@ -25,11 +26,11 @@ git status --short
 
 Create the baseline solution:
 
-- `src/P12Bridge.Desktop`
-- `src/P12Bridge.Core`
-- `src/P12Bridge.Infrastructure`
-- `tests/P12Bridge.Core.Tests`
-- `tests/P12Bridge.Infrastructure.Tests`
+- [x] `src/P12Bridge.Desktop`
+- [x] `src/P12Bridge.Core`
+- [x] `src/P12Bridge.Infrastructure`
+- [x] `tests/P12Bridge.Core.Tests`
+- [x] `tests/P12Bridge.Infrastructure.Tests`
 
 Recommended commands:
 
@@ -53,6 +54,11 @@ Validation:
 dotnet build
 dotnet test
 ```
+
+Current blocker:
+
+- This machine has .NET runtimes but no .NET SDK installed, so `dotnet build` and `dotnet test` cannot run yet.
+- Install .NET 8 SDK before validating or extending the skeleton.
 
 ## 4. Milestone 2: Certificate Proof
 

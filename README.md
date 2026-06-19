@@ -28,7 +28,9 @@ The MVP is local-first: it helps Windows users generate private keys and CSRs, i
 
 ## Repository Status
 
-This repository is in planning/bootstrap stage. The next engineering step is to create the .NET solution skeleton and prove the core technical paths:
+This repository is in planning/bootstrap stage. The .NET solution skeleton is present, but local build validation requires the .NET 8 SDK.
+
+The next engineering step is to prove the core technical paths:
 
 1. Generate private key, CSR, and P12 locally on Windows.
 2. Parse `.mobileprovision` and `.ipa` metadata.

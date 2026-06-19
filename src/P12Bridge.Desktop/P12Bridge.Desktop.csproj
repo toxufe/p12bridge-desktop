@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\P12Bridge.Core\P12Bridge.Core.csproj" />
+    <ProjectReference Include="..\P12Bridge.Infrastructure\P12Bridge.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
