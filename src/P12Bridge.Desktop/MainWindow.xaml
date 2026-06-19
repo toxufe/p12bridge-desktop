@@ -1435,6 +1435,11 @@
                                                     Click="OnLookupAppStoreProfilesClick"
                                                     Style="{StaticResource ActionButtonStyle}"
                                                     Margin="10,0,0,0" />
+                                            <Button x:Name="LookupAppStoreCertificatesButton"
+                                                    Content="查证书"
+                                                    Click="OnLookupAppStoreCertificatesClick"
+                                                    Style="{StaticResource ActionButtonStyle}"
+                                                    Margin="10,0,0,0" />
                                         </WrapPanel>
                                     </StackPanel>
 
@@ -1533,6 +1538,34 @@
                                                        Margin="0,14,0,0"
                                                        Text="未检查" />
                                             <StackPanel x:Name="AppleApiConnectionIssuesPanel" Margin="0,14,0,0" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,18,0,0"
+                                            Padding="0,16,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="证书查询"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AppStoreCertificateLookupStatusText"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,14,0,0"
+                                                       Text="未查询" />
+                                            <TextBox x:Name="AppStoreCertificateLookupResultTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}"
+                                                     IsReadOnly="True"
+                                                     AcceptsReturn="True"
+                                                     MinHeight="112"
+                                                     Margin="0,12,0,0"
+                                                     VerticalContentAlignment="Top"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     TextWrapping="Wrap" />
+                                            <StackPanel x:Name="AppStoreCertificateLookupIssuesPanel" Margin="0,14,0,0" />
                                         </StackPanel>
                                     </Border>
 

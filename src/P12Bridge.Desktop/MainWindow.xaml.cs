@@ -21,6 +21,7 @@ public partial class MainWindow : Window
     private readonly IAppStoreConnectAppLookupService appStoreConnectAppLookupService;
     private readonly IAppStoreConnectBuildLookupService appStoreConnectBuildLookupService;
     private readonly IAppStoreConnectProfileLookupService appStoreConnectProfileLookupService;
+    private readonly IAppStoreConnectCertificateLookupService appStoreConnectCertificateLookupService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
@@ -41,6 +42,7 @@ public partial class MainWindow : Window
     private bool isAppStoreAppLookupRunning;
     private bool isAppStoreBuildLookupRunning;
     private bool isAppStoreProfileLookupRunning;
+    private bool isAppStoreCertificateLookupRunning;
 
     public MainWindow()
     {
@@ -61,6 +63,7 @@ public partial class MainWindow : Window
         appStoreConnectAppLookupService = new AppStoreConnectAppLookupService();
         appStoreConnectBuildLookupService = new AppStoreConnectBuildLookupService();
         appStoreConnectProfileLookupService = new AppStoreConnectProfileLookupService();
+        appStoreConnectCertificateLookupService = new AppStoreConnectCertificateLookupService();
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
@@ -784,6 +787,45 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void OnLookupAppStoreCertificatesClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreCertificateLookupRunning)
+        {
+            return;
+        }
+
+        SetAppStoreCertificateLookupRunning(true);
+        ClearAppStoreCertificateLookupResult();
+        SetAppStoreCertificateLookupStatus("查询中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectCertificateLookupRequest(credential);
+
+            var result = await appStoreConnectCertificateLookupService.LookupAsync(request);
+            ShowAppStoreCertificateLookupResult(result);
+            RecordHistory(
+                "证书查询",
+                result.IsSuccess
+                    ? OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                result.IsSuccess
+                    ? FormatAppStoreCertificateLookupSummary(result)
+                    : "查询失败",
+                result.IsSuccess
+                    ? FormatAppStoreCertificateLookupDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreCertificateLookupRunning(false);
+        }
+    }
+
     private async void OnRunUploadVerifyClick(object sender, RoutedEventArgs e)
     {
         await RunUploadTransporterAsync(UploadExecutionMode.Verify);
@@ -1428,6 +1470,7 @@ public partial class MainWindow : Window
     {
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         AppleApiConnectionIssuesPanel.Children.Clear();
+        ClearAppStoreCertificateLookupResult();
         ClearAppStoreBundleIdLookupResult();
     }
 
@@ -1465,6 +1508,54 @@ public partial class MainWindow : Window
     {
         isAppleApiConnectionChecking = isChecking;
         CheckAppleApiConnectionButton.IsEnabled = !isChecking;
+    }
+
+    private void ClearAppStoreCertificateLookupResult()
+    {
+        SetAppStoreCertificateLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
+        AppStoreCertificateLookupResultTextBox.Text = string.Empty;
+        AppStoreCertificateLookupIssuesPanel.Children.Clear();
+    }
+
+    private void SetAppStoreCertificateLookupStatus(string status, Brush foreground)
+    {
+        AppStoreCertificateLookupStatusText.Text = status;
+        AppStoreCertificateLookupStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppStoreCertificateLookupResult(AppStoreConnectCertificateLookupResult result)
+    {
+        AppStoreCertificateLookupIssuesPanel.Children.Clear();
+        AppStoreCertificateLookupResultTextBox.Text = FormatAppStoreCertificateLookupDetail(result);
+
+        if (result.IsSuccess && result.HasCertificates)
+        {
+            SetAppStoreCertificateLookupStatus("已找到", (Brush)FindResource("SuccessBrush"));
+            AppStoreCertificateLookupIssuesPanel.Children.Add(CreateUploadIssueRow("证书", $"{result.Certificates.Count} 个", true));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetAppStoreCertificateLookupStatus("无证书", (Brush)FindResource("WarningBrush"));
+            AppStoreCertificateLookupIssuesPanel.Children.Add(CreateUploadIssueRow("证书", "无", false));
+            return;
+        }
+
+        SetAppStoreCertificateLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppStoreCertificateLookupIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreCertificateLookupIssueName(issue.Code),
+                FormatAppStoreCertificateLookupIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppStoreCertificateLookupRunning(bool isRunning)
+    {
+        isAppStoreCertificateLookupRunning = isRunning;
+        LookupAppStoreCertificatesButton.IsEnabled = !isRunning;
     }
 
     private void ClearAppStoreBundleIdLookupResult()
@@ -2678,6 +2769,90 @@ public partial class MainWindow : Window
             "FAILED" => "失败",
             "INVALID" => "无效",
             _ => state
+        };
+
+    private static string FormatAppStoreCertificateLookupIssueName(string code) =>
+        code switch
+        {
+            AppStoreConnectCertificateLookupErrorCodes.ResponseMalformed => "响应",
+            _ => FormatAppleAuthIssueName(code)
+        };
+
+    private static string FormatAppStoreCertificateLookupIssueAction(string code) =>
+        code switch
+        {
+            AppStoreConnectCertificateLookupErrorCodes.ResponseMalformed => "重试",
+            _ => FormatAppleAuthIssueAction(code)
+        };
+
+    private static string FormatAppStoreCertificateLookupSummary(AppStoreConnectCertificateLookupResult result) =>
+        result.HasCertificates ? "已找到" : "无证书";
+
+    private static string FormatAppStoreCertificateLookupDetail(AppStoreConnectCertificateLookupResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return FormatIssueDetail(result.Issues);
+        }
+
+        if (result.Certificates.Count == 0)
+        {
+            return "无证书";
+        }
+
+        return string.Join(
+            $"{Environment.NewLine}{Environment.NewLine}",
+            result.Certificates.Select(FormatAppStoreCertificate));
+    }
+
+    private static string FormatAppStoreCertificate(AppStoreConnectCertificate certificate)
+    {
+        var displayName = !string.IsNullOrWhiteSpace(certificate.DisplayName)
+            ? certificate.DisplayName
+            : NonEmpty(certificate.Name, certificate.Id);
+        var parts = new List<string>
+        {
+            $"名称: {displayName}",
+            $"类型: {FormatCertificateType(certificate.CertificateType)}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(certificate.Platform))
+        {
+            parts.Add($"平台: {FormatBundlePlatform(certificate.Platform)}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(certificate.SerialNumber))
+        {
+            parts.Add($"序列号: {certificate.SerialNumber}");
+        }
+
+        if (certificate.Activated is not null)
+        {
+            parts.Add($"启用: {(certificate.Activated.Value ? "是" : "否")}");
+        }
+
+        if (certificate.ExpirationDate is not null)
+        {
+            parts.Add($"到期: {certificate.ExpirationDate.Value.ToLocalTime():yyyy-MM-dd}");
+        }
+
+        return string.Join(Environment.NewLine, parts);
+    }
+
+    private static string FormatCertificateType(string type) =>
+        type switch
+        {
+            "IOS_DEVELOPMENT" => "iOS 开发",
+            "IOS_DISTRIBUTION" => "iOS 发布",
+            "MAC_APP_DISTRIBUTION" => "Mac 发布",
+            "MAC_INSTALLER_DISTRIBUTION" => "Mac 安装包",
+            "MAC_APP_DEVELOPMENT" => "Mac 开发",
+            "DEVELOPER_ID_KEXT" => "Kext",
+            "DEVELOPER_ID_APPLICATION" => "Developer ID",
+            "DEVELOPMENT" => "开发",
+            "DISTRIBUTION" => "发布",
+            "PASS_TYPE_ID" => "Pass",
+            _ => type
         };
 
     private static string FormatAppStoreProfileLookupIssueName(string code) =>
