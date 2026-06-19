@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Buffers.Binary;
 using System.Text;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
@@ -133,7 +134,42 @@ public sealed class IpaInspectorTests
     }
 
     [Fact]
-    public void InspectRejectsBinaryInfoPlistWithStableUnsupportedError()
+    public void InspectReadsBinaryInfoPlistMetadata()
+    {
+        var inspector = new IpaInspector();
+        var ipaBytes = CreateIpa(infoPlistBytes: BinaryInfoPlist(new Dictionary<string, string>
+        {
+            ["CFBundleIdentifier"] = "com.example.binary",
+            ["CFBundleShortVersionString"] = "2.0.1",
+            ["CFBundleVersion"] = "99"
+        }));
+
+        var result = inspector.Inspect(ipaBytes);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("com.example.binary", result.Metadata?.BundleIdentifier);
+        Assert.Equal("2.0.1", result.Metadata?.ShortVersion);
+        Assert.Equal("99", result.Metadata?.BuildVersion);
+    }
+
+    [Fact]
+    public void InspectRejectsBinaryInfoPlistMissingRequiredKey()
+    {
+        var inspector = new IpaInspector();
+        var ipaBytes = CreateIpa(infoPlistBytes: BinaryInfoPlist(new Dictionary<string, string>
+        {
+            ["CFBundleIdentifier"] = "com.example.binary",
+            ["CFBundleVersion"] = "99"
+        }));
+
+        var result = inspector.Inspect(ipaBytes);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == IpaInspectionErrorCodes.MissingRequiredKey);
+    }
+
+    [Fact]
+    public void InspectRejectsMalformedBinaryInfoPlist()
     {
         var inspector = new IpaInspector();
         var ipaBytes = CreateIpa(infoPlistBytes: Encoding.ASCII.GetBytes("bplist00binary-data"));
@@ -141,7 +177,7 @@ public sealed class IpaInspectorTests
         var result = inspector.Inspect(ipaBytes);
 
         Assert.False(result.IsSuccess);
-        Assert.Contains(result.Issues, issue => issue.Code == IpaInspectionErrorCodes.InfoPlistUnsupported);
+        Assert.Contains(result.Issues, issue => issue.Code == IpaInspectionErrorCodes.InfoPlistMalformed);
     }
 
     [Fact]
@@ -217,6 +253,122 @@ public sealed class IpaInspectorTests
         }
 
         return stream.ToArray();
+    }
+
+    private static byte[] BinaryInfoPlist(IReadOnlyDictionary<string, string> values)
+    {
+        var objects = new List<byte[]>();
+        foreach (var key in values.Keys)
+        {
+            objects.Add(BinaryAsciiString(key));
+        }
+
+        foreach (var value in values.Values)
+        {
+            objects.Add(BinaryAsciiString(value));
+        }
+
+        var objectRefSize = SizeFor((ulong)(values.Count * 2));
+        objects.Add(BinaryDictionary(values.Count, objectRefSize));
+
+        var offsets = new List<int>();
+        using var stream = new MemoryStream();
+        stream.Write(Encoding.ASCII.GetBytes("bplist00"));
+        foreach (var item in objects)
+        {
+            offsets.Add((int)stream.Position);
+            stream.Write(item);
+        }
+
+        var offsetTableOffset = (int)stream.Position;
+        var offsetIntSize = SizeFor((ulong)offsetTableOffset);
+        foreach (var offset in offsets)
+        {
+            WriteSizedUnsigned(stream, (ulong)offset, offsetIntSize);
+        }
+
+        Span<byte> trailer = stackalloc byte[32];
+        trailer[6] = (byte)offsetIntSize;
+        trailer[7] = (byte)objectRefSize;
+        BinaryPrimitives.WriteUInt64BigEndian(trailer[8..16], (ulong)objects.Count);
+        BinaryPrimitives.WriteUInt64BigEndian(trailer[16..24], (ulong)(objects.Count - 1));
+        BinaryPrimitives.WriteUInt64BigEndian(trailer[24..32], (ulong)offsetTableOffset);
+        stream.Write(trailer);
+        return stream.ToArray();
+
+        byte[] BinaryDictionary(int count, int refSize)
+        {
+            using var dictStream = new MemoryStream();
+            WriteCollectionMarker(dictStream, 0xD0, count);
+
+            for (var index = 0; index < count; index++)
+            {
+                WriteSizedUnsigned(dictStream, (ulong)index, refSize);
+            }
+
+            for (var index = 0; index < count; index++)
+            {
+                WriteSizedUnsigned(dictStream, (ulong)(count + index), refSize);
+            }
+
+            return dictStream.ToArray();
+        }
+    }
+
+    private static byte[] BinaryAsciiString(string value)
+    {
+        var bytes = Encoding.ASCII.GetBytes(value);
+        using var stream = new MemoryStream();
+        WriteCollectionMarker(stream, 0x50, bytes.Length);
+        stream.Write(bytes);
+        return stream.ToArray();
+    }
+
+    private static void WriteCollectionMarker(Stream stream, int type, int count)
+    {
+        if (count < 0x0F)
+        {
+            stream.WriteByte((byte)(type | count));
+            return;
+        }
+
+        stream.WriteByte((byte)(type | 0x0F));
+        WriteIntegerObject(stream, (ulong)count);
+    }
+
+    private static void WriteIntegerObject(Stream stream, ulong value)
+    {
+        var size = SizeFor(value);
+        stream.WriteByte(size switch
+        {
+            1 => 0x10,
+            2 => 0x11,
+            4 => 0x12,
+            _ => 0x13
+        });
+        WriteSizedUnsigned(stream, value, size);
+    }
+
+    private static int SizeFor(ulong value)
+    {
+        if (value <= byte.MaxValue)
+        {
+            return 1;
+        }
+
+        if (value <= ushort.MaxValue)
+        {
+            return 2;
+        }
+
+        return value <= uint.MaxValue ? 4 : 8;
+    }
+
+    private static void WriteSizedUnsigned(Stream stream, ulong value, int size)
+    {
+        Span<byte> buffer = stackalloc byte[8];
+        BinaryPrimitives.WriteUInt64BigEndian(buffer, value);
+        stream.Write(buffer[(8 - size)..]);
     }
 
     private static string InfoPlist(

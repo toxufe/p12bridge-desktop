@@ -147,13 +147,18 @@ public sealed class IpaInspector : IIpaInspector
 
     private static InfoPlistParseResult ParseInfoPlist(byte[] bytes)
     {
-        if (bytes.Length >= 6 && Encoding.ASCII.GetString(bytes, 0, 6) == "bplist")
+        if (BinaryPropertyListReader.HasBinaryHeader(bytes))
         {
-            return InfoPlistParseResult.Failure(new ValidationIssue(
-                IpaInspectionErrorCodes.InfoPlistUnsupported,
-                ValidationSeverity.Error,
-                "Binary Info.plist is not supported by this proof.",
-                "Use an IPA with XML Info.plist for this proof, or add binary plist support in a follow-up task."));
+            try
+            {
+                return BuildInfoPlistResult(BinaryPropertyListReader.ReadTopLevelStringDictionary(bytes));
+            }
+            catch (Exception ex) when (ex is FormatException or OverflowException)
+            {
+                return MalformedInfoPlist(
+                    "Info.plist is not valid binary plist data.",
+                    "Rebuild the app package with a valid Info.plist.");
+            }
         }
 
         try
@@ -168,19 +173,7 @@ public sealed class IpaInspector : IIpaInspector
                 return MalformedInfoPlist();
             }
 
-            var values = ReadPlistDictionary(dictionary);
-            var bundleIdentifier = RequiredString(values, "CFBundleIdentifier");
-            var shortVersion = RequiredString(values, "CFBundleShortVersionString");
-            var buildVersion = RequiredString(values, "CFBundleVersion");
-            var issues = new List<ValidationIssue>();
-
-            AddMissingRequiredKeyIssue(issues, bundleIdentifier, "CFBundleIdentifier");
-            AddMissingRequiredKeyIssue(issues, shortVersion, "CFBundleShortVersionString");
-            AddMissingRequiredKeyIssue(issues, buildVersion, "CFBundleVersion");
-
-            return issues.Count > 0
-                ? InfoPlistParseResult.Failure(issues.ToArray())
-                : InfoPlistParseResult.Success(bundleIdentifier!, shortVersion!, buildVersion!);
+            return BuildInfoPlistResult(ReadXmlPlistStringDictionary(dictionary));
         }
         catch (ArgumentException)
         {
@@ -192,9 +185,25 @@ public sealed class IpaInspector : IIpaInspector
         }
     }
 
-    private static Dictionary<string, XElement> ReadPlistDictionary(XElement dictionary)
+    private static InfoPlistParseResult BuildInfoPlistResult(IReadOnlyDictionary<string, string> values)
     {
-        var values = new Dictionary<string, XElement>(StringComparer.Ordinal);
+        var bundleIdentifier = RequiredString(values, "CFBundleIdentifier");
+        var shortVersion = RequiredString(values, "CFBundleShortVersionString");
+        var buildVersion = RequiredString(values, "CFBundleVersion");
+        var issues = new List<ValidationIssue>();
+
+        AddMissingRequiredKeyIssue(issues, bundleIdentifier, "CFBundleIdentifier");
+        AddMissingRequiredKeyIssue(issues, shortVersion, "CFBundleShortVersionString");
+        AddMissingRequiredKeyIssue(issues, buildVersion, "CFBundleVersion");
+
+        return issues.Count > 0
+            ? InfoPlistParseResult.Failure(issues.ToArray())
+            : InfoPlistParseResult.Success(bundleIdentifier!, shortVersion!, buildVersion!);
+    }
+
+    private static Dictionary<string, string> ReadXmlPlistStringDictionary(XElement dictionary)
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
         var children = dictionary.Elements().ToArray();
 
         for (var index = 0; index < children.Length - 1; index++)
@@ -204,20 +213,24 @@ public sealed class IpaInspector : IIpaInspector
                 continue;
             }
 
-            values[children[index].Value] = children[index + 1];
+            var value = children[index + 1];
+            if (value.Name.LocalName == "string")
+            {
+                values[children[index].Value] = value.Value;
+            }
         }
 
         return values;
     }
 
-    private static string? RequiredString(Dictionary<string, XElement> values, string key)
+    private static string? RequiredString(IReadOnlyDictionary<string, string> values, string key)
     {
-        if (!values.TryGetValue(key, out var element) || element.Name.LocalName != "string")
+        if (!values.TryGetValue(key, out var value))
         {
             return null;
         }
 
-        return string.IsNullOrWhiteSpace(element.Value) ? null : element.Value;
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     private static void AddMissingRequiredKeyIssue(List<ValidationIssue> issues, string? value, string key)
@@ -234,12 +247,14 @@ public sealed class IpaInspector : IIpaInspector
             "Rebuild the app package with a complete Info.plist."));
     }
 
-    private static InfoPlistParseResult MalformedInfoPlist() =>
+    private static InfoPlistParseResult MalformedInfoPlist(
+        string message = "Info.plist is not valid XML plist data.",
+        string suggestedAction = "Rebuild the app package with a valid XML Info.plist.") =>
         InfoPlistParseResult.Failure(new ValidationIssue(
             IpaInspectionErrorCodes.InfoPlistMalformed,
             ValidationSeverity.Error,
-            "Info.plist is not valid XML plist data.",
-            "Rebuild the app package with a valid XML Info.plist."));
+            message,
+            suggestedAction));
 
     private static byte[] ReadEntryBytes(ZipArchiveEntry entry)
     {
