@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private readonly IAppleDeveloperAuthService appleDeveloperAuthService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
+    private readonly ICertificateProjectBackupService certificateProjectBackupService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
@@ -48,6 +49,7 @@ public partial class MainWindow : Window
         appleDeveloperAuthService = new AppleDeveloperAuthService();
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
+        certificateProjectBackupService = new CertificateProjectBackupService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -441,6 +443,57 @@ public partial class MainWindow : Window
             FileName = directory,
             UseShellExecute = true
         });
+    }
+
+    private void OnBackupSelectedAssetClick(object sender, RoutedEventArgs e)
+    {
+        if (AssetListBox.SelectedItem is not AssetListItem selectedAsset)
+        {
+            AssetStatusText.Text = "未选择";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("备份证书", OperationHistoryStatus.Failed, "未选择");
+            return;
+        }
+
+        if (selectedAsset.Type != LocalAssetType.CertificateProject)
+        {
+            AssetStatusText.Text = "仅证书";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("备份证书", OperationHistoryStatus.Failed, "仅证书", selectedAsset.Path);
+            return;
+        }
+
+        var dialog = new OpenFolderDialog
+        {
+            Title = "选择备份目录",
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        var result = certificateProjectBackupService.Export(new CertificateProjectBackupRequest(
+            selectedAsset.Path,
+            dialog.FolderName));
+
+        if (!result.IsSuccess)
+        {
+            var message = FormatBackupIssues(result.Issues);
+            AssetStatusText.Text = message;
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("备份证书", OperationHistoryStatus.Failed, message, FormatIssueDetail(result.Issues));
+            return;
+        }
+
+        AssetStatusText.Text = "已备份";
+        AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+        RecordHistory(
+            "备份证书",
+            OperationHistoryStatus.Success,
+            "已备份",
+            $"{Path.GetFileName(result.BackupPath)} / {result.FilesIncluded} 文件{Environment.NewLine}{result.BackupPath}");
     }
 
     private void OnSelectTransporterClick(object sender, RoutedEventArgs e)
@@ -1395,6 +1448,28 @@ public partial class MainWindow : Window
             IpaInspectionErrorCodes.MissingRequiredKey => "字段缺失",
             IpaInspectionErrorCodes.EmbeddedProfileInvalid => "描述无效",
             _ => "检查失败"
+        };
+
+    private static string FormatBackupIssues(IReadOnlyList<ValidationIssue> issues)
+    {
+        if (issues.Count == 0)
+        {
+            return "备份失败";
+        }
+
+        return string.Join("；", issues.Select(ToBackupUserMessage).Distinct());
+    }
+
+    private static string ToBackupUserMessage(ValidationIssue issue) =>
+        issue.Code switch
+        {
+            CertificateProjectBackupErrorCodes.ProjectDirectoryMissing => "未选择",
+            CertificateProjectBackupErrorCodes.ProjectNotFound => "项目不存在",
+            CertificateProjectBackupErrorCodes.MetadataMissing => "项目无效",
+            CertificateProjectBackupErrorCodes.OutputDirectoryMissing => "目录必填",
+            CertificateProjectBackupErrorCodes.OutputDirectoryNotFound => "目录不存在",
+            CertificateProjectBackupErrorCodes.ExportFailed => "备份失败",
+            _ => "备份失败"
         };
 
     private static string FormatFileSize(long bytes)

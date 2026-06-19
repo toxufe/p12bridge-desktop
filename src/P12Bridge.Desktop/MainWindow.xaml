@@ -993,6 +993,10 @@
                                                 Click="OnOpenSelectedAssetClick"
                                                 Style="{StaticResource ActionButtonStyle}"
                                                 Margin="10,0,0,0" />
+                                        <Button Content="备份"
+                                                Click="OnBackupSelectedAssetClick"
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Margin="10,0,0,0" />
                                     </StackPanel>
                                 </Grid>
                             </Border>
