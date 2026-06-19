@@ -89,14 +89,14 @@ Tasks:
 
 - [x] Parse `.mobileprovision` plist payload from synthetic CMS-like bytes.
 - [x] Extract Bundle ID, Team ID, expiration, profile type, device count, and certificate fingerprints.
-- [ ] Parse IPA zip structure and `Info.plist`.
-- [ ] Extract Bundle ID, version, build number, embedded profile if present.
+- [x] Parse IPA zip structure and XML `Info.plist`.
+- [x] Extract Bundle ID, version, build number, embedded profile if present.
 - [x] Implement validation rules for malformed, incomplete, expired, and unknown profile data.
 
 Validation:
 
 - [x] Add fixture-based tests for valid and expired profiles.
-- [ ] Add fixture-based tests for IPA metadata extraction.
+- [x] Add fixture-based tests for IPA metadata extraction.
 - [x] Confirm profile parser failures produce stable error codes.
 
 ## 6. Milestone 4: Upload Proof
