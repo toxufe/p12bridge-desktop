@@ -16,6 +16,7 @@ public partial class MainWindow : Window
     private readonly IIpaImportService ipaImportService;
     private readonly IUploadReadinessEvaluator uploadReadinessEvaluator;
     private readonly IUploadService uploadService;
+    private readonly IAppleDeveloperAuthService appleDeveloperAuthService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
@@ -26,6 +27,7 @@ public partial class MainWindow : Window
     private CancellationTokenSource? uploadVerificationCancellation;
     private bool isUploadVerificationRunning;
     private UploadExecutionMode activeUploadExecutionMode = UploadExecutionMode.Verify;
+    private bool isAppleApiConnectionChecking;
 
     public MainWindow()
     {
@@ -41,6 +43,7 @@ public partial class MainWindow : Window
             new IpaInspector());
         uploadReadinessEvaluator = new UploadReadinessEvaluator();
         uploadService = new TransporterUploadService();
+        appleDeveloperAuthService = new AppleDeveloperAuthService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -357,6 +360,22 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnSelectAppleApiPrivateKeyClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "App Store Connect Key (*.p8)|*.p8|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            AppleApiPrivateKeyPathTextBox.Text = dialog.FileName;
+            ClearAppleApiConnectionResult();
+        }
+    }
+
     private void OnUploadCredentialModeChanged(object sender, SelectionChangedEventArgs e)
     {
         SetCredentialPanelsVisibility();
@@ -373,6 +392,33 @@ public partial class MainWindow : Window
     private void OnValidateUploadEnvironmentClick(object sender, RoutedEventArgs e)
     {
         ValidateUploadEnvironment();
+    }
+
+    private async void OnCheckAppleApiConnectionClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppleApiConnectionChecking)
+        {
+            return;
+        }
+
+        SetAppleApiConnectionChecking(true);
+        ClearAppleApiConnectionResult();
+        SetAppleApiConnectionStatus("检查中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+
+            var result = await appleDeveloperAuthService.CheckConnectionAsync(credential);
+            ShowAppleApiConnectionResult(result);
+        }
+        finally
+        {
+            SetAppleApiConnectionChecking(false);
+        }
     }
 
     private async void OnRunUploadVerifyClick(object sender, RoutedEventArgs e)
@@ -673,6 +719,48 @@ public partial class MainWindow : Window
         UploadVerifyStatusText.Foreground = foreground;
     }
 
+    private void ClearAppleApiConnectionResult()
+    {
+        SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
+        AppleApiConnectionIssuesPanel.Children.Clear();
+    }
+
+    private void SetAppleApiConnectionStatus(string status, Brush foreground)
+    {
+        AppleApiConnectionStatusText.Text = status;
+        AppleApiConnectionStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppleApiConnectionResult(AppleDeveloperConnectionResult result)
+    {
+        SetAppleApiConnectionStatus(
+            result.IsSuccess ? "已连接" : "未连接",
+            result.IsSuccess
+                ? (Brush)FindResource("SuccessBrush")
+                : (Brush)FindResource("DangerBrush"));
+
+        AppleApiConnectionIssuesPanel.Children.Clear();
+        if (result.IsSuccess)
+        {
+            AppleApiConnectionIssuesPanel.Children.Add(CreateUploadIssueRow("账号", "通过", true));
+            return;
+        }
+
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppleApiConnectionIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppleAuthIssueName(issue.Code),
+                FormatAppleAuthIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppleApiConnectionChecking(bool isChecking)
+    {
+        isAppleApiConnectionChecking = isChecking;
+        CheckAppleApiConnectionButton.IsEnabled = !isChecking;
+    }
+
     private void ShowUploadEnvironment(UploadEnvironmentValidationResult result)
     {
         var status = result.IsSuccess ? "环境可用" : "环境异常";
@@ -871,6 +959,28 @@ public partial class MainWindow : Window
 
     private static string? OptionalText(string value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private string ReadAppleApiPrivateKeyPem()
+    {
+        var path = AppleApiPrivateKeyPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return string.Empty;
+        }
+
+        try
+        {
+            return File.ReadAllText(path);
+        }
+        catch (IOException)
+        {
+            return string.Empty;
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return string.Empty;
+        }
+    }
 
     private void SetCertificateStatus(string message, bool isSuccess)
     {
@@ -1194,6 +1304,36 @@ public partial class MainWindow : Window
             UploadErrorCodes.ProcessCancelled => "重试",
             UploadErrorCodes.ProcessExitFailed => "看日志",
             UploadErrorCodes.UnexpectedProcessResult => "重试",
+            _ => "处理"
+        };
+
+    private static string FormatAppleAuthIssueName(string code) =>
+        code switch
+        {
+            AppleDeveloperAuthErrorCodes.MissingKeyId => "Key ID",
+            AppleDeveloperAuthErrorCodes.MissingIssuerId => "Issuer ID",
+            AppleDeveloperAuthErrorCodes.MissingPrivateKey => "P8 私钥",
+            AppleDeveloperAuthErrorCodes.InvalidPrivateKey => "P8 私钥",
+            AppleDeveloperAuthErrorCodes.AppleUnauthorized => "凭据",
+            AppleDeveloperAuthErrorCodes.AppleForbidden => "权限",
+            AppleDeveloperAuthErrorCodes.AppleApiUnavailable => "Apple",
+            AppleDeveloperAuthErrorCodes.NetworkFailure => "网络",
+            AppleDeveloperAuthErrorCodes.UnexpectedAppleResponse => "Apple",
+            _ => "账号"
+        };
+
+    private static string FormatAppleAuthIssueAction(string code) =>
+        code switch
+        {
+            AppleDeveloperAuthErrorCodes.MissingKeyId => "填写",
+            AppleDeveloperAuthErrorCodes.MissingIssuerId => "填写",
+            AppleDeveloperAuthErrorCodes.MissingPrivateKey => "选择",
+            AppleDeveloperAuthErrorCodes.InvalidPrivateKey => "重选",
+            AppleDeveloperAuthErrorCodes.AppleUnauthorized => "核对",
+            AppleDeveloperAuthErrorCodes.AppleForbidden => "查权限",
+            AppleDeveloperAuthErrorCodes.AppleApiUnavailable => "稍后重试",
+            AppleDeveloperAuthErrorCodes.NetworkFailure => "查网络",
+            AppleDeveloperAuthErrorCodes.UnexpectedAppleResponse => "重试",
             _ => "处理"
         };
 

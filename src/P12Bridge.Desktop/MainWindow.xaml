@@ -1037,6 +1037,22 @@
                                         <TextBox x:Name="UploadIssuerIdTextBox"
                                                  Style="{StaticResource InputTextBoxStyle}"
                                                  TextChanged="OnUploadEnvironmentInputChanged" />
+
+                                        <TextBlock Text="P8 私钥" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="AppleApiPrivateKeyPathTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True" />
+
+                                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                            <Button Content="选择"
+                                                    Click="OnSelectAppleApiPrivateKeyClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button x:Name="CheckAppleApiConnectionButton"
+                                                    Content="检查"
+                                                    Click="OnCheckAppleApiConnectionClick"
+                                                    Style="{StaticResource ActionButtonStyle}"
+                                                    Margin="10,0,0,0" />
+                                        </StackPanel>
                                     </StackPanel>
 
                                     <StackPanel x:Name="JwtCredentialPanel" Visibility="Collapsed">
@@ -1069,6 +1085,25 @@
                                                FontWeight="SemiBold"
                                                Margin="0,14,0,0" />
                                     <StackPanel x:Name="UploadEnvironmentIssuesPanel" Margin="0,14,0,0" />
+
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,18,0,0"
+                                            Padding="0,16,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="账号连接"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AppleApiConnectionStatusText"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,14,0,0"
+                                                       Text="未检查" />
+                                            <StackPanel x:Name="AppleApiConnectionIssuesPanel" Margin="0,14,0,0" />
+                                        </StackPanel>
+                                    </Border>
                                 </StackPanel>
                             </Border>
                         </Grid>
