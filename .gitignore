@@ -1,0 +1,22 @@
+bin/
+obj/
+.vs/
+.vscode/
+TestResults/
+*.user
+*.suo
+*.nupkg
+
+# Local signing assets and secrets
+*.p12
+*.key
+*.csr
+*.cer
+*.pem
+*.mobileprovision
+*.ipa
+*.p8
+*.log
+
+# Local project data
+.p12bridge/
