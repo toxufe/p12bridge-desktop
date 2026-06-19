@@ -1,4 +1,5 @@
 using P12Bridge.Infrastructure;
+using Xunit;
 
 namespace P12Bridge.Infrastructure.Tests;
 

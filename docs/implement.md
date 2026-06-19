@@ -57,8 +57,8 @@ dotnet test
 
 Current blocker:
 
-- This machine has .NET runtimes but no .NET SDK installed, so `dotnet build` and `dotnet test` cannot run yet.
-- Install .NET 8 SDK before validating or extending the skeleton.
+- Resolved: .NET 8 SDK 8.0.422 is installed under `C:\Users\Fly\.dotnet`.
+- Use `C:\Users\Fly\.dotnet\dotnet.exe` if the user-local SDK is not on PATH.
 
 ## 4. Milestone 2: Certificate Proof
 
@@ -66,18 +66,20 @@ Goal: prove local key/CSR/P12 generation on Windows.
 
 Tasks:
 
-- Define certificate project domain models.
-- Generate RSA private key.
-- Generate CSR.
-- Import `.cer`.
-- Export `.p12`.
-- Add tests for file presence, invalid certificate input, missing private key.
+- [x] Define certificate generation domain contracts.
+- [x] Generate RSA private key.
+- [x] Generate CSR.
+- [x] Export `.p12` from certificate bytes and private key bytes.
+- [x] Add tests for successful key/CSR/P12 generation.
+- [x] Add tests for invalid certificate input, missing private key, small key size, and empty P12 password.
 
 Validation:
 
-- Generate test key and CSR locally.
-- Export test P12 from a known test certificate fixture or manually supplied Apple `.cer`.
-- Confirm errors are structured and user-actionable.
+- [x] Generate test key and CSR locally.
+- [x] Export test P12 from generated in-memory test certificate material.
+- [x] Confirm errors are structured and user-actionable.
+- [x] `dotnet build P12Bridge.sln` passes.
+- [x] `dotnet test P12Bridge.sln --no-build` passes.
 
 ## 5. Milestone 3: Profile and IPA Parsing Proof
 
