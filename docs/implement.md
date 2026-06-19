@@ -87,17 +87,17 @@ Goal: parse real signing assets before building full UI.
 
 Tasks:
 
-- Parse `.mobileprovision` CMS/plist payload.
-- Extract Bundle ID, Team ID, expiration, profile type, certificate fingerprints.
-- Parse IPA zip structure and `Info.plist`.
-- Extract Bundle ID, version, build number, embedded profile if present.
-- Implement validation rules for upload readiness.
+- [x] Parse `.mobileprovision` plist payload from synthetic CMS-like bytes.
+- [x] Extract Bundle ID, Team ID, expiration, profile type, device count, and certificate fingerprints.
+- [ ] Parse IPA zip structure and `Info.plist`.
+- [ ] Extract Bundle ID, version, build number, embedded profile if present.
+- [x] Implement validation rules for malformed, incomplete, expired, and unknown profile data.
 
 Validation:
 
-- Add fixture-based tests for valid and expired profiles.
-- Add fixture-based tests for IPA metadata extraction.
-- Confirm mismatches produce stable error codes.
+- [x] Add fixture-based tests for valid and expired profiles.
+- [ ] Add fixture-based tests for IPA metadata extraction.
+- [x] Confirm profile parser failures produce stable error codes.
 
 ## 6. Milestone 4: Upload Proof
 
