@@ -5,12 +5,511 @@
         Height="720"
         Width="1120"
         MinHeight="560"
-        MinWidth="880">
-    <Grid>
-        <TextBlock Text="P12Bridge"
-                   HorizontalAlignment="Center"
-                   VerticalAlignment="Center"
-                   FontSize="32"
-                   FontWeight="SemiBold" />
+        MinWidth="880"
+        Background="#F4F6F8"
+        FontFamily="Microsoft YaHei UI, Segoe UI"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
+    <Window.Resources>
+        <SolidColorBrush x:Key="PageBackgroundBrush" Color="#F4F6F8" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF" />
+        <SolidColorBrush x:Key="MutedPanelBrush" Color="#EEF2F6" />
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#D9E1EA" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#1663D6" />
+        <SolidColorBrush x:Key="PrimarySoftBrush" Color="#E8F1FF" />
+        <SolidColorBrush x:Key="TextBrush" Color="#172033" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#637083" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#16835D" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#986A00" />
+        <SolidColorBrush x:Key="SidebarBrush" Color="#101827" />
+        <SolidColorBrush x:Key="SidebarMutedBrush" Color="#AAB4C3" />
+
+        <Style x:Key="NavButtonStyle" TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{StaticResource SidebarMutedBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="MinHeight" Value="38" />
+            <Setter Property="Margin" Value="12,2" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RadioButton">
+                        <Border x:Name="Chrome"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="12,8">
+                            <ContentPresenter HorizontalAlignment="Left"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#182235" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#20314F" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#395A92" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="16" />
+        </Style>
+
+        <Style x:Key="ActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="MinHeight" Value="32" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#0E55C2" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#0B469E" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Chrome" Property="Background" Value="#D7DEE8" />
+                                <Setter Property="Foreground" Value="#6E7B8D" />
+                                <Setter Property="Opacity" Value="0.82" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ActionButtonStyle}">
+            <Setter Property="Background" Value="{StaticResource MutedPanelBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        </Style>
+
+        <Style x:Key="ModulePageStyle" TargetType="Grid">
+            <Setter Property="Visibility" Value="Collapsed" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Background="{StaticResource PageBackgroundBrush}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="220" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border Grid.Column="0" Background="{StaticResource SidebarBrush}">
+            <DockPanel LastChildFill="True">
+                <StackPanel DockPanel.Dock="Top" Margin="18,20,18,18">
+                    <TextBlock Text="P12Bridge"
+                               Foreground="#FFFFFF"
+                               FontSize="22"
+                               FontWeight="SemiBold" />
+                    <TextBlock Text="Windows iOS 工具"
+                               Foreground="{StaticResource SidebarMutedBrush}"
+                               FontSize="12"
+                               Margin="0,4,0,0" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Bottom" Margin="16">
+                    <Border Background="#182235"
+                            BorderBrush="#263A5C"
+                            BorderThickness="1"
+                            CornerRadius="8"
+                            Padding="12">
+                        <StackPanel>
+                            <TextBlock Text="本地优先"
+                                       Foreground="#FFFFFF"
+                                       FontSize="13"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="私钥与凭据默认留在本机"
+                                       Foreground="{StaticResource SidebarMutedBrush}"
+                                       FontSize="12"
+                                       TextWrapping="Wrap"
+                                       Margin="0,5,0,0" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel>
+                    <RadioButton x:Name="DashboardNav"
+                                 Content="工作台"
+                                 GroupName="MainNavigation"
+                                 IsChecked="True"
+                                 Tag="Dashboard"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton Content="制作证书"
+                                 GroupName="MainNavigation"
+                                 Tag="Certificate"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton Content="描述文件"
+                                 GroupName="MainNavigation"
+                                 Tag="Profiles"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton Content="IPA 检查"
+                                 GroupName="MainNavigation"
+                                 Tag="IpaCheck"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton Content="IPA 上传"
+                                 GroupName="MainNavigation"
+                                 Tag="Upload"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton Content="资产库"
+                                 GroupName="MainNavigation"
+                                 Tag="Assets"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                    <RadioButton Content="设置"
+                                 GroupName="MainNavigation"
+                                 Tag="Settings"
+                                 Checked="OnNavigationChecked"
+                                 Style="{StaticResource NavButtonStyle}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <Grid Grid.Column="1" Margin="28,24,28,24">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Margin="0,0,0,18">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <TextBlock x:Name="PageTitleText"
+                               Text="工作台"
+                               Foreground="{StaticResource TextBrush}"
+                               FontSize="28"
+                               FontWeight="SemiBold" />
+                    <TextBlock x:Name="PageSubtitleText"
+                               Text="证书、描述文件、IPA 检查和上传流程总览"
+                               Foreground="{StaticResource MutedTextBrush}"
+                               FontSize="13"
+                               Margin="0,5,0,0" />
+                </StackPanel>
+
+                <Border Grid.Column="1"
+                        Background="{StaticResource PrimarySoftBrush}"
+                        BorderBrush="#C8DDFF"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="12,8"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="MVP Shell"
+                               Foreground="{StaticResource PrimaryBrush}"
+                               FontSize="13"
+                               FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="1">
+                <ScrollViewer x:Name="DashboardPage" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="1. 制作证书"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontWeight="SemiBold"
+                                               FontSize="15" />
+                                    <TextBlock Text="生成本地私钥和 CSR，导入 Apple CER 后导出 P12。"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,14" />
+                                    <Button Content="进入"
+                                            Tag="Certificate"
+                                            Click="OnModuleShortcutClick"
+                                            Style="{StaticResource SecondaryButtonStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="2. 描述文件"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontWeight="SemiBold"
+                                               FontSize="15" />
+                                    <TextBlock Text="导入 mobileprovision，查看 Team、Bundle ID 和有效期。"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,14" />
+                                    <Button Content="进入"
+                                            Tag="Profiles"
+                                            Click="OnModuleShortcutClick"
+                                            Style="{StaticResource SecondaryButtonStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="3. IPA 检查"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontWeight="SemiBold"
+                                               FontSize="15" />
+                                    <TextBlock Text="读取 Bundle ID、版本号、构建号和内嵌描述文件。"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,14" />
+                                    <Button Content="进入"
+                                            Tag="IpaCheck"
+                                            Click="OnModuleShortcutClick"
+                                            Style="{StaticResource SecondaryButtonStyle}" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="3" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="4. IPA 上传"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontWeight="SemiBold"
+                                               FontSize="15" />
+                                    <TextBlock Text="上传前检查通过后，再走 Transporter 上传适配器。"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,14" />
+                                    <Button Content="进入"
+                                            Tag="Upload"
+                                            Click="OnModuleShortcutClick"
+                                            Style="{StaticResource SecondaryButtonStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="2*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
+                                <StackPanel>
+                                    <TextBlock Text="能力状态"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold" />
+                                    <Grid Margin="0,12,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="34" />
+                                            <RowDefinition Height="34" />
+                                            <RowDefinition Height="34" />
+                                            <RowDefinition Height="34" />
+                                            <RowDefinition Height="34" />
+                                            <RowDefinition Height="34" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="1.25*" />
+                                            <ColumnDefinition Width="0.75*" />
+                                            <ColumnDefinition Width="1.4*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Row="0" Text="私钥 / CSR / P12" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="证书生成 proof 已完成" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Row="1" Text="描述文件解析" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="字段读取和过期判断可用" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Row="2" Text="IPA 元数据" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="Info.plist 与嵌入 Profile 可读" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Row="3" Text="上传前检查" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="3" Grid.Column="2" Text="阻断项和警告可归一化" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Row="4" Text="API Key / JWT" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="4" Grid.Column="2" Text="App Store Connect 认证 proof 已完成" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+
+                                        <TextBlock Grid.Row="5" Text="Transporter 适配器" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="5" Grid.Column="1" Text="已验证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                                        <TextBlock Grid.Row="5" Grid.Column="2" Text="上传适配层已隔离" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                                <StackPanel>
+                                    <TextBlock Text="当前边界"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="16"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock Text="本界面不会要求 Apple ID 主密码，也不会自动保存上传凭据。证书、描述文件和 IPA 的真实导入会在后续工作流任务中接入。"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               Margin="0,12,0,16" />
+                                    <Button Content="查看设置"
+                                            Tag="Settings"
+                                            Click="OnModuleShortcutClick"
+                                            Style="{StaticResource ActionButtonStyle}" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <Grid x:Name="CertificatePage" Style="{StaticResource ModulePageStyle}">
+                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="制作证书"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="下一步会接入本地生成私钥、CSR、导入 CER 和导出 P12 的完整流程。"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,16" />
+                            <Button Content="新建证书项目"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="ProfilesPage" Style="{StaticResource ModulePageStyle}">
+                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="描述文件"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="这里将展示导入的 mobileprovision、Bundle ID、Team ID、类型、设备数量和过期状态。"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,16" />
+                            <Button Content="导入描述文件"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="IpaCheckPage" Style="{StaticResource ModulePageStyle}">
+                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="IPA 检查"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="这里将展示 IPA 包名、版本、Build、Bundle ID、签名线索和上传前阻断项。"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,16" />
+                            <Button Content="选择 IPA"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="UploadPage" Style="{StaticResource ModulePageStyle}">
+                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="IPA 上传"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="上传页会在检查通过后显示 Transporter 阶段、进度、速度和可复制的脱敏日志。"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,16" />
+                            <Button Content="准备上传"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="AssetsPage" Style="{StaticResource ModulePageStyle}">
+                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="资产库"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="这里将集中管理证书项目、私钥位置、CSR、CER、P12、描述文件、备份和操作历史。"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,16" />
+                            <Button Content="打开资产目录"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="SettingsPage" Style="{StaticResource ModulePageStyle}">
+                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="设置"
+                                       Foreground="{StaticResource TextBrush}"
+                                       FontSize="18"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="这里将配置 App Store Connect API Key、应用专用密码、Transporter 路径、日志脱敏和本地存储策略。"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       FontSize="13"
+                                       TextWrapping="Wrap"
+                                       Margin="0,10,0,16" />
+                            <Button Content="配置连接"
+                                    Style="{StaticResource ActionButtonStyle}"
+                                    HorizontalAlignment="Left"
+                                    IsEnabled="False" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
