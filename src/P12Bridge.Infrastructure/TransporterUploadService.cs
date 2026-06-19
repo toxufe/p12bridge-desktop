@@ -54,6 +54,11 @@ public sealed class TransporterUploadService : IUploadService
                 "Choose an existing IPA file."));
         }
 
+        if (request.ExecutionMode == UploadExecutionMode.Upload)
+        {
+            AddAssetDescriptionIssues(issues, request);
+        }
+
         AddCredentialIssues(issues, request);
 
         return issues.Count == 0
@@ -74,19 +79,20 @@ public sealed class TransporterUploadService : IUploadService
             return UploadResult.Failure(null, string.Empty, string.Empty, validation.Issues.ToArray());
         }
 
-        progress?.Report(new UploadProgress(UploadPhase.BuildingCommand, "Building Transporter verification command."));
-        var command = BuildVerifyCommand(request);
+        progress?.Report(new UploadProgress(UploadPhase.BuildingCommand, "Building Transporter command."));
+        var command = BuildCommand(request);
 
         try
         {
-            progress?.Report(new UploadProgress(UploadPhase.RunningTransporter, "Running Transporter verification."));
+            progress?.Report(new UploadProgress(UploadPhase.RunningTransporter, "Running Transporter."));
             var processResult = await processRunner.RunAsync(command, cancellationToken);
             var standardOutput = Redact(processResult.StandardOutput, request);
             var standardError = Redact(processResult.StandardError, request);
+            var actionName = FormatActionName(request.ExecutionMode);
 
             if (processResult.Cancelled)
             {
-                progress?.Report(new UploadProgress(UploadPhase.Failed, "Transporter verification was cancelled."));
+                progress?.Report(new UploadProgress(UploadPhase.Failed, "Transporter was cancelled."));
                 return UploadResult.Failure(
                     processResult.ExitCode,
                     standardOutput,
@@ -94,13 +100,13 @@ public sealed class TransporterUploadService : IUploadService
                     new ValidationIssue(
                         UploadErrorCodes.ProcessCancelled,
                         ValidationSeverity.Error,
-                        "Transporter verification was cancelled.",
-                        "Run the verification again when ready."));
+                        $"Transporter {actionName} was cancelled.",
+                        $"Run the {actionName} again when ready."));
             }
 
             if (processResult.TimedOut)
             {
-                progress?.Report(new UploadProgress(UploadPhase.Failed, "Transporter verification timed out."));
+                progress?.Report(new UploadProgress(UploadPhase.Failed, "Transporter timed out."));
                 return UploadResult.Failure(
                     processResult.ExitCode,
                     standardOutput,
@@ -108,17 +114,17 @@ public sealed class TransporterUploadService : IUploadService
                     new ValidationIssue(
                         UploadErrorCodes.ProcessTimedOut,
                         ValidationSeverity.Error,
-                        "Transporter verification timed out.",
+                        $"Transporter {actionName} timed out.",
                         "Check network connectivity and retry."));
             }
 
             if (processResult.ExitCode == 0)
             {
-                progress?.Report(new UploadProgress(UploadPhase.Completed, "Transporter verification completed."));
+                progress?.Report(new UploadProgress(UploadPhase.Completed, "Transporter completed."));
                 return UploadResult.Success(0, standardOutput, standardError);
             }
 
-            progress?.Report(new UploadProgress(UploadPhase.Failed, "Transporter verification failed."));
+            progress?.Report(new UploadProgress(UploadPhase.Failed, "Transporter failed."));
             return UploadResult.Failure(
                 processResult.ExitCode,
                 standardOutput,
@@ -126,7 +132,7 @@ public sealed class TransporterUploadService : IUploadService
                 new ValidationIssue(
                     UploadErrorCodes.ProcessExitFailed,
                     ValidationSeverity.Error,
-                    "Transporter verification failed.",
+                    $"Transporter {actionName} failed.",
                     "Review the Transporter output and fix the reported issue."));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
@@ -144,6 +150,11 @@ public sealed class TransporterUploadService : IUploadService
         }
     }
 
+    public static ProcessRunRequest BuildCommand(UploadRequest request) =>
+        request.ExecutionMode == UploadExecutionMode.Upload
+            ? BuildUploadCommand(request)
+            : BuildVerifyCommand(request);
+
     public static ProcessRunRequest BuildVerifyCommand(UploadRequest request)
     {
         var arguments = new List<string>
@@ -154,20 +165,61 @@ public sealed class TransporterUploadService : IUploadService
             request.PackagePath
         };
 
+        AddCredentialArguments(arguments, request);
+
+        return new ProcessRunRequest(request.TransporterExecutablePath, arguments, request.Timeout);
+    }
+
+    public static ProcessRunRequest BuildUploadCommand(UploadRequest request)
+    {
+        var arguments = new List<string>
+        {
+            "-m",
+            "upload",
+            "-assetFile",
+            request.PackagePath,
+            "-assetDescription",
+            request.AssetDescriptionPath ?? string.Empty
+        };
+
+        AddCredentialArguments(arguments, request);
+
+        return new ProcessRunRequest(request.TransporterExecutablePath, arguments, request.Timeout);
+    }
+
+    private static void AddCredentialArguments(List<string> arguments, UploadRequest request)
+    {
         if (request.CredentialMode == UploadCredentialMode.ApiKey)
         {
             arguments.Add("-apiKey");
             arguments.Add(request.ApiKeyId ?? string.Empty);
             arguments.Add("-apiIssuer");
             arguments.Add(request.IssuerId ?? string.Empty);
-        }
-        else
-        {
-            arguments.Add("-jwt");
-            arguments.Add(request.Jwt ?? string.Empty);
+            return;
         }
 
-        return new ProcessRunRequest(request.TransporterExecutablePath, arguments, request.Timeout);
+        arguments.Add("-jwt");
+        arguments.Add(request.Jwt ?? string.Empty);
+    }
+
+    private static void AddAssetDescriptionIssues(List<ValidationIssue> issues, UploadRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.AssetDescriptionPath))
+        {
+            issues.Add(new ValidationIssue(
+                UploadErrorCodes.AssetDescriptionPathMissing,
+                ValidationSeverity.Error,
+                "AppStoreInfo.plist path is required for Transporter upload on Windows.",
+                "Choose the AppStoreInfo.plist exported with the signed IPA."));
+        }
+        else if (!File.Exists(request.AssetDescriptionPath))
+        {
+            issues.Add(new ValidationIssue(
+                UploadErrorCodes.AssetDescriptionNotFound,
+                ValidationSeverity.Error,
+                "AppStoreInfo.plist was not found.",
+                "Choose an existing AppStoreInfo.plist file."));
+        }
     }
 
     private static void AddCredentialIssues(List<ValidationIssue> issues, UploadRequest request)
@@ -217,4 +269,7 @@ public sealed class TransporterUploadService : IUploadService
 
         return redacted;
     }
+
+    private static string FormatActionName(UploadExecutionMode executionMode) =>
+        executionMode == UploadExecutionMode.Upload ? "upload" : "verification";
 }

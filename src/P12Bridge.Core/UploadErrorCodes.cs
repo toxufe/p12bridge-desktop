@@ -6,6 +6,8 @@ public static class UploadErrorCodes
     public const string TransporterNotFound = "UPLOAD_TRANSPORTER_NOT_FOUND";
     public const string PackagePathMissing = "UPLOAD_PACKAGE_PATH_MISSING";
     public const string PackageNotFound = "UPLOAD_PACKAGE_NOT_FOUND";
+    public const string AssetDescriptionPathMissing = "UPLOAD_ASSET_DESCRIPTION_PATH_MISSING";
+    public const string AssetDescriptionNotFound = "UPLOAD_ASSET_DESCRIPTION_NOT_FOUND";
     public const string ApiKeyCredentialMissing = "UPLOAD_API_KEY_CREDENTIAL_MISSING";
     public const string JwtMissing = "UPLOAD_JWT_MISSING";
     public const string ProcessStartFailed = "UPLOAD_PROCESS_START_FAILED";

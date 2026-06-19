@@ -122,8 +122,10 @@ Tasks:
 
 - [x] Create `IUploadService`.
 - [x] Implement a first Transporter adapter proof with environment validation and safe verify-mode command construction.
+- [x] Add Transporter upload mode with Windows AppStoreInfo plist validation.
 - [x] Normalize progress and errors.
 - [x] Test invalid credentials, missing tool cases, fake process failures, timeout/cancellation, and log redaction.
+- [x] Add desktop upload action with cancel support and redacted output display.
 - [ ] Run a real upload verification against a signed IPA and valid Apple credentials.
 
 Validation:

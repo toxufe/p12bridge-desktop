@@ -25,6 +25,7 @@ public partial class MainWindow : Window
     private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
     private CancellationTokenSource? uploadVerificationCancellation;
     private bool isUploadVerificationRunning;
+    private UploadExecutionMode activeUploadExecutionMode = UploadExecutionMode.Verify;
 
     public MainWindow()
     {
@@ -339,6 +340,23 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnSelectUploadAssetDescriptionClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "AppStoreInfo (*.plist)|*.plist|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            UploadAssetDescriptionPathTextBox.Text = dialog.FileName;
+            lastUploadEnvironmentValidation = null;
+            RefreshUploadEnvironmentStatus();
+        }
+    }
+
     private void OnUploadCredentialModeChanged(object sender, SelectionChangedEventArgs e)
     {
         SetCredentialPanelsVisibility();
@@ -359,15 +377,26 @@ public partial class MainWindow : Window
 
     private async void OnRunUploadVerifyClick(object sender, RoutedEventArgs e)
     {
+        await RunUploadTransporterAsync(UploadExecutionMode.Verify);
+    }
+
+    private async void OnRunUploadClick(object sender, RoutedEventArgs e)
+    {
+        await RunUploadTransporterAsync(UploadExecutionMode.Upload);
+    }
+
+    private async Task RunUploadTransporterAsync(UploadExecutionMode executionMode)
+    {
         if (isUploadVerificationRunning)
         {
             return;
         }
 
+        activeUploadExecutionMode = executionMode;
         RefreshUploadSettingsInputs();
         ClearUploadVerifyResult();
 
-        var request = BuildUploadRequest();
+        var request = BuildUploadRequest(executionMode);
         var cancellation = new CancellationTokenSource();
         uploadVerificationCancellation = cancellation;
         SetUploadVerificationRunning(true);
@@ -431,7 +460,7 @@ public partial class MainWindow : Window
     {
         RefreshUploadSettingsInputs();
 
-        var result = uploadService.ValidateEnvironment(BuildUploadRequest());
+        var result = uploadService.ValidateEnvironment(BuildUploadRequest(UploadExecutionMode.Verify));
         lastUploadEnvironmentValidation = result;
         ShowUploadEnvironment(result);
     }
@@ -569,7 +598,7 @@ public partial class MainWindow : Window
         UploadVerifyStdoutTextBox.Text = string.Empty;
         UploadVerifyStderrTextBox.Text = string.Empty;
         UploadVerifyIssuesPanel.Children.Clear();
-        SetUploadVerifyStatus("校验中", (Brush)FindResource("PrimaryBrush"));
+        SetUploadVerifyStatus(FormatUploadRunningStatus(activeUploadExecutionMode), (Brush)FindResource("PrimaryBrush"));
     }
 
     private void ShowUploadVerifyProgress(UploadProgress progress)
@@ -587,20 +616,20 @@ public partial class MainWindow : Window
         UploadVerifyIssuesPanel.Children.Clear();
 
         SetUploadVerifyStatus(
-            result.IsSuccess ? "已通过" : "未通过",
+            FormatUploadResultStatus(activeUploadExecutionMode, result.IsSuccess),
             result.IsSuccess
                 ? (Brush)FindResource("SuccessBrush")
                 : (Brush)FindResource("DangerBrush"));
 
         if (result.IsSuccess)
         {
-            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow("校验", "通过", true));
+            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow(FormatUploadActionName(activeUploadExecutionMode), "通过", true));
             return;
         }
 
         if (result.Issues.Count == 0)
         {
-            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow("校验", "失败", false));
+            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow(FormatUploadActionName(activeUploadExecutionMode), "失败", false));
             return;
         }
 
@@ -609,7 +638,7 @@ public partial class MainWindow : Window
             UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow(
                 FormatUploadIssueName(issue.Code),
                 FormatUploadIssueAction(issue.Code),
-            false));
+                false));
         }
     }
 
@@ -634,6 +663,7 @@ public partial class MainWindow : Window
     {
         isUploadVerificationRunning = isRunning;
         RunUploadVerifyButton.IsEnabled = !isRunning;
+        RunUploadButton.IsEnabled = !isRunning;
         CancelUploadVerifyButton.IsEnabled = isRunning;
     }
 
@@ -671,7 +701,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private UploadRequest BuildUploadRequest()
+    private UploadRequest BuildUploadRequest(UploadExecutionMode executionMode)
     {
         var mode = ReadUploadCredentialMode();
 
@@ -679,6 +709,8 @@ public partial class MainWindow : Window
             TransporterPathTextBox.Text,
             lastIpaImportedPath,
             mode,
+            executionMode,
+            OptionalText(UploadAssetDescriptionPathTextBox.Text),
             ApiKeyId: mode == UploadCredentialMode.ApiKey ? OptionalText(UploadApiKeyIdTextBox.Text) : null,
             IssuerId: mode == UploadCredentialMode.ApiKey ? OptionalText(UploadIssuerIdTextBox.Text) : null,
             Jwt: mode == UploadCredentialMode.Jwt ? OptionalText(UploadJwtPasswordBox.Password) : null,
@@ -1003,6 +1035,22 @@ public partial class MainWindow : Window
         return $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier}{path}";
     }
 
+    private static string FormatUploadActionName(UploadExecutionMode executionMode) =>
+        executionMode == UploadExecutionMode.Upload ? "上传" : "校验";
+
+    private static string FormatUploadRunningStatus(UploadExecutionMode executionMode) =>
+        executionMode == UploadExecutionMode.Upload ? "上传中" : "校验中";
+
+    private static string FormatUploadResultStatus(UploadExecutionMode executionMode, bool isSuccess)
+    {
+        if (executionMode == UploadExecutionMode.Upload)
+        {
+            return isSuccess ? "已上传" : "未上传";
+        }
+
+        return isSuccess ? "已通过" : "未通过";
+    }
+
     private string FormatUploadStatus(UploadReadinessStatus status) =>
         status switch
         {
@@ -1035,10 +1083,10 @@ public partial class MainWindow : Window
         {
             UploadPhase.ValidatingEnvironment => "检查环境",
             UploadPhase.BuildingCommand => "准备命令",
-            UploadPhase.RunningTransporter => "校验中",
-            UploadPhase.Completed => "已通过",
-            UploadPhase.Failed => "未通过",
-            _ => "校验中"
+            UploadPhase.RunningTransporter => FormatUploadRunningStatus(activeUploadExecutionMode),
+            UploadPhase.Completed => FormatUploadResultStatus(activeUploadExecutionMode, true),
+            UploadPhase.Failed => FormatUploadResultStatus(activeUploadExecutionMode, false),
+            _ => FormatUploadRunningStatus(activeUploadExecutionMode)
         };
 
     private Brush GetUploadVerifyPhaseBrush(UploadPhase phase) =>
@@ -1118,12 +1166,14 @@ public partial class MainWindow : Window
             UploadErrorCodes.TransporterNotFound => "Transporter",
             UploadErrorCodes.PackagePathMissing => "IPA",
             UploadErrorCodes.PackageNotFound => "IPA",
+            UploadErrorCodes.AssetDescriptionPathMissing => "AppStoreInfo",
+            UploadErrorCodes.AssetDescriptionNotFound => "AppStoreInfo",
             UploadErrorCodes.ApiKeyCredentialMissing => "API Key",
             UploadErrorCodes.JwtMissing => "JWT",
             UploadErrorCodes.ProcessStartFailed => "进程",
             UploadErrorCodes.ProcessTimedOut => "超时",
             UploadErrorCodes.ProcessCancelled => "取消",
-            UploadErrorCodes.ProcessExitFailed => "验证",
+            UploadErrorCodes.ProcessExitFailed => "Transporter",
             UploadErrorCodes.UnexpectedProcessResult => "结果",
             _ => "环境"
         };
@@ -1135,6 +1185,8 @@ public partial class MainWindow : Window
             UploadErrorCodes.TransporterNotFound => "重新选择",
             UploadErrorCodes.PackagePathMissing => "检查 IPA",
             UploadErrorCodes.PackageNotFound => "检查 IPA",
+            UploadErrorCodes.AssetDescriptionPathMissing => "选元数据",
+            UploadErrorCodes.AssetDescriptionNotFound => "选元数据",
             UploadErrorCodes.ApiKeyCredentialMissing => "填写凭据",
             UploadErrorCodes.JwtMissing => "填写 JWT",
             UploadErrorCodes.ProcessStartFailed => "检查权限",
@@ -1150,6 +1202,8 @@ public partial class MainWindow : Window
             or UploadErrorCodes.TransporterNotFound
             or UploadErrorCodes.PackagePathMissing
             or UploadErrorCodes.PackageNotFound
+            or UploadErrorCodes.AssetDescriptionPathMissing
+            or UploadErrorCodes.AssetDescriptionNotFound
             or UploadErrorCodes.ApiKeyCredentialMissing
             or UploadErrorCodes.JwtMissing;
 

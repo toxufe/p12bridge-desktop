@@ -9,14 +9,17 @@ public sealed class TransporterUploadServiceTests : IDisposable
     private readonly string tempDirectory = Path.Combine(Path.GetTempPath(), $"p12bridge-upload-tests-{Guid.NewGuid():N}");
     private readonly string transporterPath;
     private readonly string packagePath;
+    private readonly string assetDescriptionPath;
 
     public TransporterUploadServiceTests()
     {
         Directory.CreateDirectory(tempDirectory);
         transporterPath = Path.Combine(tempDirectory, "iTMSTransporter.cmd");
         packagePath = Path.Combine(tempDirectory, "demo.ipa");
+        assetDescriptionPath = Path.Combine(tempDirectory, "AppStoreInfo.plist");
         File.WriteAllText(transporterPath, "transporter");
         File.WriteAllText(packagePath, "ipa");
+        File.WriteAllText(assetDescriptionPath, "plist");
     }
 
     [Fact]
@@ -98,6 +101,47 @@ public sealed class TransporterUploadServiceTests : IDisposable
     }
 
     [Fact]
+    public void ValidateEnvironmentAllowsVerifyWithoutAssetDescription()
+    {
+        var service = new TransporterUploadService(new FakeProcessRunner());
+
+        var result = service.ValidateEnvironment(ValidRequest() with
+        {
+            AssetDescriptionPath = null,
+            ExecutionMode = UploadExecutionMode.Verify
+        });
+
+        Assert.True(result.IsSuccess);
+    }
+
+    [Fact]
+    public void ValidateEnvironmentRejectsUploadMissingAssetDescriptionPath()
+    {
+        var runner = new FakeProcessRunner();
+        var service = new TransporterUploadService(runner);
+
+        var result = service.ValidateEnvironment(ValidUploadRequest() with { AssetDescriptionPath = " " });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.AssetDescriptionPathMissing);
+        Assert.Null(runner.LastRequest);
+    }
+
+    [Fact]
+    public void ValidateEnvironmentRejectsUploadMissingAssetDescriptionFile()
+    {
+        var service = new TransporterUploadService(new FakeProcessRunner());
+
+        var result = service.ValidateEnvironment(ValidUploadRequest() with
+        {
+            AssetDescriptionPath = Path.Combine(tempDirectory, "missing.plist")
+        });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.AssetDescriptionNotFound);
+    }
+
+    [Fact]
     public void BuildVerifyCommandUsesApiKeyArguments()
     {
         var request = ValidRequest();
@@ -129,6 +173,57 @@ public sealed class TransporterUploadServiceTests : IDisposable
     }
 
     [Fact]
+    public void BuildUploadCommandUsesAssetDescriptionAndApiKeyArguments()
+    {
+        var request = ValidUploadRequest();
+
+        var command = TransporterUploadService.BuildUploadCommand(request);
+
+        Assert.Equal(transporterPath, command.FileName);
+        Assert.Equal(
+            [
+                "-m",
+                "upload",
+                "-assetFile",
+                packagePath,
+                "-assetDescription",
+                assetDescriptionPath,
+                "-apiKey",
+                "ABC123DEFG",
+                "-apiIssuer",
+                "issuer-id"
+            ],
+            command.Arguments);
+    }
+
+    [Fact]
+    public void BuildUploadCommandUsesJwtArguments()
+    {
+        var request = ValidUploadRequest() with
+        {
+            CredentialMode = UploadCredentialMode.Jwt,
+            Jwt = "header.payload.signature",
+            ApiKeyId = null,
+            IssuerId = null
+        };
+
+        var command = TransporterUploadService.BuildUploadCommand(request);
+
+        Assert.Equal(
+            [
+                "-m",
+                "upload",
+                "-assetFile",
+                packagePath,
+                "-assetDescription",
+                assetDescriptionPath,
+                "-jwt",
+                "header.payload.signature"
+            ],
+            command.Arguments);
+    }
+
+    [Fact]
     public async Task UploadAsyncMapsFakeProcessSuccess()
     {
         var progressEvents = new List<UploadProgress>();
@@ -145,6 +240,37 @@ public sealed class TransporterUploadServiceTests : IDisposable
         Assert.Equal("verification ok", result.StandardOutput);
         Assert.Equal(UploadPhase.Completed, progressEvents.Last().Phase);
         Assert.NotNull(runner.LastRequest);
+    }
+
+    [Fact]
+    public async Task UploadAsyncUsesUploadCommandWhenRequested()
+    {
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(0, "upload ok", string.Empty)
+        };
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidUploadRequest());
+
+        Assert.True(result.IsSuccess);
+        Assert.NotNull(runner.LastRequest);
+        Assert.Equal("upload", runner.LastRequest.Arguments[1]);
+        Assert.Contains("-assetDescription", runner.LastRequest.Arguments);
+        Assert.Contains(assetDescriptionPath, runner.LastRequest.Arguments);
+    }
+
+    [Fact]
+    public async Task UploadAsyncDoesNotStartProcessWhenUploadAssetDescriptionIsMissing()
+    {
+        var runner = new FakeProcessRunner();
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidUploadRequest() with { AssetDescriptionPath = null });
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.AssetDescriptionPathMissing);
+        Assert.Null(runner.LastRequest);
     }
 
     [Fact]
@@ -236,6 +362,13 @@ public sealed class TransporterUploadServiceTests : IDisposable
             ApiKeyId: "ABC123DEFG",
             IssuerId: "issuer-id",
             Timeout: TimeSpan.FromSeconds(30));
+
+    private UploadRequest ValidUploadRequest() =>
+        ValidRequest() with
+        {
+            ExecutionMode = UploadExecutionMode.Upload,
+            AssetDescriptionPath = assetDescriptionPath
+        };
 
     private sealed class FakeProcessRunner : IProcessRunner
     {
