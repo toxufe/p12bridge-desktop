@@ -17,6 +17,7 @@ public partial class MainWindow : Window
     private readonly IUploadReadinessEvaluator uploadReadinessEvaluator;
     private readonly IUploadService uploadService;
     private readonly IAppleDeveloperAuthService appleDeveloperAuthService;
+    private readonly IAppStoreConnectBundleIdLookupService appStoreConnectBundleIdLookupService;
     private readonly IAppStoreConnectAppLookupService appStoreConnectAppLookupService;
     private readonly IAppStoreConnectBuildLookupService appStoreConnectBuildLookupService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
@@ -35,6 +36,7 @@ public partial class MainWindow : Window
     private bool isUploadVerificationRunning;
     private UploadExecutionMode activeUploadExecutionMode = UploadExecutionMode.Verify;
     private bool isAppleApiConnectionChecking;
+    private bool isAppStoreBundleIdLookupRunning;
     private bool isAppStoreAppLookupRunning;
     private bool isAppStoreBuildLookupRunning;
 
@@ -53,6 +55,7 @@ public partial class MainWindow : Window
         uploadReadinessEvaluator = new UploadReadinessEvaluator();
         uploadService = new TransporterUploadService();
         appleDeveloperAuthService = new AppleDeveloperAuthService();
+        appStoreConnectBundleIdLookupService = new AppStoreConnectBundleIdLookupService();
         appStoreConnectAppLookupService = new AppStoreConnectAppLookupService();
         appStoreConnectBuildLookupService = new AppStoreConnectBuildLookupService();
         localAssetLibraryService = new LocalAssetLibraryService();
@@ -652,6 +655,47 @@ public partial class MainWindow : Window
         finally
         {
             SetAppStoreAppLookupRunning(false);
+        }
+    }
+
+    private async void OnLookupAppStoreBundleIdClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreBundleIdLookupRunning)
+        {
+            return;
+        }
+
+        SetAppStoreBundleIdLookupRunning(true);
+        ClearAppStoreBundleIdLookupResult();
+        SetAppStoreBundleIdLookupStatus("查询中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectBundleIdLookupRequest(
+                credential,
+                IpaBundleIdTextBox.Text);
+
+            var result = await appStoreConnectBundleIdLookupService.LookupByIdentifierAsync(request);
+            ShowAppStoreBundleIdLookupResult(result);
+            RecordHistory(
+                "Bundle 查询",
+                result.IsSuccess
+                    ? OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                result.IsSuccess
+                    ? (result.IsFound ? "已找到" : "未找到")
+                    : "查询失败",
+                result.IsSuccess
+                    ? FormatAppStoreBundleIdLookupDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreBundleIdLookupRunning(false);
         }
     }
 
@@ -1340,7 +1384,7 @@ public partial class MainWindow : Window
     {
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         AppleApiConnectionIssuesPanel.Children.Clear();
-        ClearAppStoreAppLookupResult();
+        ClearAppStoreBundleIdLookupResult();
     }
 
     private void SetAppleApiConnectionStatus(string status, Brush foreground)
@@ -1377,6 +1421,55 @@ public partial class MainWindow : Window
     {
         isAppleApiConnectionChecking = isChecking;
         CheckAppleApiConnectionButton.IsEnabled = !isChecking;
+    }
+
+    private void ClearAppStoreBundleIdLookupResult()
+    {
+        SetAppStoreBundleIdLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
+        AppStoreBundleIdLookupResultTextBox.Text = string.Empty;
+        AppStoreBundleIdLookupIssuesPanel.Children.Clear();
+        ClearAppStoreAppLookupResult();
+    }
+
+    private void SetAppStoreBundleIdLookupStatus(string status, Brush foreground)
+    {
+        AppStoreBundleIdLookupStatusText.Text = status;
+        AppStoreBundleIdLookupStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppStoreBundleIdLookupResult(AppStoreConnectBundleIdLookupResult result)
+    {
+        AppStoreBundleIdLookupIssuesPanel.Children.Clear();
+        AppStoreBundleIdLookupResultTextBox.Text = FormatAppStoreBundleIdLookupDetail(result);
+
+        if (result.IsSuccess && result.IsFound)
+        {
+            SetAppStoreBundleIdLookupStatus("已找到", (Brush)FindResource("SuccessBrush"));
+            AppStoreBundleIdLookupIssuesPanel.Children.Add(CreateUploadIssueRow("Bundle", "存在", true));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetAppStoreBundleIdLookupStatus("未找到", (Brush)FindResource("WarningBrush"));
+            AppStoreBundleIdLookupIssuesPanel.Children.Add(CreateUploadIssueRow("Bundle", "未找到", false));
+            return;
+        }
+
+        SetAppStoreBundleIdLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppStoreBundleIdLookupIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreBundleIdLookupIssueName(issue.Code),
+                FormatAppStoreBundleIdLookupIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppStoreBundleIdLookupRunning(bool isRunning)
+    {
+        isAppStoreBundleIdLookupRunning = isRunning;
+        LookupAppStoreBundleIdButton.IsEnabled = !isRunning;
     }
 
     private void ClearAppStoreAppLookupResult()
@@ -2311,6 +2404,59 @@ public partial class MainWindow : Window
             AppleDeveloperAuthErrorCodes.NetworkFailure => "查网络",
             AppleDeveloperAuthErrorCodes.UnexpectedAppleResponse => "重试",
             _ => "处理"
+        };
+
+    private static string FormatAppStoreBundleIdLookupIssueName(string code) =>
+        code switch
+        {
+            AppStoreConnectBundleIdLookupErrorCodes.BundleIdMissing => "Bundle",
+            AppStoreConnectBundleIdLookupErrorCodes.ResponseMalformed => "响应",
+            _ => FormatAppleAuthIssueName(code)
+        };
+
+    private static string FormatAppStoreBundleIdLookupIssueAction(string code) =>
+        code switch
+        {
+            AppStoreConnectBundleIdLookupErrorCodes.BundleIdMissing => "检查 IPA",
+            AppStoreConnectBundleIdLookupErrorCodes.ResponseMalformed => "重试",
+            _ => FormatAppleAuthIssueAction(code)
+        };
+
+    private static string FormatAppStoreBundleIdLookupDetail(AppStoreConnectBundleIdLookupResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return FormatIssueDetail(result.Issues);
+        }
+
+        if (result.BundleId is null)
+        {
+            return "未找到";
+        }
+
+        var parts = new List<string>
+        {
+            $"名称: {result.BundleId.Name}",
+            $"Bundle: {result.BundleId.Identifier}",
+            $"平台: {FormatBundlePlatform(result.BundleId.Platform)}",
+            $"记录 ID: {result.BundleId.Id}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(result.BundleId.SeedId))
+        {
+            parts.Add($"Seed: {result.BundleId.SeedId}");
+        }
+
+        return string.Join(Environment.NewLine, parts);
+    }
+
+    private static string FormatBundlePlatform(string platform) =>
+        platform switch
+        {
+            "IOS" => "iOS",
+            "MAC_OS" => "macOS",
+            "UNIVERSAL" => "通用",
+            _ => platform
         };
 
     private static string FormatAppStoreAppLookupIssueName(string code) =>
