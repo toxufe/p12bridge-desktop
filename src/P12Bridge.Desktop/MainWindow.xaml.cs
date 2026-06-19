@@ -23,6 +23,8 @@ public partial class MainWindow : Window
     private IpaMetadata? lastIpaMetadata;
     private string lastIpaImportedPath = string.Empty;
     private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
+    private CancellationTokenSource? uploadVerificationCancellation;
+    private bool isUploadVerificationRunning;
 
     public MainWindow()
     {
@@ -355,6 +357,64 @@ public partial class MainWindow : Window
         ValidateUploadEnvironment();
     }
 
+    private async void OnRunUploadVerifyClick(object sender, RoutedEventArgs e)
+    {
+        if (isUploadVerificationRunning)
+        {
+            return;
+        }
+
+        RefreshUploadSettingsInputs();
+        ClearUploadVerifyResult();
+
+        var request = BuildUploadRequest();
+        var cancellation = new CancellationTokenSource();
+        uploadVerificationCancellation = cancellation;
+        SetUploadVerificationRunning(true);
+
+        try
+        {
+            var progress = new Progress<UploadProgress>(ShowUploadVerifyProgress);
+            var result = await uploadService.UploadAsync(request, progress, cancellation.Token);
+            ShowUploadVerifyResult(result);
+            ShowUploadVerifyEnvironmentResult(result);
+        }
+        catch (OperationCanceledException)
+        {
+            ShowUploadVerifyResult(UploadResult.Failure(
+                null,
+                string.Empty,
+                string.Empty,
+                new ValidationIssue(
+                    UploadErrorCodes.ProcessCancelled,
+                    ValidationSeverity.Error,
+                    "Transporter verification was cancelled.",
+                    "Run the verification again when ready.")));
+        }
+        finally
+        {
+            if (ReferenceEquals(uploadVerificationCancellation, cancellation))
+            {
+                uploadVerificationCancellation = null;
+            }
+
+            cancellation.Dispose();
+            SetUploadVerificationRunning(false);
+        }
+    }
+
+    private void OnCancelUploadVerifyClick(object sender, RoutedEventArgs e)
+    {
+        if (!isUploadVerificationRunning)
+        {
+            return;
+        }
+
+        CancelUploadVerifyButton.IsEnabled = false;
+        SetUploadVerifyStatus("取消中", (Brush)FindResource("WarningBrush"));
+        uploadVerificationCancellation?.Cancel();
+    }
+
     private void EvaluateUploadReadiness()
     {
         RefreshUploadInputs();
@@ -501,6 +561,86 @@ public partial class MainWindow : Window
         {
             UploadChecksPanel.Children.Add(CreateUploadCheckRow(check));
         }
+    }
+
+    private void ClearUploadVerifyResult()
+    {
+        UploadVerifyExitCodeTextBox.Text = string.Empty;
+        UploadVerifyStdoutTextBox.Text = string.Empty;
+        UploadVerifyStderrTextBox.Text = string.Empty;
+        UploadVerifyIssuesPanel.Children.Clear();
+        SetUploadVerifyStatus("校验中", (Brush)FindResource("PrimaryBrush"));
+    }
+
+    private void ShowUploadVerifyProgress(UploadProgress progress)
+    {
+        SetUploadVerifyStatus(
+            FormatUploadVerifyPhase(progress.Phase),
+            GetUploadVerifyPhaseBrush(progress.Phase));
+    }
+
+    private void ShowUploadVerifyResult(UploadResult result)
+    {
+        UploadVerifyExitCodeTextBox.Text = result.ExitCode?.ToString() ?? string.Empty;
+        UploadVerifyStdoutTextBox.Text = result.StandardOutput;
+        UploadVerifyStderrTextBox.Text = result.StandardError;
+        UploadVerifyIssuesPanel.Children.Clear();
+
+        SetUploadVerifyStatus(
+            result.IsSuccess ? "已通过" : "未通过",
+            result.IsSuccess
+                ? (Brush)FindResource("SuccessBrush")
+                : (Brush)FindResource("DangerBrush"));
+
+        if (result.IsSuccess)
+        {
+            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow("校验", "通过", true));
+            return;
+        }
+
+        if (result.Issues.Count == 0)
+        {
+            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow("校验", "失败", false));
+            return;
+        }
+
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatUploadIssueName(issue.Code),
+                FormatUploadIssueAction(issue.Code),
+            false));
+        }
+    }
+
+    private void ShowUploadVerifyEnvironmentResult(UploadResult result)
+    {
+        var environmentIssues = result.Issues
+            .Where(issue => IsUploadEnvironmentIssue(issue.Code))
+            .ToArray();
+
+        if (environmentIssues.Length > 0)
+        {
+            lastUploadEnvironmentValidation = UploadEnvironmentValidationResult.Failure(environmentIssues);
+            ShowUploadEnvironment(lastUploadEnvironmentValidation);
+            return;
+        }
+
+        lastUploadEnvironmentValidation = UploadEnvironmentValidationResult.Success();
+        ShowUploadEnvironment(lastUploadEnvironmentValidation);
+    }
+
+    private void SetUploadVerificationRunning(bool isRunning)
+    {
+        isUploadVerificationRunning = isRunning;
+        RunUploadVerifyButton.IsEnabled = !isRunning;
+        CancelUploadVerifyButton.IsEnabled = isRunning;
+    }
+
+    private void SetUploadVerifyStatus(string status, Brush foreground)
+    {
+        UploadVerifyStatusText.Text = status;
+        UploadVerifyStatusText.Foreground = foreground;
     }
 
     private void ShowUploadEnvironment(UploadEnvironmentValidationResult result)
@@ -890,6 +1030,28 @@ public partial class MainWindow : Window
             _ => (Brush)FindResource("MutedTextBrush")
         };
 
+    private string FormatUploadVerifyPhase(UploadPhase phase) =>
+        phase switch
+        {
+            UploadPhase.ValidatingEnvironment => "检查环境",
+            UploadPhase.BuildingCommand => "准备命令",
+            UploadPhase.RunningTransporter => "校验中",
+            UploadPhase.Completed => "已通过",
+            UploadPhase.Failed => "未通过",
+            _ => "校验中"
+        };
+
+    private Brush GetUploadVerifyPhaseBrush(UploadPhase phase) =>
+        phase switch
+        {
+            UploadPhase.Completed => (Brush)FindResource("SuccessBrush"),
+            UploadPhase.Failed => (Brush)FindResource("DangerBrush"),
+            UploadPhase.ValidatingEnvironment => (Brush)FindResource("PrimaryBrush"),
+            UploadPhase.BuildingCommand => (Brush)FindResource("PrimaryBrush"),
+            UploadPhase.RunningTransporter => (Brush)FindResource("PrimaryBrush"),
+            _ => (Brush)FindResource("MutedTextBrush")
+        };
+
     private static string FormatUploadCheckStatus(UploadReadinessCheckStatus status) =>
         status switch
         {
@@ -982,6 +1144,14 @@ public partial class MainWindow : Window
             UploadErrorCodes.UnexpectedProcessResult => "重试",
             _ => "处理"
         };
+
+    private static bool IsUploadEnvironmentIssue(string code) =>
+        code is UploadErrorCodes.TransporterPathMissing
+            or UploadErrorCodes.TransporterNotFound
+            or UploadErrorCodes.PackagePathMissing
+            or UploadErrorCodes.PackageNotFound
+            or UploadErrorCodes.ApiKeyCredentialMissing
+            or UploadErrorCodes.JwtMissing;
 
     private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
         status == ProvisioningProfileStatus.Active ? "有效" : "过期";

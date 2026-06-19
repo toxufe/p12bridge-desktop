@@ -865,15 +865,85 @@
                                 </StackPanel>
                             </Border>
 
-                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
-                                <StackPanel>
-                                    <TextBlock Text="检查项"
-                                               Foreground="{StaticResource TextBrush}"
-                                               FontSize="18"
-                                               FontWeight="SemiBold" />
-                                    <StackPanel x:Name="UploadChecksPanel" Margin="0,12,0,0" />
-                                </StackPanel>
-                            </Border>
+                            <StackPanel Grid.Column="1">
+                                <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                                    <StackPanel>
+                                        <TextBlock Text="检查项"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold" />
+                                        <StackPanel x:Name="UploadChecksPanel" Margin="0,12,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="Transporter 校验"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <Button x:Name="RunUploadVerifyButton"
+                                                        Content="校验"
+                                                        Click="OnRunUploadVerifyClick"
+                                                        Style="{StaticResource ActionButtonStyle}" />
+                                                <Button x:Name="CancelUploadVerifyButton"
+                                                        Content="取消"
+                                                        Click="OnCancelUploadVerifyClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        IsEnabled="False"
+                                                        Margin="10,0,0,0" />
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <TextBlock Text="状态" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                        <TextBlock x:Name="UploadVerifyStatusText"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Text="未校验" />
+
+                                        <TextBlock Text="退出码" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadVerifyExitCodeTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True" />
+
+                                        <StackPanel x:Name="UploadVerifyIssuesPanel" Margin="0,12,0,0" />
+
+                                        <TextBlock Text="输出" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadVerifyStdoutTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True"
+                                                 AcceptsReturn="True"
+                                                 FontFamily="Consolas"
+                                                 FontSize="12"
+                                                 Height="96"
+                                                 VerticalContentAlignment="Top"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 TextWrapping="Wrap" />
+
+                                        <TextBlock Text="错误" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadVerifyStderrTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True"
+                                                 AcceptsReturn="True"
+                                                 FontFamily="Consolas"
+                                                 FontSize="12"
+                                                 Height="96"
+                                                 VerticalContentAlignment="Top"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 TextWrapping="Wrap" />
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
                         </Grid>
                     </ScrollViewer>
                 </Grid>
