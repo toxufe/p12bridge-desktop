@@ -11,4 +11,8 @@ public static class IpaInspectionErrorCodes
     public const string InfoPlistMalformed = "IPA_INFO_PLIST_MALFORMED";
     public const string MissingRequiredKey = "IPA_INFO_PLIST_REQUIRED_KEY_MISSING";
     public const string EmbeddedProfileInvalid = "IPA_EMBEDDED_PROFILE_INVALID";
+    public const string ImportFileMissing = "IPA_IMPORT_FILE_MISSING";
+    public const string ImportFileNotFound = "IPA_IMPORT_FILE_NOT_FOUND";
+    public const string ImportDirectoryMissing = "IPA_IMPORT_DIRECTORY_MISSING";
+    public const string ImportFailed = "IPA_IMPORT_FAILED";
 }

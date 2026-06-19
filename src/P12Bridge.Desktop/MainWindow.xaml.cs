@@ -13,6 +13,7 @@ public partial class MainWindow : Window
 {
     private readonly ICertificateProjectService certificateProjectService;
     private readonly IProvisioningProfileImportService profileImportService;
+    private readonly IIpaImportService ipaImportService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
 
@@ -26,6 +27,8 @@ public partial class MainWindow : Window
         profileImportService = new ProvisioningProfileImportService(
             new ProvisioningProfileParser(),
             new SystemClock());
+        ipaImportService = new IpaImportService(
+            new IpaInspector());
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -46,6 +49,10 @@ public partial class MainWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "P12Bridge",
             "Profiles");
+        IpaBaseDirectoryTextBox.Text = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "P12Bridge",
+            "IPAs");
 
         ShowPage("Dashboard");
     }
@@ -218,6 +225,43 @@ public partial class MainWindow : Window
         SetProfileStatus("已导入", isSuccess: true);
     }
 
+    private void OnSelectIpaFileClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "iOS App Package (*.ipa)|*.ipa|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            IpaSourcePathTextBox.Text = dialog.FileName;
+        }
+    }
+
+    private void OnInspectIpaClick(object sender, RoutedEventArgs e)
+    {
+        ClearIpaResult();
+
+        var result = ipaImportService.Import(new IpaImportRequest(
+            IpaSourcePathTextBox.Text,
+            IpaBaseDirectoryTextBox.Text));
+
+        if (result.Metadata is not null)
+        {
+            ShowIpa(result.Metadata, result.ImportedPath);
+        }
+
+        if (!result.IsSuccess)
+        {
+            SetIpaStatus(FormatIpaIssues(result.Issues), isSuccess: false);
+            return;
+        }
+
+        SetIpaStatus("检查通过", isSuccess: true);
+    }
+
     private void ClearCertificateResult()
     {
         lastCertificateProjectDirectory = null;
@@ -245,6 +289,19 @@ public partial class MainWindow : Window
         ProfileStatusText.Text = string.Empty;
     }
 
+    private void ClearIpaResult()
+    {
+        IpaBundleIdTextBox.Text = string.Empty;
+        IpaVersionTextBox.Text = string.Empty;
+        IpaBuildTextBox.Text = string.Empty;
+        IpaSizeTextBox.Text = string.Empty;
+        IpaCodeSignTextBox.Text = string.Empty;
+        IpaEmbeddedProfileTextBox.Text = string.Empty;
+        IpaAppBundlePathTextBox.Text = string.Empty;
+        IpaImportedPathTextBox.Text = string.Empty;
+        IpaStatusText.Text = string.Empty;
+    }
+
     private void ShowProfile(ProvisioningProfile profile, string importedPath)
     {
         ProfileNameTextBox.Text = profile.Name;
@@ -256,6 +313,18 @@ public partial class MainWindow : Window
         ProfileUuidTextBox.Text = profile.Uuid;
         ProfileExpirationTextBox.Text = profile.ExpirationDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
         ProfileImportedPathTextBox.Text = importedPath;
+    }
+
+    private void ShowIpa(IpaMetadata metadata, string importedPath)
+    {
+        IpaBundleIdTextBox.Text = metadata.BundleIdentifier;
+        IpaVersionTextBox.Text = metadata.ShortVersion;
+        IpaBuildTextBox.Text = metadata.BuildVersion;
+        IpaSizeTextBox.Text = FormatFileSize(metadata.FileSizeBytes);
+        IpaCodeSignTextBox.Text = metadata.SignaturePresence.HasCodeResources ? "存在" : "缺失";
+        IpaEmbeddedProfileTextBox.Text = FormatEmbeddedProfile(metadata);
+        IpaAppBundlePathTextBox.Text = metadata.AppBundlePath;
+        IpaImportedPathTextBox.Text = importedPath;
     }
 
     private SigningPurpose ReadSelectedPurpose() =>
@@ -278,6 +347,14 @@ public partial class MainWindow : Window
     {
         ProfileStatusText.Text = message;
         ProfileStatusText.Foreground = isSuccess
+            ? (Brush)FindResource("SuccessBrush")
+            : (Brush)FindResource("WarningBrush");
+    }
+
+    private void SetIpaStatus(string message, bool isSuccess)
+    {
+        IpaStatusText.Text = message;
+        IpaStatusText.Foreground = isSuccess
             ? (Brush)FindResource("SuccessBrush")
             : (Brush)FindResource("WarningBrush");
     }
@@ -345,6 +422,59 @@ public partial class MainWindow : Window
             ProvisioningProfileType.Enterprise => "企业",
             _ => "未知"
         };
+
+    private static string FormatIpaIssues(IReadOnlyList<ValidationIssue> issues)
+    {
+        if (issues.Count == 0)
+        {
+            return "检查失败";
+        }
+
+        return string.Join("；", issues.Select(ToIpaUserMessage).Distinct());
+    }
+
+    private static string ToIpaUserMessage(ValidationIssue issue) =>
+        issue.Code switch
+        {
+            IpaInspectionErrorCodes.ImportFileMissing => "文件必填",
+            IpaInspectionErrorCodes.ImportFileNotFound => "文件不存在",
+            IpaInspectionErrorCodes.ImportDirectoryMissing => "目录必填",
+            IpaInspectionErrorCodes.ImportFailed => "导入失败",
+            IpaInspectionErrorCodes.EmptyPayload => "文件为空",
+            IpaInspectionErrorCodes.InvalidArchive => "IPA 无效",
+            IpaInspectionErrorCodes.AppBundleMissing => "App 缺失",
+            IpaInspectionErrorCodes.MultipleAppBundles => "App 过多",
+            IpaInspectionErrorCodes.InfoPlistMissing => "Info 缺失",
+            IpaInspectionErrorCodes.InfoPlistUnsupported => "格式不支持",
+            IpaInspectionErrorCodes.InfoPlistMalformed => "Info 无效",
+            IpaInspectionErrorCodes.MissingRequiredKey => "字段缺失",
+            IpaInspectionErrorCodes.EmbeddedProfileInvalid => "描述无效",
+            _ => "检查失败"
+        };
+
+    private static string FormatFileSize(long bytes)
+    {
+        var megabytes = bytes / 1024d / 1024d;
+        return $"{megabytes:0.##} MB";
+    }
+
+    private static string FormatEmbeddedProfile(IpaMetadata metadata)
+    {
+        if (!metadata.HasEmbeddedProvisioningProfile)
+        {
+            return "缺失";
+        }
+
+        if (metadata.EmbeddedProvisioningProfile is null)
+        {
+            return "无效";
+        }
+
+        return $"{FormatProfileType(metadata.EmbeddedProvisioningProfile.Type)} / {FormatProfileStatus(metadata.EmbeddedProvisioningProfile.Status)}";
+    }
+
+    private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
+        status == ProvisioningProfileStatus.Active ? "有效" : "过期";
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent)
         where T : DependencyObject

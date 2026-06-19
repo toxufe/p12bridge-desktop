@@ -692,23 +692,113 @@
                 </Grid>
 
                 <Grid x:Name="IpaCheckPage" Style="{StaticResource ModulePageStyle}">
-                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
-                        <StackPanel>
-                            <TextBlock Text="IPA 检查"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="18"
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="版本、签名、阻断项"
-                                       Foreground="{StaticResource MutedTextBrush}"
-                                       FontSize="13"
-                                       TextWrapping="Wrap"
-                                       Margin="0,10,0,16" />
-                            <Button Content="选择 IPA"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="False" />
-                        </StackPanel>
-                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.95*" />
+                                <ColumnDefinition Width="1.25*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="检查 IPA"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="文件" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <TextBox x:Name="IpaSourcePathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="目录" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="IpaBaseDirectoryTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Content="选择"
+                                                Click="OnSelectIpaFileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Content="检查"
+                                                Click="OnInspectIpaClick"
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Margin="10,0,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock x:Name="IpaStatusText"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               Margin="0,14,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0"
+                                               Grid.ColumnSpan="3"
+                                               Text="检查结果"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,16,0,0">
+                                        <TextBlock Text="Bundle" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaBundleIdTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,16,0,0">
+                                        <TextBlock Text="版本" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaVersionTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,12,0,0">
+                                        <TextBlock Text="Build" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaBuildTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,12,0,0">
+                                        <TextBlock Text="大小" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaSizeTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,12,0,0">
+                                        <TextBlock Text="代码签名" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaCodeSignTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,12,0,0">
+                                        <TextBlock Text="嵌入描述" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaEmbeddedProfileTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                        <TextBlock Text="App Bundle" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaAppBundlePathTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                        <TextBlock Text="导入路径" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="IpaImportedPathTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
 
                 <Grid x:Name="UploadPage" Style="{StaticResource ModulePageStyle}">
