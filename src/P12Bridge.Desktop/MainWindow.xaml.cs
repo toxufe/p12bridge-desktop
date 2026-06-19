@@ -12,6 +12,7 @@ namespace P12Bridge.Desktop;
 public partial class MainWindow : Window
 {
     private readonly ICertificateProjectService certificateProjectService;
+    private readonly IProvisioningProfileImportService profileImportService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
 
@@ -21,6 +22,9 @@ public partial class MainWindow : Window
 
         certificateProjectService = new CertificateProjectService(
             new LocalCertificateService(),
+            new SystemClock());
+        profileImportService = new ProvisioningProfileImportService(
+            new ProvisioningProfileParser(),
             new SystemClock());
 
         _pages = new Dictionary<string, PageDefinition>
@@ -38,6 +42,10 @@ public partial class MainWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "P12Bridge",
             "Certificates");
+        ProfileBaseDirectoryTextBox.Text = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+            "P12Bridge",
+            "Profiles");
 
         ShowPage("Dashboard");
     }
@@ -173,6 +181,43 @@ public partial class MainWindow : Window
         SetCertificateStatus("P12 已导出", isSuccess: true);
     }
 
+    private void OnSelectProfileFileClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "Provisioning Profile (*.mobileprovision)|*.mobileprovision|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            ProfileSourcePathTextBox.Text = dialog.FileName;
+        }
+    }
+
+    private void OnImportProfileClick(object sender, RoutedEventArgs e)
+    {
+        ClearProfileResult();
+
+        var result = profileImportService.Import(new ProvisioningProfileImportRequest(
+            ProfileSourcePathTextBox.Text,
+            ProfileBaseDirectoryTextBox.Text));
+
+        if (result.Profile is not null)
+        {
+            ShowProfile(result.Profile, result.ImportedPath);
+        }
+
+        if (!result.IsSuccess)
+        {
+            SetProfileStatus(FormatProfileIssues(result.Issues), isSuccess: false);
+            return;
+        }
+
+        SetProfileStatus("已导入", isSuccess: true);
+    }
+
     private void ClearCertificateResult()
     {
         lastCertificateProjectDirectory = null;
@@ -184,6 +229,33 @@ public partial class MainWindow : Window
         CertificateP12PathTextBox.Text = string.Empty;
         CertificateP12PasswordBox.Clear();
         CertificateStatusText.Text = string.Empty;
+    }
+
+    private void ClearProfileResult()
+    {
+        ProfileNameTextBox.Text = string.Empty;
+        ProfileTypeTextBox.Text = string.Empty;
+        ProfileParsedStatusTextBox.Text = string.Empty;
+        ProfileDeviceCountTextBox.Text = string.Empty;
+        ProfileTeamIdTextBox.Text = string.Empty;
+        ProfileBundleIdTextBox.Text = string.Empty;
+        ProfileUuidTextBox.Text = string.Empty;
+        ProfileExpirationTextBox.Text = string.Empty;
+        ProfileImportedPathTextBox.Text = string.Empty;
+        ProfileStatusText.Text = string.Empty;
+    }
+
+    private void ShowProfile(ProvisioningProfile profile, string importedPath)
+    {
+        ProfileNameTextBox.Text = profile.Name;
+        ProfileTypeTextBox.Text = FormatProfileType(profile.Type);
+        ProfileParsedStatusTextBox.Text = profile.Status == ProvisioningProfileStatus.Active ? "有效" : "过期";
+        ProfileDeviceCountTextBox.Text = profile.ProvisionedDeviceCount.ToString();
+        ProfileTeamIdTextBox.Text = profile.TeamId;
+        ProfileBundleIdTextBox.Text = profile.BundleIdentifier;
+        ProfileUuidTextBox.Text = profile.Uuid;
+        ProfileExpirationTextBox.Text = profile.ExpirationDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        ProfileImportedPathTextBox.Text = importedPath;
     }
 
     private SigningPurpose ReadSelectedPurpose() =>
@@ -198,6 +270,14 @@ public partial class MainWindow : Window
     {
         CertificateStatusText.Text = message;
         CertificateStatusText.Foreground = isSuccess
+            ? (Brush)FindResource("SuccessBrush")
+            : (Brush)FindResource("WarningBrush");
+    }
+
+    private void SetProfileStatus(string message, bool isSuccess)
+    {
+        ProfileStatusText.Text = message;
+        ProfileStatusText.Foreground = isSuccess
             ? (Brush)FindResource("SuccessBrush")
             : (Brush)FindResource("WarningBrush");
     }
@@ -228,6 +308,42 @@ public partial class MainWindow : Window
             CertificateProofErrorCodes.P12ExportFailed => "P12 失败",
             CertificateProofErrorCodes.ProjectExportFailed => "导出失败",
             _ => "生成失败"
+        };
+
+    private static string FormatProfileIssues(IReadOnlyList<ValidationIssue> issues)
+    {
+        if (issues.Count == 0)
+        {
+            return "导入失败";
+        }
+
+        return string.Join("；", issues.Select(ToProfileUserMessage).Distinct());
+    }
+
+    private static string ToProfileUserMessage(ValidationIssue issue) =>
+        issue.Code switch
+        {
+            ProvisioningProfileErrorCodes.ImportFileMissing => "文件必填",
+            ProvisioningProfileErrorCodes.ImportFileNotFound => "文件不存在",
+            ProvisioningProfileErrorCodes.ImportDirectoryMissing => "目录必填",
+            ProvisioningProfileErrorCodes.ImportFailed => "导入失败",
+            ProvisioningProfileErrorCodes.EmptyPayload => "文件为空",
+            ProvisioningProfileErrorCodes.PlistNotFound => "格式无效",
+            ProvisioningProfileErrorCodes.MalformedPlist => "格式无效",
+            ProvisioningProfileErrorCodes.MissingRequiredKey => "字段缺失",
+            ProvisioningProfileErrorCodes.ExpiredProfile => "已过期",
+            ProvisioningProfileErrorCodes.UnknownProfileType => "类型未知",
+            _ => "导入失败"
+        };
+
+    private static string FormatProfileType(ProvisioningProfileType type) =>
+        type switch
+        {
+            ProvisioningProfileType.Development => "开发",
+            ProvisioningProfileType.AdHoc => "Ad Hoc",
+            ProvisioningProfileType.AppStore => "App Store",
+            ProvisioningProfileType.Enterprise => "企业",
+            _ => "未知"
         };
 
     private static IEnumerable<T> FindVisualChildren<T>(DependencyObject parent)

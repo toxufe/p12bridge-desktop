@@ -576,23 +576,119 @@
                 </Grid>
 
                 <Grid x:Name="ProfilesPage" Style="{StaticResource ModulePageStyle}">
-                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
-                        <StackPanel>
-                            <TextBlock Text="描述文件"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="18"
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="Bundle、Team、有效期"
-                                       Foreground="{StaticResource MutedTextBrush}"
-                                       FontSize="13"
-                                       TextWrapping="Wrap"
-                                       Margin="0,10,0,16" />
-                            <Button Content="导入文件"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="False" />
-                        </StackPanel>
-                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.95*" />
+                                <ColumnDefinition Width="1.25*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="导入描述文件"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="文件" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <TextBox x:Name="ProfileSourcePathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <TextBlock Text="目录" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="ProfileBaseDirectoryTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Content="选择"
+                                                Click="OnSelectProfileFileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Content="导入"
+                                                Click="OnImportProfileClick"
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Margin="10,0,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock x:Name="ProfileStatusText"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="13"
+                                               TextWrapping="Wrap"
+                                               Margin="0,14,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Row="0"
+                                               Grid.ColumnSpan="3"
+                                               Text="解析结果"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,16,0,0">
+                                        <TextBlock Text="名称" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileNameTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,16,0,0">
+                                        <TextBlock Text="类型" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileTypeTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,12,0,0">
+                                        <TextBlock Text="状态" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileParsedStatusTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,12,0,0">
+                                        <TextBlock Text="设备数" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileDeviceCountTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,12,0,0">
+                                        <TextBlock Text="Team" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileTeamIdTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,12,0,0">
+                                        <TextBlock Text="Bundle" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileBundleIdTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                        <TextBlock Text="UUID" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileUuidTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                        <TextBlock Text="有效期" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileExpirationTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                        <TextBlock Text="导入路径" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileImportedPathTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
 
                 <Grid x:Name="IpaCheckPage" Style="{StaticResource ModulePageStyle}">
