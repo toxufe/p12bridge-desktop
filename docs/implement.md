@@ -103,6 +103,14 @@ Validation:
 
 Goal: validate the upload path before promising product behavior.
 
+Prerequisite authentication proof:
+
+- [x] Define App Store Connect API Key / JWT domain contracts.
+- [x] Generate ES256 JWTs locally from `.p8` key material.
+- [x] Add a low-risk App Store Connect connection-check adapter.
+- [x] Normalize invalid credential, unauthorized, forbidden, Apple API, and network failures.
+- [x] Keep Apple ID + app-specific password handling deferred to the upload proof.
+
 Tasks:
 
 - Create `IUploadService`.
