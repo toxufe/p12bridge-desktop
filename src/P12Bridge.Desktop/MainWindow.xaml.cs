@@ -130,6 +130,7 @@ public partial class MainWindow : Window
 
         if (pageKey == "Dashboard")
         {
+            RefreshAssets();
             RefreshExpirationReminders();
         }
 
@@ -840,6 +841,8 @@ public partial class MainWindow : Window
             ? (Brush)FindResource("SuccessBrush")
             : (Brush)FindResource("WarningBrush");
 
+        UpdateDashboardAssetSummary(result, items);
+
         if (recordHistory)
         {
             RecordHistory(
@@ -855,6 +858,7 @@ public partial class MainWindow : Window
     private void RefreshExpirationReminders(bool recordHistory = false)
     {
         if (DashboardExpirationSummaryText is null
+            || DashboardExpirationCountsText is null
             || ExpirationReminderStatusText is null
             || ExpirationReminderListBox is null)
         {
@@ -869,10 +873,7 @@ public partial class MainWindow : Window
             .ToArray();
 
         ExpirationReminderListBox.ItemsSource = items;
-        DashboardExpirationSummaryText.Text = $"到期 {items.Length}";
-        DashboardExpirationSummaryText.Foreground = items.Length == 0
-            ? (Brush)FindResource("MutedTextBrush")
-            : (Brush)FindResource("WarningBrush");
+        UpdateDashboardExpirationSummary(result.Reminders);
 
         if (items.Length == 0)
         {
@@ -899,6 +900,54 @@ public partial class MainWindow : Window
                     ? FormatExpirationReminderCounts(result.Reminders)
                     : FormatIssueDetail(result.Issues));
         }
+    }
+
+    private void UpdateDashboardAssetSummary(LocalAssetLibraryResult result, IReadOnlyList<AssetListItem> items)
+    {
+        if (DashboardAssetTotalText is null
+            || DashboardAssetCountsText is null
+            || DashboardRecentAssetsStatusText is null
+            || DashboardRecentAssetsListBox is null)
+        {
+            return;
+        }
+
+        DashboardAssetTotalText.Text = $"{result.Items.Count} 项";
+        DashboardAssetCountsText.Text = FormatAssetCounts(result.Items);
+        DashboardAssetTotalText.Foreground = result.Items.Count == 0
+            ? (Brush)FindResource("MutedTextBrush")
+            : (Brush)FindResource("TextBrush");
+
+        var recentItems = items.Take(5).ToArray();
+        DashboardRecentAssetsListBox.ItemsSource = recentItems;
+        DashboardRecentAssetsStatusText.Text = recentItems.Length == 0 ? "暂无资产" : $"最近 {recentItems.Length}";
+        DashboardRecentAssetsStatusText.Foreground = result.Issues.Count == 0
+            ? (Brush)FindResource("MutedTextBrush")
+            : (Brush)FindResource("WarningBrush");
+    }
+
+    private void UpdateDashboardExpirationSummary(IReadOnlyList<AssetExpirationReminder> reminders)
+    {
+        var expiredCount = reminders.Count(reminder => reminder.Status == AssetExpirationReminderStatus.Expired);
+        var soonCount = reminders.Count(reminder => reminder.Status == AssetExpirationReminderStatus.ExpiringSoon);
+
+        DashboardExpirationCountsText.Text = FormatExpirationReminderCounts(reminders);
+        if (expiredCount > 0)
+        {
+            DashboardExpirationSummaryText.Text = $"过期 {expiredCount}";
+            DashboardExpirationSummaryText.Foreground = (Brush)FindResource("DangerBrush");
+            return;
+        }
+
+        if (soonCount > 0)
+        {
+            DashboardExpirationSummaryText.Text = $"临期 {soonCount}";
+            DashboardExpirationSummaryText.Foreground = (Brush)FindResource("WarningBrush");
+            return;
+        }
+
+        DashboardExpirationSummaryText.Text = "暂无提醒";
+        DashboardExpirationSummaryText.Foreground = (Brush)FindResource("MutedTextBrush");
     }
 
     private void RefreshHistory()
