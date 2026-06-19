@@ -111,6 +111,13 @@ Prerequisite authentication proof:
 - [x] Normalize invalid credential, unauthorized, forbidden, Apple API, and network failures.
 - [x] Keep Apple ID + app-specific password handling deferred to the upload proof.
 
+Prerequisite upload-readiness proof:
+
+- [x] Define App Store / TestFlight upload readiness contracts.
+- [x] Evaluate parsed IPA metadata and provisioning profile metadata together.
+- [x] Block common upload-preflight failures: missing metadata, missing signature marker, missing or expired embedded profile, non-App-Store profile, and Bundle ID / Team ID mismatches.
+- [x] Return structured ready / ready-with-warnings / blocked results with actionable validation issues.
+
 Tasks:
 
 - Create `IUploadService`.
