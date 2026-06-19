@@ -20,6 +20,7 @@ public partial class MainWindow : Window
     private readonly IAppStoreConnectBundleIdLookupService appStoreConnectBundleIdLookupService;
     private readonly IAppStoreConnectAppLookupService appStoreConnectAppLookupService;
     private readonly IAppStoreConnectBuildLookupService appStoreConnectBuildLookupService;
+    private readonly IAppStoreConnectProfileLookupService appStoreConnectProfileLookupService;
     private readonly ILocalAssetLibraryService localAssetLibraryService;
     private readonly IOperationHistoryService operationHistoryService;
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
@@ -39,6 +40,7 @@ public partial class MainWindow : Window
     private bool isAppStoreBundleIdLookupRunning;
     private bool isAppStoreAppLookupRunning;
     private bool isAppStoreBuildLookupRunning;
+    private bool isAppStoreProfileLookupRunning;
 
     public MainWindow()
     {
@@ -58,6 +60,7 @@ public partial class MainWindow : Window
         appStoreConnectBundleIdLookupService = new AppStoreConnectBundleIdLookupService();
         appStoreConnectAppLookupService = new AppStoreConnectAppLookupService();
         appStoreConnectBuildLookupService = new AppStoreConnectBuildLookupService();
+        appStoreConnectProfileLookupService = new AppStoreConnectProfileLookupService();
         localAssetLibraryService = new LocalAssetLibraryService();
         operationHistoryService = new InMemoryOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
@@ -737,6 +740,47 @@ public partial class MainWindow : Window
         finally
         {
             SetAppStoreBuildLookupRunning(false);
+        }
+    }
+
+    private async void OnLookupAppStoreProfilesClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreProfileLookupRunning)
+        {
+            return;
+        }
+
+        SetAppStoreProfileLookupRunning(true);
+        ClearAppStoreProfileLookupResult();
+        SetAppStoreProfileLookupStatus("查询中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectProfileLookupRequest(
+                credential,
+                IpaBundleIdTextBox.Text);
+
+            var result = await appStoreConnectProfileLookupService.LookupByBundleIdAsync(request);
+            ShowAppStoreProfileLookupResult(result);
+            RecordHistory(
+                "描述查询",
+                result.IsSuccess
+                    ? OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                result.IsSuccess
+                    ? FormatAppStoreProfileLookupSummary(result)
+                    : "查询失败",
+                result.IsSuccess
+                    ? FormatAppStoreProfileLookupDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreProfileLookupRunning(false);
         }
     }
 
@@ -1429,6 +1473,7 @@ public partial class MainWindow : Window
         AppStoreBundleIdLookupResultTextBox.Text = string.Empty;
         AppStoreBundleIdLookupIssuesPanel.Children.Clear();
         ClearAppStoreAppLookupResult();
+        ClearAppStoreProfileLookupResult();
     }
 
     private void SetAppStoreBundleIdLookupStatus(string status, Brush foreground)
@@ -1574,6 +1619,61 @@ public partial class MainWindow : Window
     {
         isAppStoreBuildLookupRunning = isRunning;
         LookupAppStoreBuildsButton.IsEnabled = !isRunning;
+    }
+
+    private void ClearAppStoreProfileLookupResult()
+    {
+        SetAppStoreProfileLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
+        AppStoreProfileLookupResultTextBox.Text = string.Empty;
+        AppStoreProfileLookupIssuesPanel.Children.Clear();
+    }
+
+    private void SetAppStoreProfileLookupStatus(string status, Brush foreground)
+    {
+        AppStoreProfileLookupStatusText.Text = status;
+        AppStoreProfileLookupStatusText.Foreground = foreground;
+    }
+
+    private void ShowAppStoreProfileLookupResult(AppStoreConnectProfileLookupResult result)
+    {
+        AppStoreProfileLookupIssuesPanel.Children.Clear();
+        AppStoreProfileLookupResultTextBox.Text = FormatAppStoreProfileLookupDetail(result);
+
+        if (result.IsSuccess && result.HasProfiles)
+        {
+            SetAppStoreProfileLookupStatus("已找到", (Brush)FindResource("SuccessBrush"));
+            AppStoreProfileLookupIssuesPanel.Children.Add(CreateUploadIssueRow("描述", $"{result.Profiles.Count} 个", true));
+            return;
+        }
+
+        if (result.IsSuccess && !result.IsBundleIdFound)
+        {
+            SetAppStoreProfileLookupStatus("Bundle 未找到", (Brush)FindResource("WarningBrush"));
+            AppStoreProfileLookupIssuesPanel.Children.Add(CreateUploadIssueRow("Bundle", "未找到", false));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetAppStoreProfileLookupStatus("无描述", (Brush)FindResource("WarningBrush"));
+            AppStoreProfileLookupIssuesPanel.Children.Add(CreateUploadIssueRow("描述", "无", false));
+            return;
+        }
+
+        SetAppStoreProfileLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            AppStoreProfileLookupIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreProfileLookupIssueName(issue.Code),
+                FormatAppStoreProfileLookupIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private void SetAppStoreProfileLookupRunning(bool isRunning)
+    {
+        isAppStoreProfileLookupRunning = isRunning;
+        LookupAppStoreProfilesButton.IsEnabled = !isRunning;
     }
 
     private void ShowUploadEnvironment(UploadEnvironmentValidationResult result)
@@ -2576,6 +2676,102 @@ public partial class MainWindow : Window
             "VALID" => "有效",
             "PROCESSING" => "处理中",
             "FAILED" => "失败",
+            "INVALID" => "无效",
+            _ => state
+        };
+
+    private static string FormatAppStoreProfileLookupIssueName(string code) =>
+        code switch
+        {
+            AppStoreConnectProfileLookupErrorCodes.ResponseMalformed => "响应",
+            _ => FormatAppStoreBundleIdLookupIssueName(code)
+        };
+
+    private static string FormatAppStoreProfileLookupIssueAction(string code) =>
+        code switch
+        {
+            AppStoreConnectProfileLookupErrorCodes.ResponseMalformed => "重试",
+            _ => FormatAppStoreBundleIdLookupIssueAction(code)
+        };
+
+    private static string FormatAppStoreProfileLookupSummary(AppStoreConnectProfileLookupResult result)
+    {
+        if (!result.IsBundleIdFound)
+        {
+            return "Bundle 未找到";
+        }
+
+        return result.HasProfiles ? "已找到" : "无描述";
+    }
+
+    private static string FormatAppStoreProfileLookupDetail(AppStoreConnectProfileLookupResult result)
+    {
+        if (!result.IsSuccess)
+        {
+            return FormatIssueDetail(result.Issues);
+        }
+
+        if (result.BundleId is null)
+        {
+            return "Bundle 未找到";
+        }
+
+        if (result.Profiles.Count == 0)
+        {
+            return "无描述";
+        }
+
+        return string.Join(
+            $"{Environment.NewLine}{Environment.NewLine}",
+            result.Profiles.Select(FormatAppStoreProfile));
+    }
+
+    private static string FormatAppStoreProfile(AppStoreConnectProfile profile)
+    {
+        var parts = new List<string>
+        {
+            $"名称: {profile.Name}",
+            $"类型: {FormatProfileType(profile.ProfileType)}",
+            $"状态: {FormatProfileState(profile.ProfileState)}",
+            $"UUID: {profile.Uuid}",
+            $"平台: {FormatBundlePlatform(profile.Platform)}"
+        };
+
+        if (profile.ExpirationDate is not null)
+        {
+            parts.Add($"到期: {profile.ExpirationDate.Value.ToLocalTime():yyyy-MM-dd}");
+        }
+
+        if (profile.CreatedDate is not null)
+        {
+            parts.Add($"创建: {profile.CreatedDate.Value.ToLocalTime():yyyy-MM-dd}");
+        }
+
+        return string.Join(Environment.NewLine, parts);
+    }
+
+    private static string FormatProfileType(string type) =>
+        type switch
+        {
+            "IOS_APP_DEVELOPMENT" => "开发",
+            "IOS_APP_STORE" => "商店",
+            "IOS_APP_ADHOC" => "Ad Hoc",
+            "IOS_APP_INHOUSE" => "企业",
+            "MAC_APP_DEVELOPMENT" => "Mac 开发",
+            "MAC_APP_STORE" => "Mac 商店",
+            "MAC_APP_DIRECT" => "Mac 直发",
+            "TVOS_APP_DEVELOPMENT" => "tvOS 开发",
+            "TVOS_APP_STORE" => "tvOS 商店",
+            "TVOS_APP_ADHOC" => "tvOS Ad Hoc",
+            "TVOS_APP_INHOUSE" => "tvOS 企业",
+            _ => type
+        };
+
+    private static string FormatProfileState(string state) =>
+        state switch
+        {
+            "ACTIVE" => "有效",
+            "EXPIRED" => "过期",
             "INVALID" => "无效",
             _ => state
         };

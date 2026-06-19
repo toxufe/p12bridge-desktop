@@ -1406,7 +1406,7 @@
                                                  Style="{StaticResource InputTextBoxStyle}"
                                                  IsReadOnly="True" />
 
-                                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <WrapPanel Margin="0,16,0,0">
                                             <Button Content="选择"
                                                     Click="OnSelectAppleApiPrivateKeyClick"
                                                     Style="{StaticResource SecondaryButtonStyle}" />
@@ -1430,7 +1430,12 @@
                                                     Click="OnLookupAppStoreBuildsClick"
                                                     Style="{StaticResource ActionButtonStyle}"
                                                     Margin="10,0,0,0" />
-                                        </StackPanel>
+                                            <Button x:Name="LookupAppStoreProfilesButton"
+                                                    Content="查描述"
+                                                    Click="OnLookupAppStoreProfilesClick"
+                                                    Style="{StaticResource ActionButtonStyle}"
+                                                    Margin="10,0,0,0" />
+                                        </WrapPanel>
                                     </StackPanel>
 
                                     <StackPanel x:Name="JwtCredentialPanel" Visibility="Collapsed">
@@ -1612,6 +1617,34 @@
                                                      VerticalScrollBarVisibility="Auto"
                                                      TextWrapping="Wrap" />
                                             <StackPanel x:Name="AppStoreBuildLookupIssuesPanel" Margin="0,14,0,0" />
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,18,0,0"
+                                            Padding="0,16,0,0">
+                                        <StackPanel>
+                                            <TextBlock Text="描述查询"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="AppStoreProfileLookupStatusText"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       Margin="0,14,0,0"
+                                                       Text="未查询" />
+                                            <TextBox x:Name="AppStoreProfileLookupResultTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}"
+                                                     IsReadOnly="True"
+                                                     AcceptsReturn="True"
+                                                     MinHeight="112"
+                                                     Margin="0,12,0,0"
+                                                     VerticalContentAlignment="Top"
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     TextWrapping="Wrap" />
+                                            <StackPanel x:Name="AppStoreProfileLookupIssuesPanel" Margin="0,14,0,0" />
                                         </StackPanel>
                                     </Border>
                                 </StackPanel>
