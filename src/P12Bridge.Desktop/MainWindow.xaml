@@ -838,6 +838,13 @@
                                                FontSize="18"
                                                FontWeight="SemiBold" />
 
+                                    <TextBlock Text="环境" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBlock x:Name="UploadEnvironmentStatusText"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="15"
+                                               FontWeight="SemiBold"
+                                               TextWrapping="Wrap" />
+
                                     <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                                         <Button Content="检查"
                                                 Click="OnCheckUploadReadinessClick"
@@ -848,6 +855,10 @@
                                                 Margin="10,0,0,0" />
                                         <Button Content="描述"
                                                 Click="OnUploadGoProfileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0" />
+                                        <Button Content="设置"
+                                                Click="OnUploadGoSettingsClick"
                                                 Style="{StaticResource SecondaryButtonStyle}"
                                                 Margin="10,0,0,0" />
                                     </StackPanel>
@@ -888,23 +899,95 @@
                 </Grid>
 
                 <Grid x:Name="SettingsPage" Style="{StaticResource ModulePageStyle}">
-                    <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
-                        <StackPanel>
-                            <TextBlock Text="设置"
-                                       Foreground="{StaticResource TextBrush}"
-                                       FontSize="18"
-                                       FontWeight="SemiBold" />
-                            <TextBlock Text="凭据、路径、隐私"
-                                       Foreground="{StaticResource MutedTextBrush}"
-                                       FontSize="13"
-                                       TextWrapping="Wrap"
-                                       Margin="0,10,0,16" />
-                            <Button Content="配置"
-                                    Style="{StaticResource ActionButtonStyle}"
-                                    HorizontalAlignment="Left"
-                                    IsEnabled="False" />
-                        </StackPanel>
-                    </Border>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="0.95*" />
+                                <ColumnDefinition Width="1.25*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="上传设置"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+
+                                    <TextBlock Text="Transporter" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <TextBox x:Name="TransporterPathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             TextChanged="OnUploadEnvironmentInputChanged" />
+
+                                    <TextBlock Text="IPA" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                    <TextBox x:Name="UploadPackagePathTextBox"
+                                             Style="{StaticResource InputTextBoxStyle}"
+                                             IsReadOnly="True" />
+
+                                    <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                                        <Button Content="选择"
+                                                Click="OnSelectTransporterClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Content="IPA"
+                                                Click="OnSettingsGoIpaClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0" />
+                                    </StackPanel>
+
+                                    <TextBlock Text="凭据" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <ComboBox x:Name="UploadCredentialModeComboBox"
+                                              Style="{StaticResource InputComboBoxStyle}"
+                                              SelectedIndex="0"
+                                              SelectionChanged="OnUploadCredentialModeChanged">
+                                        <ComboBoxItem Content="API Key" Tag="ApiKey" />
+                                        <ComboBoxItem Content="JWT" Tag="Jwt" />
+                                    </ComboBox>
+
+                                    <StackPanel x:Name="ApiKeyCredentialPanel">
+                                        <TextBlock Text="Key ID" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadApiKeyIdTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 TextChanged="OnUploadEnvironmentInputChanged" />
+
+                                        <TextBlock Text="Issuer ID" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadIssuerIdTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 TextChanged="OnUploadEnvironmentInputChanged" />
+                                    </StackPanel>
+
+                                    <StackPanel x:Name="JwtCredentialPanel" Visibility="Collapsed">
+                                        <TextBlock Text="JWT" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <PasswordBox x:Name="UploadJwtPasswordBox"
+                                                     MinHeight="34"
+                                                     Padding="9,6"
+                                                     BorderBrush="{StaticResource BorderBrushSoft}"
+                                                     BorderThickness="1"
+                                                     PasswordChanged="OnUploadEnvironmentInputChanged" />
+                                    </StackPanel>
+
+                                    <Button Content="验证"
+                                            Click="OnValidateUploadEnvironmentClick"
+                                            Style="{StaticResource ActionButtonStyle}"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,16,0,0" />
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
+                                <StackPanel>
+                                    <TextBlock Text="环境结果"
+                                               Foreground="{StaticResource TextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold" />
+                                    <TextBlock x:Name="SettingsUploadEnvironmentStatusText"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="18"
+                                               FontWeight="SemiBold"
+                                               Margin="0,14,0,0" />
+                                    <StackPanel x:Name="UploadEnvironmentIssuesPanel" Margin="0,14,0,0" />
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </ScrollViewer>
                 </Grid>
             </Grid>
         </Grid>

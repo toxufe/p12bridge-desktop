@@ -15,12 +15,14 @@ public partial class MainWindow : Window
     private readonly IProvisioningProfileImportService profileImportService;
     private readonly IIpaImportService ipaImportService;
     private readonly IUploadReadinessEvaluator uploadReadinessEvaluator;
+    private readonly IUploadService uploadService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private ProvisioningProfile? lastImportedProfile;
     private string lastImportedProfilePath = string.Empty;
     private IpaMetadata? lastIpaMetadata;
     private string lastIpaImportedPath = string.Empty;
+    private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
 
     public MainWindow()
     {
@@ -35,6 +37,7 @@ public partial class MainWindow : Window
         ipaImportService = new IpaImportService(
             new IpaInspector());
         uploadReadinessEvaluator = new UploadReadinessEvaluator();
+        uploadService = new TransporterUploadService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -104,6 +107,13 @@ public partial class MainWindow : Window
         if (pageKey == "Upload")
         {
             EvaluateUploadReadiness();
+            RefreshUploadEnvironmentStatus();
+        }
+
+        if (pageKey == "Settings")
+        {
+            RefreshUploadSettingsInputs();
+            RefreshUploadEnvironmentStatus();
         }
     }
 
@@ -298,6 +308,53 @@ public partial class MainWindow : Window
         ShowPage("Profiles");
     }
 
+    private void OnUploadGoSettingsClick(object sender, RoutedEventArgs e)
+    {
+        SelectNavigation("Settings");
+        ShowPage("Settings");
+    }
+
+    private void OnSettingsGoIpaClick(object sender, RoutedEventArgs e)
+    {
+        SelectNavigation("IpaCheck");
+        ShowPage("IpaCheck");
+    }
+
+    private void OnSelectTransporterClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Filter = "Transporter (*.cmd;*.bat;*.exe)|*.cmd;*.bat;*.exe|All files (*.*)|*.*",
+            CheckFileExists = true,
+            Multiselect = false
+        };
+
+        if (dialog.ShowDialog(this) == true)
+        {
+            TransporterPathTextBox.Text = dialog.FileName;
+            lastUploadEnvironmentValidation = null;
+            RefreshUploadEnvironmentStatus();
+        }
+    }
+
+    private void OnUploadCredentialModeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        SetCredentialPanelsVisibility();
+        lastUploadEnvironmentValidation = null;
+        RefreshUploadEnvironmentStatus();
+    }
+
+    private void OnUploadEnvironmentInputChanged(object sender, RoutedEventArgs e)
+    {
+        lastUploadEnvironmentValidation = null;
+        RefreshUploadEnvironmentStatus();
+    }
+
+    private void OnValidateUploadEnvironmentClick(object sender, RoutedEventArgs e)
+    {
+        ValidateUploadEnvironment();
+    }
+
     private void EvaluateUploadReadiness()
     {
         RefreshUploadInputs();
@@ -308,6 +365,15 @@ public partial class MainWindow : Window
             lastImportedProfile));
 
         ShowUploadReadiness(result);
+    }
+
+    private void ValidateUploadEnvironment()
+    {
+        RefreshUploadSettingsInputs();
+
+        var result = uploadService.ValidateEnvironment(BuildUploadRequest());
+        lastUploadEnvironmentValidation = result;
+        ShowUploadEnvironment(result);
     }
 
     private void ClearCertificateResult()
@@ -344,6 +410,7 @@ public partial class MainWindow : Window
     {
         lastIpaMetadata = null;
         lastIpaImportedPath = string.Empty;
+        lastUploadEnvironmentValidation = null;
         IpaBundleIdTextBox.Text = string.Empty;
         IpaVersionTextBox.Text = string.Empty;
         IpaBuildTextBox.Text = string.Empty;
@@ -385,6 +452,43 @@ public partial class MainWindow : Window
     {
         UploadIpaTextBox.Text = FormatUploadIpa(lastIpaMetadata, lastIpaImportedPath);
         UploadProfileTextBox.Text = FormatUploadProfile(lastImportedProfile, lastImportedProfilePath);
+        RefreshUploadSettingsInputs();
+        RefreshUploadEnvironmentStatus();
+    }
+
+    private void RefreshUploadSettingsInputs()
+    {
+        if (UploadPackagePathTextBox is null)
+        {
+            return;
+        }
+
+        UploadPackagePathTextBox.Text = string.IsNullOrWhiteSpace(lastIpaImportedPath)
+            ? "未检查"
+            : lastIpaImportedPath;
+        SetCredentialPanelsVisibility();
+    }
+
+    private void RefreshUploadEnvironmentStatus()
+    {
+        if (UploadEnvironmentStatusText is null
+            || SettingsUploadEnvironmentStatusText is null
+            || UploadEnvironmentIssuesPanel is null)
+        {
+            return;
+        }
+
+        if (lastUploadEnvironmentValidation is null)
+        {
+            UploadEnvironmentStatusText.Text = "未验证";
+            UploadEnvironmentStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
+            SettingsUploadEnvironmentStatusText.Text = "未验证";
+            SettingsUploadEnvironmentStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
+            UploadEnvironmentIssuesPanel.Children.Clear();
+            return;
+        }
+
+        ShowUploadEnvironment(lastUploadEnvironmentValidation);
     }
 
     private void ShowUploadReadiness(UploadReadinessResult result)
@@ -397,6 +501,65 @@ public partial class MainWindow : Window
         {
             UploadChecksPanel.Children.Add(CreateUploadCheckRow(check));
         }
+    }
+
+    private void ShowUploadEnvironment(UploadEnvironmentValidationResult result)
+    {
+        var status = result.IsSuccess ? "环境可用" : "环境异常";
+        var foreground = result.IsSuccess
+            ? (Brush)FindResource("SuccessBrush")
+            : (Brush)FindResource("DangerBrush");
+
+        UploadEnvironmentStatusText.Text = status;
+        UploadEnvironmentStatusText.Foreground = foreground;
+        SettingsUploadEnvironmentStatusText.Text = status;
+        SettingsUploadEnvironmentStatusText.Foreground = foreground;
+
+        UploadEnvironmentIssuesPanel.Children.Clear();
+        if (result.IsSuccess)
+        {
+            UploadEnvironmentIssuesPanel.Children.Add(CreateUploadIssueRow("环境", "通过", true));
+            return;
+        }
+
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            UploadEnvironmentIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatUploadIssueName(issue.Code),
+                FormatUploadIssueAction(issue.Code),
+                false));
+        }
+    }
+
+    private UploadRequest BuildUploadRequest()
+    {
+        var mode = ReadUploadCredentialMode();
+
+        return new UploadRequest(
+            TransporterPathTextBox.Text,
+            lastIpaImportedPath,
+            mode,
+            ApiKeyId: mode == UploadCredentialMode.ApiKey ? OptionalText(UploadApiKeyIdTextBox.Text) : null,
+            IssuerId: mode == UploadCredentialMode.ApiKey ? OptionalText(UploadIssuerIdTextBox.Text) : null,
+            Jwt: mode == UploadCredentialMode.Jwt ? OptionalText(UploadJwtPasswordBox.Password) : null,
+            Timeout: TimeSpan.FromMinutes(30));
+    }
+
+    private UploadCredentialMode ReadUploadCredentialMode() =>
+        UploadCredentialModeComboBox.SelectedIndex == 1
+            ? UploadCredentialMode.Jwt
+            : UploadCredentialMode.ApiKey;
+
+    private void SetCredentialPanelsVisibility()
+    {
+        if (ApiKeyCredentialPanel is null || JwtCredentialPanel is null || UploadCredentialModeComboBox is null)
+        {
+            return;
+        }
+
+        var isJwt = ReadUploadCredentialMode() == UploadCredentialMode.Jwt;
+        ApiKeyCredentialPanel.Visibility = isJwt ? Visibility.Collapsed : Visibility.Visible;
+        JwtCredentialPanel.Visibility = isJwt ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private FrameworkElement CreateUploadCheckRow(UploadReadinessCheck check)
@@ -439,6 +602,72 @@ public partial class MainWindow : Window
         var actionText = new TextBlock
         {
             Text = FormatUploadCheckAction(check),
+            Foreground = (Brush)FindResource("MutedTextBrush"),
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        };
+        Grid.SetColumn(actionText, 2);
+
+        row.Children.Add(statusPill);
+        row.Children.Add(nameText);
+        row.Children.Add(actionText);
+
+        return new Border
+        {
+            Background = new SolidColorBrush(Color.FromRgb(248, 250, 252)),
+            BorderBrush = (Brush)FindResource("BorderBrushSoft"),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(10),
+            Margin = new Thickness(0, 0, 0, 8),
+            Child = row
+        };
+    }
+
+    private FrameworkElement CreateUploadIssueRow(string name, string action, bool isSuccess)
+    {
+        var row = new Grid
+        {
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(96) });
+
+        var statusPill = new Border
+        {
+            Background = isSuccess
+                ? (Brush)FindResource("SuccessBrush")
+                : (Brush)FindResource("DangerBrush"),
+            CornerRadius = new CornerRadius(4),
+            Padding = new Thickness(8, 3, 8, 3),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = isSuccess ? "通过" : "错误",
+                Foreground = Brushes.White,
+                FontSize = 12,
+                FontWeight = FontWeights.SemiBold
+            }
+        };
+        Grid.SetColumn(statusPill, 0);
+
+        var nameText = new TextBlock
+        {
+            Text = name,
+            Foreground = (Brush)FindResource("TextBrush"),
+            FontSize = 13,
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.Wrap
+        };
+        Grid.SetColumn(nameText, 1);
+
+        var actionText = new TextBlock
+        {
+            Text = action,
             Foreground = (Brush)FindResource("MutedTextBrush"),
             FontSize = 12,
             HorizontalAlignment = HorizontalAlignment.Right,
@@ -719,6 +948,40 @@ public partial class MainWindow : Window
             _ => "处理"
         };
     }
+
+    private static string FormatUploadIssueName(string code) =>
+        code switch
+        {
+            UploadErrorCodes.TransporterPathMissing => "Transporter",
+            UploadErrorCodes.TransporterNotFound => "Transporter",
+            UploadErrorCodes.PackagePathMissing => "IPA",
+            UploadErrorCodes.PackageNotFound => "IPA",
+            UploadErrorCodes.ApiKeyCredentialMissing => "API Key",
+            UploadErrorCodes.JwtMissing => "JWT",
+            UploadErrorCodes.ProcessStartFailed => "进程",
+            UploadErrorCodes.ProcessTimedOut => "超时",
+            UploadErrorCodes.ProcessCancelled => "取消",
+            UploadErrorCodes.ProcessExitFailed => "验证",
+            UploadErrorCodes.UnexpectedProcessResult => "结果",
+            _ => "环境"
+        };
+
+    private static string FormatUploadIssueAction(string code) =>
+        code switch
+        {
+            UploadErrorCodes.TransporterPathMissing => "选择文件",
+            UploadErrorCodes.TransporterNotFound => "重新选择",
+            UploadErrorCodes.PackagePathMissing => "检查 IPA",
+            UploadErrorCodes.PackageNotFound => "检查 IPA",
+            UploadErrorCodes.ApiKeyCredentialMissing => "填写凭据",
+            UploadErrorCodes.JwtMissing => "填写 JWT",
+            UploadErrorCodes.ProcessStartFailed => "检查权限",
+            UploadErrorCodes.ProcessTimedOut => "重试",
+            UploadErrorCodes.ProcessCancelled => "重试",
+            UploadErrorCodes.ProcessExitFailed => "看日志",
+            UploadErrorCodes.UnexpectedProcessResult => "重试",
+            _ => "处理"
+        };
 
     private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
         status == ProvisioningProfileStatus.Active ? "有效" : "过期";
