@@ -4105,7 +4105,7 @@ public partial class MainWindow : Window
         }
 
         parts.Add($"凭据: {FormatUploadCredentialMode(settings.CredentialMode)}");
-        parts.Add(settings.SaveSensitiveValues ? "敏感: 已保存" : "敏感: 未保存");
+        parts.Add(settings.SaveSensitiveValues ? "凭据保存: 本机保存" : "凭据保存: 不保存");
         return string.Join(Environment.NewLine, parts);
     }
 
