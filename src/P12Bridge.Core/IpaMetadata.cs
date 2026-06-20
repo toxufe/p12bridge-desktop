@@ -6,6 +6,7 @@ public sealed record IpaMetadata(
     string BundleIdentifier,
     string ShortVersion,
     string BuildVersion,
+    string DisplayName,
     bool HasEmbeddedProvisioningProfile,
     ProvisioningProfile? EmbeddedProvisioningProfile,
     IpaSignaturePresence SignaturePresence);

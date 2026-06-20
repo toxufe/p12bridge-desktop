@@ -40,6 +40,7 @@ public sealed class IpaInspectorTests
         Assert.Equal("com.example.demo", result.Metadata.BundleIdentifier);
         Assert.Equal("1.2.3", result.Metadata.ShortVersion);
         Assert.Equal("45", result.Metadata.BuildVersion);
+        Assert.Equal("Demo App", result.Metadata.DisplayName);
         Assert.True(result.Metadata.HasEmbeddedProvisioningProfile);
         Assert.True(result.Metadata.SignaturePresence.HasEmbeddedProvisioningProfile);
         Assert.True(result.Metadata.SignaturePresence.HasCodeResources);
@@ -141,7 +142,8 @@ public sealed class IpaInspectorTests
         {
             ["CFBundleIdentifier"] = "com.example.binary",
             ["CFBundleShortVersionString"] = "2.0.1",
-            ["CFBundleVersion"] = "99"
+            ["CFBundleVersion"] = "99",
+            ["CFBundleDisplayName"] = "Binary App"
         }));
 
         var result = inspector.Inspect(ipaBytes);
@@ -150,6 +152,7 @@ public sealed class IpaInspectorTests
         Assert.Equal("com.example.binary", result.Metadata?.BundleIdentifier);
         Assert.Equal("2.0.1", result.Metadata?.ShortVersion);
         Assert.Equal("99", result.Metadata?.BuildVersion);
+        Assert.Equal("Binary App", result.Metadata?.DisplayName);
     }
 
     [Fact]
@@ -374,7 +377,8 @@ public sealed class IpaInspectorTests
     private static string InfoPlist(
         string? bundleIdentifier = "com.example.demo",
         string? shortVersion = "1.2.3",
-        string? buildVersion = "45")
+        string? buildVersion = "45",
+        string? displayName = "Demo App")
     {
         var bundleIdentifierXml = bundleIdentifier is null
             ? string.Empty
@@ -385,6 +389,9 @@ public sealed class IpaInspectorTests
         var buildVersionXml = buildVersion is null
             ? string.Empty
             : $"<key>CFBundleVersion</key><string>{buildVersion}</string>";
+        var displayNameXml = displayName is null
+            ? string.Empty
+            : $"<key>CFBundleDisplayName</key><string>{displayName}</string>";
 
         return $$"""
                 <?xml version="1.0" encoding="UTF-8"?>
@@ -394,6 +401,7 @@ public sealed class IpaInspectorTests
                     {{bundleIdentifierXml}}
                     {{shortVersionXml}}
                     {{buildVersionXml}}
+                    {{displayNameXml}}
                 </dict>
                 </plist>
                 """;

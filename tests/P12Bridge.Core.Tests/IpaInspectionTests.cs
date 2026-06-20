@@ -14,6 +14,7 @@ public sealed class IpaInspectionTests
             "com.example.demo",
             "1.0",
             "42",
+            "Demo",
             false,
             null,
             new IpaSignaturePresence(true, false));
@@ -45,6 +46,7 @@ public sealed class IpaInspectionTests
             "com.example.demo",
             "1.0",
             "42",
+            "Demo",
             false,
             null,
             new IpaSignaturePresence(true, false));

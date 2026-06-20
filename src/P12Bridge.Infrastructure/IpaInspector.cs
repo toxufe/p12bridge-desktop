@@ -117,6 +117,7 @@ public sealed class IpaInspector : IIpaInspector
             infoPlistResult.BundleIdentifier!,
             infoPlistResult.ShortVersion!,
             infoPlistResult.BuildVersion!,
+            infoPlistResult.DisplayName,
             embeddedProfileEntry is not null,
             embeddedProfile,
             signaturePresence);
@@ -190,6 +191,9 @@ public sealed class IpaInspector : IIpaInspector
         var bundleIdentifier = RequiredString(values, "CFBundleIdentifier");
         var shortVersion = RequiredString(values, "CFBundleShortVersionString");
         var buildVersion = RequiredString(values, "CFBundleVersion");
+        var displayName = OptionalString(values, "CFBundleDisplayName")
+            ?? OptionalString(values, "CFBundleName")
+            ?? string.Empty;
         var issues = new List<ValidationIssue>();
 
         AddMissingRequiredKeyIssue(issues, bundleIdentifier, "CFBundleIdentifier");
@@ -198,7 +202,7 @@ public sealed class IpaInspector : IIpaInspector
 
         return issues.Count > 0
             ? InfoPlistParseResult.Failure(issues.ToArray())
-            : InfoPlistParseResult.Success(bundleIdentifier!, shortVersion!, buildVersion!);
+            : InfoPlistParseResult.Success(bundleIdentifier!, shortVersion!, buildVersion!, displayName);
     }
 
     private static Dictionary<string, string> ReadXmlPlistStringDictionary(XElement dictionary)
@@ -231,6 +235,16 @@ public sealed class IpaInspector : IIpaInspector
         }
 
         return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    private static string? OptionalString(IReadOnlyDictionary<string, string> values, string key)
+    {
+        if (!values.TryGetValue(key, out var value))
+        {
+            return null;
+        }
+
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     private static void AddMissingRequiredKeyIssue(List<ValidationIssue> issues, string? value, string key)
@@ -271,6 +285,7 @@ public sealed class IpaInspector : IIpaInspector
         string? BundleIdentifier,
         string? ShortVersion,
         string? BuildVersion,
+        string DisplayName,
         IReadOnlyList<ValidationIssue> Issues)
     {
         public bool IsSuccess => BundleIdentifier is not null
@@ -281,10 +296,11 @@ public sealed class IpaInspector : IIpaInspector
         public static InfoPlistParseResult Success(
             string bundleIdentifier,
             string shortVersion,
-            string buildVersion) =>
-            new(bundleIdentifier, shortVersion, buildVersion, Array.Empty<ValidationIssue>());
+            string buildVersion,
+            string displayName) =>
+            new(bundleIdentifier, shortVersion, buildVersion, displayName, Array.Empty<ValidationIssue>());
 
         public static InfoPlistParseResult Failure(params ValidationIssue[] issues) =>
-            new(null, null, null, issues);
+            new(null, null, null, string.Empty, issues);
     }
 }

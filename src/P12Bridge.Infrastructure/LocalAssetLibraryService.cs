@@ -14,10 +14,14 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
     private const string P12FileName = "export.p12";
 
     private readonly IProvisioningProfileParser profileParser;
+    private readonly IIpaInspector ipaInspector;
 
-    public LocalAssetLibraryService(IProvisioningProfileParser? profileParser = null)
+    public LocalAssetLibraryService(
+        IProvisioningProfileParser? profileParser = null,
+        IIpaInspector? ipaInspector = null)
     {
         this.profileParser = profileParser ?? new ProvisioningProfileParser();
+        this.ipaInspector = ipaInspector ?? new IpaInspector(this.profileParser);
     }
 
     public LocalAssetLibraryResult Scan(LocalAssetLibraryRequest request)
@@ -27,7 +31,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
 
         AddCertificateProjects(request.CertificateDirectory, items, issues);
         AddProvisioningProfiles(request.ProfileDirectory, items, issues);
-        AddFiles(request.IpaDirectory, "*.ipa", LocalAssetType.Ipa, items, issues);
+        AddIpas(request.IpaDirectory, items, issues);
 
         return issues.Count == 0
             ? LocalAssetLibraryResult.Success(SortItems(items))
@@ -77,39 +81,6 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         }
     }
 
-    private static void AddFiles(
-        string rootDirectory,
-        string searchPattern,
-        LocalAssetType type,
-        List<LocalAssetItem> items,
-        List<ValidationIssue> issues)
-    {
-        if (!Directory.Exists(rootDirectory))
-        {
-            return;
-        }
-
-        try
-        {
-            foreach (var path in Directory.EnumerateFiles(rootDirectory, searchPattern, SearchOption.TopDirectoryOnly))
-            {
-                items.Add(new LocalAssetItem(
-                    type,
-                    Path.GetFileName(path),
-                    path,
-                    File.GetLastWriteTimeUtc(path)));
-            }
-        }
-        catch (IOException exception)
-        {
-            AddScanIssue(issues, rootDirectory, exception);
-        }
-        catch (UnauthorizedAccessException exception)
-        {
-            AddScanIssue(issues, rootDirectory, exception);
-        }
-    }
-
     private void AddProvisioningProfiles(
         string rootDirectory,
         List<LocalAssetItem> items,
@@ -132,6 +103,39 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     File.GetLastWriteTimeUtc(path),
                     ExpiresAt: profileMetadata.ExpiresAt,
                     SafeMetadataSummary: profileMetadata.SafeSummary));
+            }
+        }
+        catch (IOException exception)
+        {
+            AddScanIssue(issues, rootDirectory, exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            AddScanIssue(issues, rootDirectory, exception);
+        }
+    }
+
+    private void AddIpas(
+        string rootDirectory,
+        List<LocalAssetItem> items,
+        List<ValidationIssue> issues)
+    {
+        if (!Directory.Exists(rootDirectory))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var path in Directory.EnumerateFiles(rootDirectory, "*.ipa", SearchOption.TopDirectoryOnly))
+            {
+                var ipaSummary = ReadIpaSummary(path, issues);
+                items.Add(new LocalAssetItem(
+                    LocalAssetType.Ipa,
+                    Path.GetFileName(path),
+                    path,
+                    File.GetLastWriteTimeUtc(path),
+                    SafeMetadataSummary: ipaSummary));
             }
         }
         catch (IOException exception)
@@ -248,6 +252,53 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
 
     private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
         status == ProvisioningProfileStatus.Active ? "有效" : "过期";
+
+    private string ReadIpaSummary(
+        string ipaPath,
+        List<ValidationIssue> issues)
+    {
+        try
+        {
+            var result = ipaInspector.Inspect(File.ReadAllBytes(ipaPath));
+            AddIpaWarnings(issues, ipaPath, result.Issues);
+            return result.Metadata is null || !result.IsSuccess
+                ? string.Empty
+                : FormatIpaSummary(result.Metadata);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException)
+        {
+            AddScanIssue(issues, ipaPath, exception);
+            return string.Empty;
+        }
+    }
+
+    private static string FormatIpaSummary(IpaMetadata metadata)
+    {
+        var parts = new[]
+        {
+            metadata.BundleIdentifier,
+            $"{metadata.ShortVersion} ({metadata.BuildVersion})",
+            metadata.DisplayName
+        };
+
+        return string.Join(" / ", parts.Where(part => !string.IsNullOrWhiteSpace(part)));
+    }
+
+    private static void AddIpaWarnings(
+        List<ValidationIssue> issues,
+        string ipaPath,
+        IReadOnlyList<ValidationIssue> inspectionIssues)
+    {
+        foreach (var issue in inspectionIssues)
+        {
+            issues.Add(new ValidationIssue(
+                LocalAssetLibraryErrorCodes.ScanFailed,
+                ValidationSeverity.Warning,
+                $"Could not read IPA metadata for {ipaPath}.",
+                issue.Code));
+        }
+    }
 
     private static void AddProfileWarnings(
         List<ValidationIssue> issues,

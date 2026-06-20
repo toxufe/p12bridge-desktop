@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.IO.Compression;
 using System.Text;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
@@ -241,6 +242,42 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsIpaSafeSummary()
+    {
+        var ipaPath = Path.Combine(ipaDirectory, "demo.ipa");
+        File.WriteAllBytes(ipaPath, CreateIpa(InfoPlist(
+            bundleIdentifier: "com.example.demo",
+            shortVersion: "1.2.3",
+            buildVersion: "45",
+            displayName: "Demo App")));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.Ipa);
+        Assert.Equal("com.example.demo / 1.2.3 (45) / Demo App", item.SafeMetadataSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanKeepsIpaAndWarnsWhenIpaIsInvalid()
+    {
+        var ipaPath = Path.Combine(ipaDirectory, "bad.ipa");
+        File.WriteAllText(ipaPath, "raw ipa payload");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.Ipa);
+        Assert.Equal("bad.ipa", item.Name);
+        Assert.Equal(ipaPath, item.Path);
+        Assert.Equal(string.Empty, item.SafeMetadataSummary);
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == LocalAssetLibraryErrorCodes.ScanFailed
+            && issue.SuggestedAction == IpaInspectionErrorCodes.InvalidArchive);
+    }
+
+    [Fact]
     public void ScanKeepsCertificateProjectWhenMetadataNoteIsMalformed()
     {
         var projectDirectory = Path.Combine(certificateDirectory, "Broken");
@@ -306,6 +343,27 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(fingerprint, StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ScanDoesNotExposeRawIpaOrEmbeddedProfileContents()
+    {
+        var secretInfoValue = "SECRET-INFO-PLIST-VALUE";
+        var secretProfilePayload = "SECRET-EMBEDDED-PROFILE";
+        var ipaPath = Path.Combine(ipaDirectory, "secret.ipa");
+        File.WriteAllBytes(ipaPath, CreateIpa(
+            InfoPlist(displayName: secretInfoValue),
+            Encoding.UTF8.GetBytes(secretProfilePayload)));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.Ipa);
+        Assert.DoesNotContain(secretInfoValue, item.Name, StringComparison.Ordinal);
+        Assert.DoesNotContain(secretInfoValue, item.Path, StringComparison.Ordinal);
+        Assert.DoesNotContain(secretProfilePayload, item.SafeMetadataSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(secretInfoValue, StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(secretProfilePayload, StringComparison.Ordinal));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(tempDirectory))
@@ -331,6 +389,48 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
     private static byte[] WrapMobileProvision(string plist) =>
         Encoding.UTF8.GetBytes($"cms-header\0{plist}\0cms-footer");
+
+    private static byte[] CreateIpa(string infoPlist, byte[]? embeddedProfile = null)
+    {
+        using var stream = new MemoryStream();
+        using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteZipEntry(archive, "Payload/Demo.app/Info.plist", Encoding.UTF8.GetBytes(infoPlist));
+            WriteZipEntry(archive, "Payload/Demo.app/_CodeSignature/CodeResources", Encoding.UTF8.GetBytes("signature marker"));
+
+            if (embeddedProfile is not null)
+            {
+                WriteZipEntry(archive, "Payload/Demo.app/embedded.mobileprovision", embeddedProfile);
+            }
+        }
+
+        return stream.ToArray();
+    }
+
+    private static void WriteZipEntry(ZipArchive archive, string name, byte[] bytes)
+    {
+        var entry = archive.CreateEntry(name);
+        using var stream = entry.Open();
+        stream.Write(bytes);
+    }
+
+    private static string InfoPlist(
+        string bundleIdentifier = "com.example.demo",
+        string shortVersion = "1.2.3",
+        string buildVersion = "45",
+        string displayName = "Demo App") =>
+        $$"""
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleIdentifier</key><string>{{bundleIdentifier}}</string>
+              <key>CFBundleShortVersionString</key><string>{{shortVersion}}</string>
+              <key>CFBundleVersion</key><string>{{buildVersion}}</string>
+              <key>CFBundleDisplayName</key><string>{{displayName}}</string>
+          </dict>
+          </plist>
+          """;
 
     private static string ProfilePlist(
         DateTimeOffset expiresAt,

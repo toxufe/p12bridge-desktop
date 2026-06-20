@@ -180,6 +180,7 @@ public sealed class UploadReadinessEvaluatorTests
             bundleIdentifier,
             shortVersion,
             buildVersion,
+            "Demo",
             hasEmbeddedProfile,
             embeddedProfile,
             new IpaSignaturePresence(hasCodeResources, hasEmbeddedProfile));
