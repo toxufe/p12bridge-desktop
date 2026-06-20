@@ -12,6 +12,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
     private const string CertificateSigningRequestFileName = "request.csr";
     private const string CertificateFileName = "certificate.cer";
     private const string P12FileName = "export.p12";
+    private const int BackupTimestampLength = 14;
 
     private readonly IProvisioningProfileParser profileParser;
     private readonly IIpaInspector ipaInspector;
@@ -50,6 +51,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
 
         try
         {
+            var backupIndex = ReadCertificateBackupIndex(rootDirectory, issues);
             foreach (var metadataPath in Directory.EnumerateFiles(
                 rootDirectory,
                 CertificateMetadataFileName,
@@ -68,7 +70,8 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     File.GetLastWriteTimeUtc(metadataPath),
                     ReadProjectNote(metadataPath),
                     ReadCertificateArtifacts(projectDirectory),
-                    ReadCertificateExpiration(projectDirectory, issues)));
+                    ReadCertificateExpiration(projectDirectory, issues),
+                    BackupSummary: ReadCertificateBackupSummary(projectDirectory, backupIndex)));
             }
         }
         catch (IOException exception)
@@ -174,6 +177,63 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         }
 
         return string.Empty;
+    }
+
+    private static string ReadCertificateBackupSummary(
+        string projectDirectory,
+        IReadOnlyDictionary<string, DateTimeOffset> backupIndex)
+    {
+        var projectPrefix = CertificateProjectBackupNames.CreateProjectPrefix(projectDirectory);
+        return backupIndex.TryGetValue(projectPrefix, out var lastWriteTimeUtc)
+            ? $"备份 {lastWriteTimeUtc.ToLocalTime():yyyy-MM-dd}"
+            : string.Empty;
+    }
+
+    private static IReadOnlyDictionary<string, DateTimeOffset> ReadCertificateBackupIndex(
+        string rootDirectory,
+        List<ValidationIssue> issues)
+    {
+        var backups = new Dictionary<string, DateTimeOffset>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            foreach (var backupPath in Directory.EnumerateFiles(rootDirectory, "*.zip", SearchOption.AllDirectories))
+            {
+                var projectPrefix = TryReadBackupProjectPrefix(backupPath);
+                if (string.IsNullOrWhiteSpace(projectPrefix))
+                {
+                    continue;
+                }
+
+                var writeTime = new DateTimeOffset(File.GetLastWriteTimeUtc(backupPath), TimeSpan.Zero);
+                if (!backups.TryGetValue(projectPrefix, out var existingTime) || writeTime > existingTime)
+                {
+                    backups[projectPrefix] = writeTime;
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException)
+        {
+            AddScanIssue(issues, rootDirectory, exception);
+        }
+
+        return backups;
+    }
+
+    private static string? TryReadBackupProjectPrefix(string backupPath)
+    {
+        var name = Path.GetFileNameWithoutExtension(backupPath);
+        if (string.IsNullOrWhiteSpace(name)
+            || name.Length <= BackupTimestampLength + 1
+            || name[^15] != '-')
+        {
+            return null;
+        }
+
+        return name.Substring(name.Length - BackupTimestampLength).All(char.IsDigit)
+            ? name[..^15]
+            : null;
     }
 
     private static CertificateProjectArtifactStatus ReadCertificateArtifacts(string projectDirectory) =>

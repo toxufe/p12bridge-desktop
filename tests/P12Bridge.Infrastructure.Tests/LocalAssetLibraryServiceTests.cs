@@ -144,6 +144,64 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsNewestCertificateBackupSummary()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "BackedUp");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        var backupDirectory = Path.Combine(certificateDirectory, "Backups");
+        Directory.CreateDirectory(backupDirectory);
+        var oldBackupPath = Path.Combine(backupDirectory, "BackedUp-20260601010203.zip");
+        var newBackupPath = Path.Combine(backupDirectory, "BackedUp-20260620010203.zip");
+        File.WriteAllText(oldBackupPath, "old backup");
+        File.WriteAllText(newBackupPath, "new backup");
+        File.SetLastWriteTimeUtc(oldBackupPath, new DateTime(2026, 6, 1, 1, 2, 3, DateTimeKind.Utc));
+        File.SetLastWriteTimeUtc(newBackupPath, new DateTime(2026, 6, 20, 1, 2, 3, DateTimeKind.Utc));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Equal("备份 2026-06-20", item.BackupSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanMatchesCertificateBackupWithSanitizedProjectName()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "Demo Project");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        var backupDirectory = Path.Combine(certificateDirectory, "Backups");
+        Directory.CreateDirectory(backupDirectory);
+        var backupPath = Path.Combine(backupDirectory, "Demo-Project-20260620010203.zip");
+        File.WriteAllText(backupPath, "backup");
+        File.SetLastWriteTimeUtc(backupPath, new DateTime(2026, 6, 20, 1, 2, 3, DateTimeKind.Utc));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Equal("备份 2026-06-20", item.BackupSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanKeepsCertificateProjectWithoutBackupSummaryWhenBackupIsMissing()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "NoBackup");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Equal(string.Empty, item.BackupSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
     public void ScanReportsCertificateExpiration()
     {
         var expiresAt = new DateTimeOffset(2027, 6, 20, 0, 0, 0, TimeSpan.Zero);
@@ -305,6 +363,29 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
         Assert.DoesNotContain(result.Items, item => item.Name.Contains("PRIVATE", StringComparison.Ordinal));
         Assert.DoesNotContain(result.Items, item => item.Note.Contains("PRIVATE", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ScanDoesNotExposeBackupArchiveOrProjectSigningContents()
+    {
+        var privateKeyContent = "PRIVATE KEY CONTENT";
+        var backupContent = "SECRET BACKUP ARCHIVE CONTENT";
+        var projectDirectory = Path.Combine(certificateDirectory, "SecretBackup");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllText(Path.Combine(projectDirectory, "private.key"), privateKeyContent);
+        var backupDirectory = Path.Combine(certificateDirectory, "Backups");
+        Directory.CreateDirectory(backupDirectory);
+        File.WriteAllText(Path.Combine(backupDirectory, "SecretBackup-20260620010203.zip"), backupContent);
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.DoesNotContain(privateKeyContent, item.BackupSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(backupContent, item.BackupSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(privateKeyContent, StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(backupContent, StringComparison.Ordinal));
     }
 
     [Fact]

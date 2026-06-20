@@ -1,6 +1,5 @@
 using System.IO.Compression;
 using System.Security;
-using System.Text;
 using P12Bridge.Core;
 
 namespace P12Bridge.Infrastructure;
@@ -33,8 +32,7 @@ public sealed class CertificateProjectBackupService : ICertificateProjectBackupS
 
         try
         {
-            var projectName = SanitizeFileName(Path.GetFileName(
-                Path.GetFullPath(request.ProjectDirectory).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)));
+            var projectName = CertificateProjectBackupNames.CreateProjectPrefix(request.ProjectDirectory);
             var backupPath = Path.Combine(request.OutputDirectory, $"{projectName}-{clock.UtcNow:yyyyMMddHHmmss}.zip");
             var filesIncluded = 0;
 
@@ -136,19 +134,4 @@ public sealed class CertificateProjectBackupService : ICertificateProjectBackupS
         }
     }
 
-    private static string SanitizeFileName(string value)
-    {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var builder = new StringBuilder(value.Length);
-
-        foreach (var character in value.Trim())
-        {
-            builder.Append(char.IsWhiteSpace(character) || invalidChars.Contains(character)
-                ? '-'
-                : character);
-        }
-
-        var sanitized = builder.ToString().Trim('-');
-        return string.IsNullOrWhiteSpace(sanitized) ? "certificate-project" : sanitized;
-    }
 }
