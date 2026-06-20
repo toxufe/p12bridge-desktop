@@ -203,6 +203,44 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
             && check.Status == UploadReadinessCheckStatus.Passed);
     }
 
+    [Fact]
+    public void EvaluateBlocksWhenAssetDescriptionPathIsBlank()
+    {
+        var profile = AppStoreProfile();
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile, assetDescriptionPath: " "));
+
+        Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
+        AssertBlocked(result, UploadReadinessErrorCodes.AssetDescriptionPathMissing);
+    }
+
+    [Fact]
+    public void EvaluateBlocksWhenAssetDescriptionPathDoesNotExist()
+    {
+        var profile = AppStoreProfile();
+        var ipa = Metadata(profile);
+        var missingPath = Path.Combine(tempDirectory, "missing.plist");
+
+        var result = evaluator.Evaluate(Request(ipa, profile, assetDescriptionPath: missingPath));
+
+        Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
+        AssertBlocked(result, UploadReadinessErrorCodes.AssetDescriptionNotFound);
+    }
+
+    [Fact]
+    public void EvaluatePassesWhenAssetDescriptionPathExists()
+    {
+        var profile = AppStoreProfile();
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile));
+
+        Assert.Contains(result.Checks, check =>
+            check.Code == UploadReadinessErrorCodes.AssetDescriptionNotFound
+            && check.Status == UploadReadinessCheckStatus.Passed);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(tempDirectory))
@@ -222,13 +260,26 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
     private UploadReadinessRequest Request(
         IpaMetadata? ipa,
         ProvisioningProfile? importedProfile = null,
-        string? packagePath = null) =>
-        new(UploadTarget.AppStore, ipa, importedProfile, packagePath ?? ExistingIpaPath());
+        string? packagePath = null,
+        string? assetDescriptionPath = null) =>
+        new(
+            UploadTarget.AppStore,
+            ipa,
+            importedProfile,
+            packagePath ?? ExistingIpaPath(),
+            assetDescriptionPath ?? ExistingAssetDescriptionPath());
 
     private string ExistingIpaPath()
     {
         var path = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}.ipa");
         File.WriteAllText(path, "ipa");
+        return path;
+    }
+
+    private string ExistingAssetDescriptionPath()
+    {
+        var path = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}.plist");
+        File.WriteAllText(path, "plist");
         return path;
     }
 

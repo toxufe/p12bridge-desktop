@@ -2234,7 +2234,8 @@ public partial class MainWindow : Window
             UploadTarget.AppStore,
             lastIpaMetadata,
             lastImportedProfile,
-            lastIpaImportedPath));
+            lastIpaImportedPath,
+            UploadAssetDescriptionPathTextBox.Text));
 
         ShowUploadReadiness(result);
         return result;
@@ -4243,6 +4244,8 @@ public partial class MainWindow : Window
             UploadReadinessErrorCodes.AppStoreTargetSupported => "目标",
             UploadReadinessErrorCodes.PackagePathMissing => "IPA 路径",
             UploadReadinessErrorCodes.PackageNotFound => "IPA 文件",
+            UploadReadinessErrorCodes.AssetDescriptionPathMissing => "AppStoreInfo",
+            UploadReadinessErrorCodes.AssetDescriptionNotFound => "AppStoreInfo",
             UploadReadinessErrorCodes.IpaMetadataMissing => "IPA",
             UploadReadinessErrorCodes.IpaBundleIdMissing => "Bundle",
             UploadReadinessErrorCodes.IpaVersionMissing => "版本",
@@ -4273,6 +4276,8 @@ public partial class MainWindow : Window
             UploadReadinessErrorCodes.IpaMetadataMissing => "检查 IPA",
             UploadReadinessErrorCodes.PackagePathMissing => "选择 IPA",
             UploadReadinessErrorCodes.PackageNotFound => "选择 IPA",
+            UploadReadinessErrorCodes.AssetDescriptionPathMissing => "选元数据",
+            UploadReadinessErrorCodes.AssetDescriptionNotFound => "选元数据",
             UploadReadinessErrorCodes.IpaBundleIdMissing => "重打包",
             UploadReadinessErrorCodes.IpaVersionMissing => "重打包",
             UploadReadinessErrorCodes.IpaBuildMissing => "重打包",

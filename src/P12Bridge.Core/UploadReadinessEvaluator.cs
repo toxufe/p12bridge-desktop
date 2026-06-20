@@ -12,6 +12,7 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
         };
 
         AddPackagePathCheck(checks, request.PackagePath);
+        AddAssetDescriptionPathCheck(checks, request.AssetDescriptionPath);
 
         if (request.IpaMetadata is null)
         {
@@ -48,6 +49,25 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
                 UploadReadinessErrorCodes.PackageNotFound,
                 "IPA package was not found.",
                 "Choose an existing IPA file."));
+    }
+
+    private static void AddAssetDescriptionPathCheck(List<UploadReadinessCheck> checks, string assetDescriptionPath)
+    {
+        if (string.IsNullOrWhiteSpace(assetDescriptionPath))
+        {
+            checks.Add(Blocked(
+                UploadReadinessErrorCodes.AssetDescriptionPathMissing,
+                "AppStoreInfo.plist path is required.",
+                "Choose the AppStoreInfo.plist exported with the signed IPA."));
+            return;
+        }
+
+        checks.Add(File.Exists(assetDescriptionPath)
+            ? Passed(UploadReadinessErrorCodes.AssetDescriptionNotFound, "AppStoreInfo.plist exists.")
+            : Blocked(
+                UploadReadinessErrorCodes.AssetDescriptionNotFound,
+                "AppStoreInfo.plist was not found.",
+                "Choose an existing AppStoreInfo.plist file."));
     }
 
     private static void AddIpaMetadataChecks(List<UploadReadinessCheck> checks, IpaMetadata ipa)

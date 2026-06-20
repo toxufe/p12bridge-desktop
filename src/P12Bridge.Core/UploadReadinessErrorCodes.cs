@@ -5,6 +5,8 @@ public static class UploadReadinessErrorCodes
     public const string IpaMetadataMissing = "UPLOAD_IPA_METADATA_MISSING";
     public const string PackagePathMissing = "UPLOAD_PACKAGE_PATH_MISSING";
     public const string PackageNotFound = "UPLOAD_PACKAGE_NOT_FOUND";
+    public const string AssetDescriptionPathMissing = "UPLOAD_ASSET_DESCRIPTION_PATH_MISSING";
+    public const string AssetDescriptionNotFound = "UPLOAD_ASSET_DESCRIPTION_NOT_FOUND";
     public const string IpaBundleIdMissing = "UPLOAD_IPA_BUNDLE_ID_MISSING";
     public const string IpaVersionMissing = "UPLOAD_IPA_VERSION_MISSING";
     public const string IpaBuildMissing = "UPLOAD_IPA_BUILD_MISSING";
