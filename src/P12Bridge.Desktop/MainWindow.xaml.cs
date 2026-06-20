@@ -287,6 +287,60 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopyCertificateP12PathClick(object sender, RoutedEventArgs e)
+    {
+        var p12Path = CertificateP12PathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(p12Path) || !File.Exists(p12Path))
+        {
+            SetCertificateStatus("P12 不存在", isSuccess: false);
+            RecordHistory("复制 P12", OperationHistoryStatus.Failed, "P12 不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(p12Path);
+            SetCertificateStatus("P12 已复制", isSuccess: true);
+            RecordHistory("复制 P12", OperationHistoryStatus.Success, "已复制", p12Path);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetCertificateStatus("复制失败", isSuccess: false);
+            RecordHistory("复制 P12", OperationHistoryStatus.Failed, "复制失败", p12Path);
+        }
+    }
+
+    private void OnOpenCertificateP12Click(object sender, RoutedEventArgs e)
+    {
+        var p12Path = CertificateP12PathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(p12Path) || !File.Exists(p12Path))
+        {
+            SetCertificateStatus("P12 不存在", isSuccess: false);
+            RecordHistory("打开 P12", OperationHistoryStatus.Failed, "P12 不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = p12Path,
+                UseShellExecute = true
+            });
+            SetCertificateStatus("P12 已打开", isSuccess: true);
+            RecordHistory("打开 P12", OperationHistoryStatus.Success, "已打开", p12Path);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetCertificateStatus("打开失败", isSuccess: false);
+            RecordHistory("打开 P12", OperationHistoryStatus.Failed, "打开失败", p12Path);
+        }
+    }
+
     private void OnSelectCertificateFileClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
