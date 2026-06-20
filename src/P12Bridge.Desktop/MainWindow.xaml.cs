@@ -1168,6 +1168,8 @@ public partial class MainWindow : Window
             TransporterPathTextBox.Text = dialog.FileName;
             lastUploadEnvironmentValidation = null;
             RefreshUploadEnvironmentStatus();
+            SetUploadSettingsStatus("工具已选择", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("选择工具", OperationHistoryStatus.Success, "已选择", dialog.FileName);
         }
     }
 
@@ -1239,6 +1241,8 @@ public partial class MainWindow : Window
             UploadAssetDescriptionPathTextBox.Text = dialog.FileName;
             lastUploadEnvironmentValidation = null;
             RefreshUploadEnvironmentStatus();
+            SetUploadSettingsStatus("元数据已选择", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("选择元数据", OperationHistoryStatus.Success, "已选择", dialog.FileName);
         }
     }
 
@@ -1381,6 +1385,8 @@ public partial class MainWindow : Window
         {
             AppleApiPrivateKeyPathTextBox.Text = dialog.FileName;
             ClearAppleApiConnectionResult();
+            SetAppleApiConnectionStatus("P8 已选择", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("选择 P8", OperationHistoryStatus.Success, "已选择", dialog.FileName);
         }
     }
 
