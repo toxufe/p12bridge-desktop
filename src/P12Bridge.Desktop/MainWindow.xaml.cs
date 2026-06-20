@@ -848,9 +848,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        Clipboard.SetText(text);
-        HistoryStatusText.Text = "已复制";
-        HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+        try
+        {
+            Clipboard.SetText(text);
+            HistoryStatusText.Text = "已复制";
+            HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            HistoryStatusText.Text = "复制失败";
+            HistoryStatusText.Foreground = (Brush)FindResource("DangerBrush");
+        }
     }
 
     private void OnExportHistoryClick(object sender, RoutedEventArgs e)
