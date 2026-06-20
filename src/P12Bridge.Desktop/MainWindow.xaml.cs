@@ -3014,7 +3014,21 @@ public partial class MainWindow : Window
             ReadinessDetail: lastUploadReadinessCopyText,
             RemotePreflightDetail: lastUploadRemotePreflightCopyText,
             BuildLookupDetail: UploadAppStoreBuildLookupResultTextBox.Text,
+            CommandPreview: FormatUploadCommandPreview(BuildUploadRequest(activeUploadExecutionMode)),
             TransporterDetail: FormatCurrentUploadLog()));
+
+    private string FormatUploadCommandPreview(UploadRequest request)
+    {
+        var preview = uploadService.PreviewCommand(request);
+        var lines = new List<string>
+        {
+            $"模式: {FormatUploadActionName(preview.ExecutionMode)}",
+            $"凭据: {FormatUploadCredentialMode(preview.CredentialMode)}",
+            $"命令: {preview.CommandLine}"
+        };
+
+        return string.Join(Environment.NewLine, lines);
+    }
 
     private void ClearAppleApiConnectionResult()
     {

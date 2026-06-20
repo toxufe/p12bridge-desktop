@@ -151,6 +151,16 @@ public sealed class TransporterUploadService : IUploadService
             ? BuildUploadCommand(request)
             : BuildVerifyCommand(request);
 
+    public UploadCommandPreview PreviewCommand(UploadRequest request)
+    {
+        var command = BuildCommand(request);
+        return new UploadCommandPreview(
+            request.ExecutionMode,
+            request.CredentialMode,
+            command.FileName,
+            RedactArguments(command.Arguments, request.CredentialMode).ToArray());
+    }
+
     public static ProcessRunRequest BuildVerifyCommand(UploadRequest request)
     {
         var arguments = new List<string>
@@ -206,6 +216,31 @@ public sealed class TransporterUploadService : IUploadService
         arguments.Add("-p");
         arguments.Add(request.AppSpecificPassword ?? string.Empty);
     }
+
+    private static IEnumerable<string> RedactArguments(
+        IReadOnlyList<string> arguments,
+        UploadCredentialMode credentialMode)
+    {
+        for (var index = 0; index < arguments.Count; index++)
+        {
+            var argument = arguments[index];
+            yield return argument;
+
+            if (IsSensitiveCredentialArgument(argument, credentialMode) && index + 1 < arguments.Count)
+            {
+                yield return "[REDACTED]";
+                index++;
+            }
+        }
+    }
+
+    private static bool IsSensitiveCredentialArgument(string argument, UploadCredentialMode credentialMode) =>
+        credentialMode switch
+        {
+            UploadCredentialMode.Jwt => argument == "-jwt",
+            UploadCredentialMode.AppleIdAppPassword => argument == "-p",
+            _ => false
+        };
 
     private static void AddAssetDescriptionIssues(List<ValidationIssue> issues, UploadRequest request)
     {

@@ -281,6 +281,68 @@ public sealed class TransporterUploadServiceTests : IDisposable
     }
 
     [Fact]
+    public void PreviewCommandKeepsApiKeyCommandShape()
+    {
+        var service = new TransporterUploadService(new FakeProcessRunner());
+
+        var preview = service.PreviewCommand(ValidRequest());
+
+        Assert.Equal(UploadExecutionMode.Verify, preview.ExecutionMode);
+        Assert.Equal(UploadCredentialMode.ApiKey, preview.CredentialMode);
+        Assert.Equal(transporterPath, preview.ExecutablePath);
+        Assert.Equal(
+            ["-m", "verify", "-assetFile", packagePath, "-apiKey", "ABC123DEFG", "-apiIssuer", "issuer-id"],
+            preview.Arguments);
+    }
+
+    [Fact]
+    public void PreviewCommandRedactsJwtValue()
+    {
+        var token = "eyJheader.payload.signature";
+        var service = new TransporterUploadService(new FakeProcessRunner());
+        var request = ValidRequest() with
+        {
+            CredentialMode = UploadCredentialMode.Jwt,
+            Jwt = token,
+            ApiKeyId = null,
+            IssuerId = null
+        };
+
+        var preview = service.PreviewCommand(request);
+
+        Assert.Equal(["-m", "verify", "-assetFile", packagePath, "-jwt", "[REDACTED]"], preview.Arguments);
+        Assert.DoesNotContain(token, preview.CommandLine, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED]", preview.CommandLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreviewCommandRedactsAppSpecificPasswordValue()
+    {
+        var password = "abcd-efgh-ijkl-mnop";
+        var service = new TransporterUploadService(new FakeProcessRunner());
+        var request = ValidAppPasswordRequest() with { AppSpecificPassword = password };
+
+        var preview = service.PreviewCommand(request);
+
+        Assert.Equal(
+            ["-m", "verify", "-assetFile", packagePath, "-u", "dev@example.com", "-p", "[REDACTED]"],
+            preview.Arguments);
+        Assert.DoesNotContain(password, preview.CommandLine, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreviewCommandIncludesUploadAssetDescriptionPath()
+    {
+        var service = new TransporterUploadService(new FakeProcessRunner());
+
+        var preview = service.PreviewCommand(ValidUploadRequest());
+
+        Assert.Equal(UploadExecutionMode.Upload, preview.ExecutionMode);
+        Assert.Contains("-assetDescription", preview.Arguments);
+        Assert.Contains(assetDescriptionPath, preview.Arguments);
+    }
+
+    [Fact]
     public async Task UploadAsyncMapsFakeProcessSuccess()
     {
         var progressEvents = new List<UploadProgress>();

@@ -24,4 +24,5 @@ public sealed record UploadEvidence(
     string ReadinessDetail = "",
     string RemotePreflightDetail = "",
     string BuildLookupDetail = "",
+    string CommandPreview = "",
     string TransporterDetail = "");

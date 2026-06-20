@@ -63,11 +63,13 @@ public sealed class UploadEvidenceFormatterTests
             ReadinessDetail: "状态: 可上传",
             RemotePreflightDetail: "状态: 通过",
             BuildLookupDetail: "构建: 45",
+            CommandPreview: "命令: iTMSTransporter -m verify -jwt [REDACTED]",
             TransporterDetail: "状态: 校验完成"));
 
         Assert.Contains($"检查项{Environment.NewLine}状态: 可上传", text, StringComparison.Ordinal);
         Assert.Contains($"远端检查{Environment.NewLine}状态: 通过", text, StringComparison.Ordinal);
         Assert.Contains($"构建查询{Environment.NewLine}构建: 45", text, StringComparison.Ordinal);
+        Assert.Contains($"命令{Environment.NewLine}命令: iTMSTransporter -m verify -jwt [REDACTED]", text, StringComparison.Ordinal);
         Assert.Contains($"Transporter{Environment.NewLine}状态: 校验完成", text, StringComparison.Ordinal);
     }
 

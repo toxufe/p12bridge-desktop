@@ -43,6 +43,7 @@ public static class UploadEvidenceFormatter
         AddSection(detailSections, "检查项", evidence.ReadinessDetail);
         AddSection(detailSections, "远端检查", evidence.RemotePreflightDetail);
         AddSection(detailSections, "构建查询", evidence.BuildLookupDetail);
+        AddSection(detailSections, "命令", evidence.CommandPreview);
         AddSection(detailSections, "Transporter", evidence.TransporterDetail);
 
         if (overview.Count == 0 && detailSections.Count == 0)
