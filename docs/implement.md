@@ -2,9 +2,9 @@
 
 ## 1. Current Phase
 
-Planning and repository bootstrap.
+Desktop MVP implementation is in place for local proof workflows, asset management, settings, operation history, and the guarded Transporter upload path.
 
-Do not start full feature implementation until the solution skeleton and technical proofs are accepted.
+Do not claim production upload success until real signed-IPA verification and a manual end-to-end walkthrough are completed.
 
 ## 2. Milestone 0: Repository Bootstrap
 
@@ -14,7 +14,7 @@ Do not start full feature implementation until the solution skeleton and technic
 - [x] Add technical design.
 - [x] Add implementation plan.
 - [x] Commit initial documentation locally.
-- [ ] Push initial documentation.
+- [x] Push initial documentation.
 
 Validation:
 
@@ -138,16 +138,16 @@ Validation:
 
 Tasks:
 
-- Build WPF shell and navigation.
-- Add certificate project creation UI.
-- Add profile import and validation UI.
-- Add IPA inspection and upload UI.
-- Add settings for paths and optional credential storage.
-- Add operation history and log viewer.
+- [x] Build WPF shell and navigation.
+- [x] Add certificate project creation UI.
+- [x] Add profile import and validation UI.
+- [x] Add IPA inspection and upload UI.
+- [x] Add settings for paths and optional credential storage.
+- [x] Add operation history and log viewer.
 
 Validation:
 
-- Manual end-to-end walkthrough:
+- [ ] Manual end-to-end walkthrough:
   1. create project,
   2. generate CSR,
   3. import CER,
