@@ -1079,6 +1079,10 @@ public partial class MainWindow : Window
             return;
         }
 
+        AssetStatusText.Text = "目录已选择";
+        AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+        RecordHistory("选择备份", OperationHistoryStatus.Success, "已选择", dialog.FolderName);
+
         var result = certificateProjectBackupService.Export(new CertificateProjectBackupRequest(
             selectedAsset.Path,
             dialog.FolderName));
