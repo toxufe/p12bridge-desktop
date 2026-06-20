@@ -2776,6 +2776,7 @@ public partial class MainWindow : Window
         UploadVerifyStderrTextBox.Text = string.Empty;
         UploadVerifyIssuesPanel.Children.Clear();
         SetUploadVerifyStatus(FormatUploadRunningStatus(activeUploadExecutionMode), (Brush)FindResource("PrimaryBrush"));
+        SetUploadProofStatus(uploadExecutionSucceeded: false);
     }
 
     private void ShowUploadVerifyProgress(UploadProgress progress)
@@ -2799,6 +2800,7 @@ public partial class MainWindow : Window
             result.IsSuccess
                 ? (Brush)FindResource("SuccessBrush")
                 : (Brush)FindResource("DangerBrush"));
+        SetUploadProofStatus(result.IsSuccess);
 
         if (result.IsSuccess)
         {
@@ -2850,6 +2852,19 @@ public partial class MainWindow : Window
     {
         UploadVerifyStatusText.Text = status;
         UploadVerifyStatusText.Foreground = foreground;
+    }
+
+    private void SetUploadProofStatus(bool uploadExecutionSucceeded)
+    {
+        if (activeUploadExecutionMode != UploadExecutionMode.Upload)
+        {
+            UploadProofStatusText.Text = "校验链路";
+            UploadProofStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
+            return;
+        }
+
+        UploadProofStatusText.Text = uploadExecutionSucceeded ? "待核验" : "待实测";
+        UploadProofStatusText.Foreground = (Brush)FindResource("WarningBrush");
     }
 
     private string FormatCurrentUploadLog()
@@ -4119,7 +4134,7 @@ public partial class MainWindow : Window
     {
         if (executionMode == UploadExecutionMode.Upload)
         {
-            return isSuccess ? "已上传" : "未上传";
+            return isSuccess ? "待核验" : "未上传";
         }
 
         return isSuccess ? "已通过" : "未通过";
@@ -4183,7 +4198,7 @@ public partial class MainWindow : Window
             UploadPhase.ValidatingEnvironment => "检查环境",
             UploadPhase.BuildingCommand => "准备命令",
             UploadPhase.RunningTransporter => activeUploadExecutionMode == UploadExecutionMode.Upload ? "正在上传" : "正在校验",
-            UploadPhase.Completed => activeUploadExecutionMode == UploadExecutionMode.Upload ? "上传完成" : "校验完成",
+            UploadPhase.Completed => activeUploadExecutionMode == UploadExecutionMode.Upload ? "待核验" : "校验完成",
             UploadPhase.Failed => "已失败",
             _ => FormatUploadRunningStatus(activeUploadExecutionMode)
         };
@@ -4195,7 +4210,7 @@ public partial class MainWindow : Window
     {
         if (result.IsSuccess)
         {
-            return activeUploadExecutionMode == UploadExecutionMode.Upload ? "上传完成" : "校验完成";
+            return activeUploadExecutionMode == UploadExecutionMode.Upload ? "待核验" : "校验完成";
         }
 
         var firstIssueCode = result.Issues.FirstOrDefault()?.Code;

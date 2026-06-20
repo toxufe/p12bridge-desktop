@@ -126,6 +126,7 @@ Tasks:
 - [x] Normalize progress and errors.
 - [x] Test invalid credentials, missing tool cases, fake process failures, timeout/cancellation, and log redaction.
 - [x] Add desktop upload action with cancel support and redacted output display.
+- [x] Mark Transporter upload as experimental until real signed-IPA verification passes.
 - [ ] Run a real upload verification against a signed IPA and valid Apple credentials.
 
 Validation:
