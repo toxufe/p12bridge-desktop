@@ -33,6 +33,7 @@ Safe evidence:
 - File names and local paths when needed for troubleshooting.
 - Readiness check status and issue codes.
 - Upload evidence copied from the `证据` action.
+- Upload evidence saved from the `保存` action.
 - Redacted upload log copied from the app.
 - App Store Connect build status after upload.
 
@@ -76,7 +77,7 @@ git rev-parse --short HEAD
 17. Open `IPA 上传`.
 18. Run upload readiness.
 19. Confirm status is `可上传` or document each warning/blocking issue.
-20. Click `证据` and store the copied text as walkthrough evidence.
+20. Click `证据` or `保存` and store the output as walkthrough evidence.
 
 ## Transporter Verify
 
@@ -91,7 +92,7 @@ git rev-parse --short HEAD
 9. Open `IPA 上传`.
 10. Run `校验`.
 11. Confirm the result is `校验完成`, or store the redacted failure log and issue code.
-12. Click `证据` and store the copied text as verify evidence.
+12. Click `证据` or `保存` and store the output as verify evidence.
 
 ## Real Upload Attempt
 
@@ -105,7 +106,7 @@ Only run this when the IPA is intended to be delivered to App Store Connect/Test
 6. Check the matching app, Bundle ID, version, and build number.
 7. Confirm whether the build appears, is processing, or failed processing.
 8. Run `构建` in `IPA 上传`.
-9. Click `证据` and record the App Store Connect build state without copying credentials or private payloads.
+9. Click `证据` or `保存` and record the App Store Connect build state without copying credentials or private payloads.
 
 ## Evidence Template
 

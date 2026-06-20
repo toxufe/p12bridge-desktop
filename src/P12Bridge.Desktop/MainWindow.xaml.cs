@@ -830,6 +830,47 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnSaveUploadEvidenceClick(object sender, RoutedEventArgs e)
+    {
+        var evidenceText = FormatUploadEvidenceCopy();
+        if (string.IsNullOrWhiteSpace(evidenceText))
+        {
+            UploadStatusText.Text = "无证据";
+            UploadStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("保存证据", OperationHistoryStatus.Failed, "无证据");
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "保存证据",
+            FileName = $"p12bridge-upload-evidence-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+            DefaultExt = ".txt",
+            Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(dialog.FileName, evidenceText);
+            UploadStatusText.Text = "已保存";
+            UploadStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("保存证据", OperationHistoryStatus.Success, "已保存", dialog.FileName);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException)
+        {
+            UploadStatusText.Text = "保存失败";
+            UploadStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("保存证据", OperationHistoryStatus.Failed, "保存失败", dialog.FileName);
+        }
+    }
+
     private void OnUploadGoIpaClick(object sender, RoutedEventArgs e)
     {
         SelectNavigation("IpaCheck");
