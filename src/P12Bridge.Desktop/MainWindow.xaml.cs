@@ -898,7 +898,9 @@ public partial class MainWindow : Window
             HistoryStatusText.Text = "已导出";
             HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
         }
-        catch (Exception)
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException)
         {
             RecordHistory("导出历史", OperationHistoryStatus.Failed, "导出失败", dialog.FileName);
             HistoryStatusText.Text = "导出失败";
@@ -1016,7 +1018,9 @@ public partial class MainWindow : Window
             ExpirationReminderStatusText.Foreground = (Brush)FindResource("SuccessBrush");
             RecordHistory("打开提醒", OperationHistoryStatus.Success, "已打开", selectedReminder.Path);
         }
-        catch (Exception)
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException)
         {
             ExpirationReminderStatusText.Text = "打开失败";
             ExpirationReminderStatusText.Foreground = (Brush)FindResource("DangerBrush");
