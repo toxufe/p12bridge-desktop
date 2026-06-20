@@ -1166,6 +1166,7 @@ public partial class MainWindow : Window
         var cancellation = new CancellationTokenSource();
         uploadVerificationCancellation = cancellation;
         SetUploadVerificationRunning(true);
+        var shouldLookupBuilds = false;
 
         try
         {
@@ -1178,6 +1179,8 @@ public partial class MainWindow : Window
                 result.IsSuccess ? OperationHistoryStatus.Success : OperationHistoryStatus.Failed,
                 FormatUploadResultStatus(executionMode, result.IsSuccess),
                 FormatUploadResultDetail(result));
+
+            shouldLookupBuilds = executionMode == UploadExecutionMode.Upload && result.IsSuccess;
         }
         catch (OperationCanceledException)
         {
@@ -1206,6 +1209,24 @@ public partial class MainWindow : Window
 
             cancellation.Dispose();
             SetUploadVerificationRunning(false);
+        }
+
+        if (shouldLookupBuilds)
+        {
+            await RunUploadPostUploadBuildLookupAsync();
+        }
+    }
+
+    private async Task RunUploadPostUploadBuildLookupAsync()
+    {
+        try
+        {
+            await RunAppStoreBuildLookupAsync(lastIpaMetadata?.BundleIdentifier ?? string.Empty);
+        }
+        catch (Exception)
+        {
+            SetAppStoreBuildLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("构建查询", OperationHistoryStatus.Failed, "查询失败");
         }
     }
 
