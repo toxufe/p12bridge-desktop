@@ -1856,10 +1856,22 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                    <TextBlock Text="环境结果"
-                                               Foreground="{StaticResource TextBrush}"
-                                               FontSize="18"
-                                               FontWeight="SemiBold" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Text="环境结果"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   VerticalAlignment="Center" />
+                                        <Button Grid.Column="1"
+                                                Content="复制"
+                                                Click="OnCopyUploadEnvironmentClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                    </Grid>
                                     <TextBlock x:Name="SettingsUploadEnvironmentStatusText"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="18"

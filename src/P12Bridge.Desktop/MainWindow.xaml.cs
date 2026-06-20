@@ -41,6 +41,7 @@ public partial class MainWindow : Window
     private string lastAppStoreRemotePreflightCopyText = string.Empty;
     private string lastUploadRemotePreflightCopyText = string.Empty;
     private string lastUploadReadinessCopyText = string.Empty;
+    private string lastUploadEnvironmentCopyText = string.Empty;
     private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
     private CancellationTokenSource? uploadVerificationCancellation;
     private bool isUploadVerificationRunning;
@@ -1090,6 +1091,32 @@ public partial class MainWindow : Window
         ValidateUploadEnvironment();
     }
 
+    private void OnCopyUploadEnvironmentClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(lastUploadEnvironmentCopyText))
+        {
+            SettingsUploadEnvironmentStatusText.Text = "无结果";
+            SettingsUploadEnvironmentStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制环境", OperationHistoryStatus.Failed, "无结果");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(lastUploadEnvironmentCopyText);
+            SettingsUploadEnvironmentStatusText.Text = "已复制";
+            SettingsUploadEnvironmentStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制环境", OperationHistoryStatus.Success, "已复制", lastUploadEnvironmentCopyText);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SettingsUploadEnvironmentStatusText.Text = "复制失败";
+            SettingsUploadEnvironmentStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制环境", OperationHistoryStatus.Failed, "复制失败");
+        }
+    }
+
     private void OnSaveUploadSettingsClick(object sender, RoutedEventArgs e)
     {
         SaveUploadSettings();
@@ -1709,7 +1736,7 @@ public partial class MainWindow : Window
             "环境验证",
             result.IsSuccess ? OperationHistoryStatus.Success : OperationHistoryStatus.Failed,
             result.IsSuccess ? "环境可用" : "环境异常",
-            FormatIssueDetail(result.Issues));
+            FormatUploadEnvironmentCopy(result));
     }
 
     private void ClearCertificateResult()
@@ -2193,6 +2220,7 @@ public partial class MainWindow : Window
 
         if (lastUploadEnvironmentValidation is null)
         {
+            lastUploadEnvironmentCopyText = string.Empty;
             UploadEnvironmentStatusText.Text = "未验证";
             UploadEnvironmentStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
             SettingsUploadEnvironmentStatusText.Text = "未验证";
@@ -2836,6 +2864,7 @@ public partial class MainWindow : Window
 
     private void ShowUploadEnvironment(UploadEnvironmentValidationResult result)
     {
+        lastUploadEnvironmentCopyText = FormatUploadEnvironmentCopy(result);
         var status = result.IsSuccess ? "环境可用" : "环境异常";
         var foreground = result.IsSuccess
             ? (Brush)FindResource("SuccessBrush")
@@ -2860,6 +2889,25 @@ public partial class MainWindow : Window
                 FormatUploadIssueAction(issue.Code),
                 false));
         }
+    }
+
+    private string FormatUploadEnvironmentCopy(UploadEnvironmentValidationResult result)
+    {
+        var lines = new List<string>
+        {
+            $"状态: {(result.IsSuccess ? "环境可用" : "环境异常")}"
+        };
+
+        if (result.IsSuccess)
+        {
+            lines.Add("环境: 通过 / 正常");
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        lines.AddRange(result.Issues.Select(issue =>
+            $"{FormatUploadIssueName(issue.Code)}: 错误 / {FormatUploadIssueAction(issue.Code)}"));
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private void RecordHistory(
