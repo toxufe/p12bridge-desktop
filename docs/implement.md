@@ -147,6 +147,11 @@ Tasks:
 
 Validation:
 
+- [x] Automated local MVP walkthrough:
+  1. create certificate project,
+  2. import synthetic App Store profile,
+  3. inspect/import synthetic IPA with embedded profile,
+  4. evaluate upload readiness with existing IPA and AppStoreInfo paths.
 - [ ] Manual end-to-end walkthrough:
   1. create project,
   2. generate CSR,
