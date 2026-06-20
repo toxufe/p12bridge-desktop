@@ -1106,6 +1106,11 @@
                                                    FontWeight="SemiBold"
                                                    Text="未校验" />
 
+                                        <TextBlock Text="阶段" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <TextBox x:Name="UploadVerifyProgressTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True" />
+
                                         <TextBlock Text="退出码" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
                                         <TextBox x:Name="UploadVerifyExitCodeTextBox"
                                                  Style="{StaticResource InputTextBoxStyle}"

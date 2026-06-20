@@ -1164,6 +1164,7 @@ public partial class MainWindow : Window
 
         CancelUploadVerifyButton.IsEnabled = false;
         SetUploadVerifyStatus("取消中", (Brush)FindResource("WarningBrush"));
+        UploadVerifyProgressTextBox.Text = "取消请求";
         uploadVerificationCancellation?.Cancel();
     }
 
@@ -1691,6 +1692,7 @@ public partial class MainWindow : Window
     private void ClearUploadVerifyResult()
     {
         UploadVerifyExitCodeTextBox.Text = string.Empty;
+        UploadVerifyProgressTextBox.Text = string.Empty;
         UploadVerifyStdoutTextBox.Text = string.Empty;
         UploadVerifyStderrTextBox.Text = string.Empty;
         UploadVerifyIssuesPanel.Children.Clear();
@@ -1702,11 +1704,13 @@ public partial class MainWindow : Window
         SetUploadVerifyStatus(
             FormatUploadVerifyPhase(progress.Phase),
             GetUploadVerifyPhaseBrush(progress.Phase));
+        UploadVerifyProgressTextBox.Text = FormatUploadProgressDetail(progress);
     }
 
     private void ShowUploadVerifyResult(UploadResult result)
     {
         UploadVerifyExitCodeTextBox.Text = result.ExitCode?.ToString() ?? string.Empty;
+        UploadVerifyProgressTextBox.Text = FormatUploadResultProgressDetail(result);
         UploadVerifyStdoutTextBox.Text = result.StandardOutput;
         UploadVerifyStderrTextBox.Text = result.StandardError;
         UploadVerifyIssuesPanel.Children.Clear();
@@ -1782,6 +1786,11 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(UploadVerifyExitCodeTextBox.Text))
         {
             parts.Add($"退出码: {UploadVerifyExitCodeTextBox.Text}");
+        }
+
+        if (!string.IsNullOrWhiteSpace(UploadVerifyProgressTextBox.Text))
+        {
+            parts.Add($"阶段: {UploadVerifyProgressTextBox.Text}");
         }
 
         if (!string.IsNullOrWhiteSpace(UploadVerifyStdoutTextBox.Text))
@@ -2982,6 +2991,44 @@ public partial class MainWindow : Window
             UploadPhase.Failed => FormatUploadResultStatus(activeUploadExecutionMode, false),
             _ => FormatUploadRunningStatus(activeUploadExecutionMode)
         };
+
+    private string FormatUploadProgressDetail(UploadProgress progress)
+    {
+        var detail = progress.Phase switch
+        {
+            UploadPhase.ValidatingEnvironment => "检查环境",
+            UploadPhase.BuildingCommand => "准备命令",
+            UploadPhase.RunningTransporter => activeUploadExecutionMode == UploadExecutionMode.Upload ? "正在上传" : "正在校验",
+            UploadPhase.Completed => activeUploadExecutionMode == UploadExecutionMode.Upload ? "上传完成" : "校验完成",
+            UploadPhase.Failed => "已失败",
+            _ => FormatUploadRunningStatus(activeUploadExecutionMode)
+        };
+
+        return progress.Percent is null ? detail : $"{detail} {progress.Percent}%";
+    }
+
+    private string FormatUploadResultProgressDetail(UploadResult result)
+    {
+        if (result.IsSuccess)
+        {
+            return activeUploadExecutionMode == UploadExecutionMode.Upload ? "上传完成" : "校验完成";
+        }
+
+        var firstIssueCode = result.Issues.FirstOrDefault()?.Code;
+        return firstIssueCode switch
+        {
+            UploadErrorCodes.ProcessCancelled => "已取消",
+            UploadErrorCodes.ProcessTimedOut => "网络重试",
+            UploadErrorCodes.ProcessStartFailed => "检查权限",
+            UploadErrorCodes.ProcessExitFailed => "查看日志",
+            UploadErrorCodes.TransporterPathMissing or UploadErrorCodes.TransporterNotFound => "检查工具",
+            UploadErrorCodes.PackagePathMissing or UploadErrorCodes.PackageNotFound => "检查 IPA",
+            UploadErrorCodes.AssetDescriptionPathMissing or UploadErrorCodes.AssetDescriptionNotFound => "选元数据",
+            UploadErrorCodes.ApiKeyCredentialMissing or UploadErrorCodes.JwtMissing => "填写凭据",
+            UploadErrorCodes.AppleAccountMissing or UploadErrorCodes.AppSpecificPasswordMissing => "填写凭据",
+            _ => "查看问题"
+        };
+    }
 
     private Brush GetUploadVerifyPhaseBrush(UploadPhase phase) =>
         phase switch
