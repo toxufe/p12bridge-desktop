@@ -987,6 +987,32 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopySelectedAssetSummaryClick(object sender, RoutedEventArgs e)
+    {
+        if (AssetListBox.SelectedItem is not AssetListItem selectedAsset)
+        {
+            AssetStatusText.Text = "未选择";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制摘要", OperationHistoryStatus.Failed, "未选择");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(selectedAsset.CopySummary);
+            AssetStatusText.Text = "已复制";
+            AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制摘要", OperationHistoryStatus.Success, "已复制", selectedAsset.CopySummary);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            AssetStatusText.Text = "复制失败";
+            AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制摘要", OperationHistoryStatus.Failed, "复制失败", selectedAsset.Path);
+        }
+    }
+
     private void OnOpenSelectedExpirationReminderClick(object sender, RoutedEventArgs e)
     {
         if (ExpirationReminderListBox.SelectedItem is not ExpirationReminderListItem selectedReminder)
@@ -4850,7 +4876,8 @@ public partial class MainWindow : Window
         Visibility BackupSummaryVisibility,
         string ExpirationText,
         Visibility ExpirationVisibility,
-        string ModifiedText)
+        string ModifiedText,
+        string CopySummary)
     {
         public static AssetListItem FromAsset(LocalAssetItem item) =>
             new(
@@ -4869,7 +4896,8 @@ public partial class MainWindow : Window
                 string.IsNullOrWhiteSpace(item.BackupSummary) ? Visibility.Collapsed : Visibility.Visible,
                 item.ExpiresAt is null ? string.Empty : $"到期 {item.ExpiresAt.Value.ToLocalTime():yyyy-MM-dd}",
                 item.ExpiresAt is null ? Visibility.Collapsed : Visibility.Visible,
-                item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+                item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"),
+                LocalAssetSummaryFormatter.Format(item, FormatLocalAssetType(item.Type)));
     }
 
     private sealed record ExpirationReminderListItem(

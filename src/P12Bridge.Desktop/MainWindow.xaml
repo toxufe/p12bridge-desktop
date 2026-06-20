@@ -1430,6 +1430,10 @@
                                                 Click="OnCopySelectedAssetPathClick"
                                                 Style="{StaticResource SecondaryButtonStyle}"
                                                 Margin="10,0,0,0" />
+                                        <Button Content="复制摘要"
+                                                Click="OnCopySelectedAssetSummaryClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0" />
                                         <Button Content="备份"
                                                 Click="OnBackupSelectedAssetClick"
                                                 Style="{StaticResource ActionButtonStyle}"
