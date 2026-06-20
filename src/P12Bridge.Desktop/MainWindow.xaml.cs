@@ -1110,6 +1110,7 @@ public partial class MainWindow : Window
             OperationHistoryStatus.Success,
             "已备份",
             $"{Path.GetFileName(result.BackupPath)} / {result.FilesIncluded} 文件{Environment.NewLine}{result.BackupPath}");
+        RefreshAssets(selectedAsset.Path);
     }
 
     private void OnCopyLastCertificateBackupClick(object sender, RoutedEventArgs e)
@@ -2251,7 +2252,7 @@ public partial class MainWindow : Window
         RefreshUploadEnvironmentStatus();
     }
 
-    private void RefreshAssets(bool recordHistory = false)
+    private void RefreshAssets(string selectedPath = "", bool recordHistory = false)
     {
         if (AssetListBox is null)
         {
@@ -2262,9 +2263,13 @@ public partial class MainWindow : Window
             CertificateBaseDirectoryTextBox.Text,
             ProfileBaseDirectoryTextBox.Text,
             IpaBaseDirectoryTextBox.Text));
+        var selectedAsset = LocalAssetSelection.FindByPath(result.Items, selectedPath);
         var items = result.Items.Select(AssetListItem.FromAsset).ToArray();
 
         AssetListBox.ItemsSource = items;
+        AssetListBox.SelectedItem = selectedAsset is null
+            ? null
+            : items.FirstOrDefault(item => item.Path == selectedAsset.Path);
         AssetCountsText.Text = FormatAssetCounts(result.Items);
         AssetStatusText.Text = result.Issues.Count == 0 ? "已刷新" : "部分失败";
         AssetStatusText.Foreground = result.Issues.Count == 0
