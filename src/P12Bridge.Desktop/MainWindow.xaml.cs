@@ -640,6 +640,72 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnOpenSelectedExpirationReminderClick(object sender, RoutedEventArgs e)
+    {
+        if (ExpirationReminderListBox.SelectedItem is not ExpirationReminderListItem selectedReminder)
+        {
+            ExpirationReminderStatusText.Text = "未选择";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开提醒", OperationHistoryStatus.Failed, "未选择");
+            return;
+        }
+
+        var directory = Directory.Exists(selectedReminder.Path)
+            ? selectedReminder.Path
+            : Path.GetDirectoryName(selectedReminder.Path);
+
+        if (string.IsNullOrWhiteSpace(directory) || !Directory.Exists(directory))
+        {
+            ExpirationReminderStatusText.Text = "目录不存在";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开提醒", OperationHistoryStatus.Failed, "目录不存在", selectedReminder.Path);
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = directory,
+                UseShellExecute = true
+            });
+            ExpirationReminderStatusText.Text = "已打开";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("打开提醒", OperationHistoryStatus.Success, "已打开", selectedReminder.Path);
+        }
+        catch (Exception)
+        {
+            ExpirationReminderStatusText.Text = "打开失败";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("打开提醒", OperationHistoryStatus.Failed, "打开失败", selectedReminder.Path);
+        }
+    }
+
+    private void OnCopySelectedExpirationReminderClick(object sender, RoutedEventArgs e)
+    {
+        if (ExpirationReminderListBox.SelectedItem is not ExpirationReminderListItem selectedReminder)
+        {
+            ExpirationReminderStatusText.Text = "未选择";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制提醒", OperationHistoryStatus.Failed, "未选择");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(selectedReminder.Path);
+            ExpirationReminderStatusText.Text = "已复制";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制提醒", OperationHistoryStatus.Success, "已复制", selectedReminder.Path);
+        }
+        catch (Exception)
+        {
+            ExpirationReminderStatusText.Text = "复制失败";
+            ExpirationReminderStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制提醒", OperationHistoryStatus.Failed, "复制失败", selectedReminder.Path);
+        }
+    }
+
     private void OnBackupSelectedAssetClick(object sender, RoutedEventArgs e)
     {
         if (AssetListBox.SelectedItem is not AssetListItem selectedAsset)

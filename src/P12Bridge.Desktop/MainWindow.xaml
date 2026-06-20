@@ -1338,15 +1338,34 @@
 
                             <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top" Margin="0,12,0,0">
                                 <StackPanel>
-                                    <TextBlock Text="到期提醒"
-                                               Foreground="{StaticResource TextBrush}"
-                                               FontSize="18"
-                                               FontWeight="SemiBold" />
-                                    <TextBlock x:Name="ExpirationReminderStatusText"
-                                               Text="暂无提醒"
-                                               Foreground="{StaticResource MutedTextBrush}"
-                                               FontSize="13"
-                                               Margin="0,8,0,12" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel>
+                                            <TextBlock Text="到期提醒"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock x:Name="ExpirationReminderStatusText"
+                                                       Text="暂无提醒"
+                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                       FontSize="13"
+                                                       Margin="0,8,0,12" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="打开"
+                                                    Click="OnOpenSelectedExpirationReminderClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button Content="复制"
+                                                    Click="OnCopySelectedExpirationReminderClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    Margin="10,0,0,0" />
+                                        </StackPanel>
+                                    </Grid>
 
                                     <ListBox x:Name="ExpirationReminderListBox"
                                              BorderThickness="0"
