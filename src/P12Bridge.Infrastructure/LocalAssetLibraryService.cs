@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using P12Bridge.Core;
 
 namespace P12Bridge.Infrastructure;
@@ -54,7 +56,8 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     projectDirectory,
                     File.GetLastWriteTimeUtc(metadataPath),
                     ReadProjectNote(metadataPath),
-                    ReadCertificateArtifacts(projectDirectory)));
+                    ReadCertificateArtifacts(projectDirectory),
+                    ReadCertificateExpiration(projectDirectory, issues)));
             }
         }
         catch (IOException exception)
@@ -134,6 +137,34 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
             File.Exists(Path.Combine(projectDirectory, CertificateSigningRequestFileName)),
             File.Exists(Path.Combine(projectDirectory, CertificateFileName)),
             File.Exists(Path.Combine(projectDirectory, P12FileName)));
+
+    private static DateTimeOffset? ReadCertificateExpiration(
+        string projectDirectory,
+        List<ValidationIssue> issues)
+    {
+        var certificatePath = Path.Combine(projectDirectory, CertificateFileName);
+        if (!File.Exists(certificatePath))
+        {
+            return null;
+        }
+
+        try
+        {
+            using var certificate = new X509Certificate2(certificatePath);
+            return new DateTimeOffset(certificate.NotAfter).ToUniversalTime();
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or CryptographicException)
+        {
+            issues.Add(new ValidationIssue(
+                LocalAssetLibraryErrorCodes.ScanFailed,
+                ValidationSeverity.Warning,
+                $"Could not read certificate metadata for {projectDirectory}.",
+                exception.GetType().Name));
+            return null;
+        }
+    }
 
     private static void AddScanIssue(List<ValidationIssue> issues, string path, Exception exception)
     {

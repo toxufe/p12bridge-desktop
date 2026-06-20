@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
 using Xunit;
@@ -140,6 +142,55 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsCertificateExpiration()
+    {
+        var expiresAt = new DateTimeOffset(2027, 6, 20, 0, 0, 0, TimeSpan.Zero);
+        var projectDirectory = Path.Combine(certificateDirectory, "Expiring");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllBytes(Path.Combine(projectDirectory, "certificate.cer"), CreateCertificate(expiresAt));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.NotNull(item.ExpiresAt);
+        Assert.Equal(expiresAt.UtcDateTime.Date, item.ExpiresAt.Value.UtcDateTime.Date);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanKeepsCertificateProjectWithoutExpirationWhenCertificateIsMissing()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "NoCertificate");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Null(item.ExpiresAt);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanKeepsCertificateProjectAndWarnsWhenCertificateIsInvalid()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "InvalidCertificate");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllText(Path.Combine(projectDirectory, "certificate.cer"), "not a certificate");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Null(item.ExpiresAt);
+        Assert.Contains(result.Issues, issue => issue.Code == LocalAssetLibraryErrorCodes.ScanFailed);
+    }
+
+    [Fact]
     public void ScanKeepsCertificateProjectWhenMetadataNoteIsMalformed()
     {
         var projectDirectory = Path.Combine(certificateDirectory, "Broken");
@@ -166,6 +217,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         var result = service.Scan(ValidRequest());
 
         Assert.DoesNotContain(result.Items, item => item.Name.Contains("PRIVATE", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Items, item => item.Note.Contains("PRIVATE", StringComparison.Ordinal));
     }
 
     public void Dispose()
@@ -178,4 +230,16 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
     private LocalAssetLibraryRequest ValidRequest() =>
         new(certificateDirectory, profileDirectory, ipaDirectory);
+
+    private static byte[] CreateCertificate(DateTimeOffset expiresAt)
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=Demo",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1);
+        using var certificate = request.CreateSelfSigned(expiresAt.AddDays(-365), expiresAt);
+        return certificate.Export(X509ContentType.Cert);
+    }
 }
