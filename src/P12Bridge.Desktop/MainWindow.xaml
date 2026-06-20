@@ -1139,10 +1139,23 @@
                             <StackPanel Grid.Column="1">
                                 <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top">
                                     <StackPanel>
-                                        <TextBlock Text="检查项"
-                                                   Foreground="{StaticResource TextBrush}"
-                                                   FontSize="18"
-                                                   FontWeight="SemiBold" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="检查项"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+
+                                            <Button Grid.Column="1"
+                                                    Content="复制"
+                                                    Click="OnCopyUploadReadinessClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                        </Grid>
                                         <StackPanel x:Name="UploadChecksPanel" Margin="0,12,0,0" />
                                     </StackPanel>
                                 </Border>

@@ -40,6 +40,7 @@ public partial class MainWindow : Window
     private string lastIpaImportedPath = string.Empty;
     private string lastAppStoreRemotePreflightCopyText = string.Empty;
     private string lastUploadRemotePreflightCopyText = string.Empty;
+    private string lastUploadReadinessCopyText = string.Empty;
     private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
     private CancellationTokenSource? uploadVerificationCancellation;
     private bool isUploadVerificationRunning;
@@ -640,12 +641,38 @@ public partial class MainWindow : Window
     private void OnCheckUploadReadinessClick(object sender, RoutedEventArgs e)
     {
         var result = EvaluateUploadReadiness();
+        var copyText = FormatUploadReadinessCopy(result);
         RecordHistory(
             "上传检查",
             ToHistoryStatus(result.Status),
             FormatUploadStatus(result.Status),
-            string.Join(Environment.NewLine, result.Checks.Select(check =>
-                $"{FormatUploadCheckName(check.Code)}: {FormatUploadCheckStatus(check.Status)} / {FormatUploadCheckAction(check)}")));
+            copyText);
+    }
+
+    private void OnCopyUploadReadinessClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(lastUploadReadinessCopyText))
+        {
+            UploadStatusText.Text = "无结果";
+            UploadStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制检查", OperationHistoryStatus.Failed, "无结果");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(lastUploadReadinessCopyText);
+            UploadStatusText.Text = "已复制";
+            UploadStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制检查", OperationHistoryStatus.Success, "已复制", lastUploadReadinessCopyText);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            UploadStatusText.Text = "复制失败";
+            UploadStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制检查", OperationHistoryStatus.Failed, "复制失败");
+        }
     }
 
     private void OnUploadGoIpaClick(object sender, RoutedEventArgs e)
@@ -2179,6 +2206,7 @@ public partial class MainWindow : Window
 
     private void ShowUploadReadiness(UploadReadinessResult result)
     {
+        lastUploadReadinessCopyText = FormatUploadReadinessCopy(result);
         UploadStatusText.Text = FormatUploadStatus(result.Status);
         UploadStatusText.Foreground = GetUploadStatusBrush(result.Status);
         UploadChecksPanel.Children.Clear();
@@ -3499,6 +3527,19 @@ public partial class MainWindow : Window
             UploadReadinessCheckStatus.Blocked => (Brush)FindResource("DangerBrush"),
             _ => (Brush)FindResource("MutedTextBrush")
         };
+
+    private string FormatUploadReadinessCopy(UploadReadinessResult result)
+    {
+        var lines = new List<string>
+        {
+            $"状态: {FormatUploadStatus(result.Status)}"
+        };
+
+        lines.AddRange(result.Checks.Select(check =>
+            $"{FormatUploadCheckName(check.Code)}: {FormatUploadCheckStatus(check.Status)} / {FormatUploadCheckAction(check)}"));
+
+        return string.Join(Environment.NewLine, lines);
+    }
 
     private string FormatUploadVerifyPhase(UploadPhase phase) =>
         phase switch
