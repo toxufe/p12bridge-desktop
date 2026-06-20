@@ -847,7 +847,7 @@ public partial class MainWindow : Window
     {
         var text = HistoryListBox.SelectedItem is HistoryListItem selectedItem
             ? selectedItem.CopyText
-            : FormatHistoryCopy(operationHistoryService.List().Items);
+            : OperationHistoryExportFormatter.Format(operationHistoryService.List().Items);
 
         if (string.IsNullOrWhiteSpace(text))
         {
@@ -872,7 +872,7 @@ public partial class MainWindow : Window
 
     private void OnExportHistoryClick(object sender, RoutedEventArgs e)
     {
-        var text = FormatHistoryCopy(operationHistoryService.List().Items);
+        var text = OperationHistoryExportFormatter.Format(operationHistoryService.List().Items);
         if (string.IsNullOrWhiteSpace(text))
         {
             HistoryStatusText.Text = "暂无记录";
@@ -3683,10 +3683,6 @@ public partial class MainWindow : Window
         return string.Join($"{Environment.NewLine}{Environment.NewLine}", parts);
     }
 
-    private static string FormatHistoryCopy(IReadOnlyList<OperationHistoryItem> items) =>
-        string.Join($"{Environment.NewLine}{Environment.NewLine}", items.Select(item =>
-            $"{item.OccurredAt.ToLocalTime():yyyy-MM-dd HH:mm:ss} {GetHistoryStatusText(item.Status)} {item.Operation}{Environment.NewLine}{item.Summary}{Environment.NewLine}{item.Detail}".Trim()));
-
     private static string FormatIssues(IReadOnlyList<ValidationIssue> issues)
     {
         if (issues.Count == 0)
@@ -4878,12 +4874,7 @@ public partial class MainWindow : Window
         {
             var localTime = item.OccurredAt.ToLocalTime();
             var detail = string.IsNullOrWhiteSpace(item.Detail) ? item.Summary : item.Detail;
-            var copyText = $"{localTime:yyyy-MM-dd HH:mm:ss} {statusText} {item.Operation}{Environment.NewLine}{item.Summary}";
-
-            if (!string.IsNullOrWhiteSpace(item.Detail))
-            {
-                copyText = $"{copyText}{Environment.NewLine}{item.Detail}";
-            }
+            var copyText = OperationHistoryExportFormatter.Format(item);
 
             return new HistoryListItem(
                 item.Operation,
