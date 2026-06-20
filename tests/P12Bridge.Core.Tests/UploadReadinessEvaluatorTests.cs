@@ -3,9 +3,15 @@ using Xunit;
 
 namespace P12Bridge.Core.Tests;
 
-public sealed class UploadReadinessEvaluatorTests
+public sealed class UploadReadinessEvaluatorTests : IDisposable
 {
+    private readonly string tempDirectory = Path.Combine(Path.GetTempPath(), $"p12bridge-readiness-{Guid.NewGuid():N}");
     private readonly UploadReadinessEvaluator evaluator = new();
+
+    public UploadReadinessEvaluatorTests()
+    {
+        Directory.CreateDirectory(tempDirectory);
+    }
 
     [Fact]
     public void EvaluateReportsReadyWhenAppStoreIpaAndProfilesMatch()
@@ -13,7 +19,7 @@ public sealed class UploadReadinessEvaluatorTests
         var profile = AppStoreProfile();
         var ipa = Metadata(profile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, profile));
+        var result = evaluator.Evaluate(Request(ipa, profile));
 
         Assert.True(result.IsReady);
         Assert.Equal(UploadReadinessStatus.Ready, result.Status);
@@ -27,7 +33,7 @@ public sealed class UploadReadinessEvaluatorTests
         var profile = AppStoreProfile();
         var ipa = Metadata(profile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa));
+        var result = evaluator.Evaluate(Request(ipa));
 
         Assert.False(result.IsReady);
         Assert.Equal(UploadReadinessStatus.ReadyWithWarnings, result.Status);
@@ -42,7 +48,7 @@ public sealed class UploadReadinessEvaluatorTests
     [Fact]
     public void EvaluateBlocksWhenIpaMetadataIsMissing()
     {
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, null));
+        var result = evaluator.Evaluate(Request(null));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.IpaMetadataMissing);
@@ -53,7 +59,7 @@ public sealed class UploadReadinessEvaluatorTests
     {
         var ipa = Metadata(embeddedProfile: null, hasEmbeddedProfile: false);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa));
+        var result = evaluator.Evaluate(Request(ipa));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.EmbeddedProfileMissing);
@@ -65,7 +71,7 @@ public sealed class UploadReadinessEvaluatorTests
         var profile = AppStoreProfile(bundleIdentifier: "com.example.other");
         var ipa = Metadata(profile, bundleIdentifier: "com.example.demo");
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, profile));
+        var result = evaluator.Evaluate(Request(ipa, profile));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.EmbeddedProfileBundleIdMismatch);
@@ -77,7 +83,7 @@ public sealed class UploadReadinessEvaluatorTests
         var profile = AppStoreProfile(status: ProvisioningProfileStatus.Expired);
         var ipa = Metadata(profile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, profile));
+        var result = evaluator.Evaluate(Request(ipa, profile));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.EmbeddedProfileExpired);
@@ -91,7 +97,7 @@ public sealed class UploadReadinessEvaluatorTests
         var profile = AppStoreProfile(type: type);
         var ipa = Metadata(profile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, profile));
+        var result = evaluator.Evaluate(Request(ipa, profile));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.EmbeddedProfileTypeInvalid);
@@ -104,7 +110,7 @@ public sealed class UploadReadinessEvaluatorTests
         var importedProfile = AppStoreProfile(uuid: "imported-uuid", bundleIdentifier: "com.example.other");
         var ipa = Metadata(embeddedProfile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, importedProfile));
+        var result = evaluator.Evaluate(Request(ipa, importedProfile));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.ImportedProfileBundleIdMismatch);
@@ -117,7 +123,7 @@ public sealed class UploadReadinessEvaluatorTests
         var importedProfile = AppStoreProfile(uuid: "imported-uuid", teamId: "OTHERTEAM");
         var ipa = Metadata(embeddedProfile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, importedProfile));
+        var result = evaluator.Evaluate(Request(ipa, importedProfile));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.ImportedProfileTeamIdMismatch);
@@ -130,7 +136,7 @@ public sealed class UploadReadinessEvaluatorTests
         var importedProfile = AppStoreProfile(uuid: "imported-uuid");
         var ipa = Metadata(embeddedProfile);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, importedProfile));
+        var result = evaluator.Evaluate(Request(ipa, importedProfile));
 
         Assert.Equal(UploadReadinessStatus.ReadyWithWarnings, result.Status);
         Assert.Contains(result.Checks, check =>
@@ -150,7 +156,7 @@ public sealed class UploadReadinessEvaluatorTests
             buildVersion: " ",
             hasCodeResources: false);
 
-        var result = evaluator.Evaluate(new UploadReadinessRequest(UploadTarget.AppStore, ipa, profile));
+        var result = evaluator.Evaluate(Request(ipa, profile));
 
         Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
         AssertBlocked(result, UploadReadinessErrorCodes.IpaBundleIdMissing);
@@ -159,12 +165,71 @@ public sealed class UploadReadinessEvaluatorTests
         AssertBlocked(result, UploadReadinessErrorCodes.IpaSignatureMarkerMissing);
     }
 
+    [Fact]
+    public void EvaluateBlocksWhenPackagePathIsBlank()
+    {
+        var profile = AppStoreProfile();
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile, " "));
+
+        Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
+        AssertBlocked(result, UploadReadinessErrorCodes.PackagePathMissing);
+    }
+
+    [Fact]
+    public void EvaluateBlocksWhenPackagePathDoesNotExist()
+    {
+        var profile = AppStoreProfile();
+        var ipa = Metadata(profile);
+        var missingPath = Path.Combine(tempDirectory, "missing.ipa");
+
+        var result = evaluator.Evaluate(Request(ipa, profile, missingPath));
+
+        Assert.Equal(UploadReadinessStatus.Blocked, result.Status);
+        AssertBlocked(result, UploadReadinessErrorCodes.PackageNotFound);
+    }
+
+    [Fact]
+    public void EvaluatePassesWhenPackagePathExists()
+    {
+        var profile = AppStoreProfile();
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile));
+
+        Assert.Contains(result.Checks, check =>
+            check.Code == UploadReadinessErrorCodes.PackageNotFound
+            && check.Status == UploadReadinessCheckStatus.Passed);
+    }
+
+    public void Dispose()
+    {
+        if (Directory.Exists(tempDirectory))
+        {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
     private static void AssertBlocked(UploadReadinessResult result, string code)
     {
         Assert.Contains(result.Checks, check =>
             check.Code == code && check.Status == UploadReadinessCheckStatus.Blocked);
         Assert.Contains(result.Issues, issue =>
             issue.Code == code && issue.Severity == ValidationSeverity.Error);
+    }
+
+    private UploadReadinessRequest Request(
+        IpaMetadata? ipa,
+        ProvisioningProfile? importedProfile = null,
+        string? packagePath = null) =>
+        new(UploadTarget.AppStore, ipa, importedProfile, packagePath ?? ExistingIpaPath());
+
+    private string ExistingIpaPath()
+    {
+        var path = Path.Combine(tempDirectory, $"{Guid.NewGuid():N}.ipa");
+        File.WriteAllText(path, "ipa");
+        return path;
     }
 
     private static IpaMetadata Metadata(

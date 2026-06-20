@@ -11,6 +11,8 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
                 "App Store / TestFlight upload target is supported by this readiness proof.")
         };
 
+        AddPackagePathCheck(checks, request.PackagePath);
+
         if (request.IpaMetadata is null)
         {
             checks.Add(Blocked(
@@ -27,6 +29,25 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
         AddImportedProfileChecks(checks, ipa, request.ImportedProvisioningProfile);
 
         return UploadReadinessResult.FromChecks(checks);
+    }
+
+    private static void AddPackagePathCheck(List<UploadReadinessCheck> checks, string packagePath)
+    {
+        if (string.IsNullOrWhiteSpace(packagePath))
+        {
+            checks.Add(Blocked(
+                UploadReadinessErrorCodes.PackagePathMissing,
+                "IPA package path is required.",
+                "Choose an IPA before running upload readiness checks."));
+            return;
+        }
+
+        checks.Add(File.Exists(packagePath)
+            ? Passed(UploadReadinessErrorCodes.PackageNotFound, "IPA package exists.")
+            : Blocked(
+                UploadReadinessErrorCodes.PackageNotFound,
+                "IPA package was not found.",
+                "Choose an existing IPA file."));
     }
 
     private static void AddIpaMetadataChecks(List<UploadReadinessCheck> checks, IpaMetadata ipa)

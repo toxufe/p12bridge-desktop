@@ -2233,7 +2233,8 @@ public partial class MainWindow : Window
         var result = uploadReadinessEvaluator.Evaluate(new UploadReadinessRequest(
             UploadTarget.AppStore,
             lastIpaMetadata,
-            lastImportedProfile));
+            lastImportedProfile,
+            lastIpaImportedPath));
 
         ShowUploadReadiness(result);
         return result;
@@ -4240,6 +4241,8 @@ public partial class MainWindow : Window
         code switch
         {
             UploadReadinessErrorCodes.AppStoreTargetSupported => "目标",
+            UploadReadinessErrorCodes.PackagePathMissing => "IPA 路径",
+            UploadReadinessErrorCodes.PackageNotFound => "IPA 文件",
             UploadReadinessErrorCodes.IpaMetadataMissing => "IPA",
             UploadReadinessErrorCodes.IpaBundleIdMissing => "Bundle",
             UploadReadinessErrorCodes.IpaVersionMissing => "版本",
@@ -4268,6 +4271,8 @@ public partial class MainWindow : Window
         return check.Code switch
         {
             UploadReadinessErrorCodes.IpaMetadataMissing => "检查 IPA",
+            UploadReadinessErrorCodes.PackagePathMissing => "选择 IPA",
+            UploadReadinessErrorCodes.PackageNotFound => "选择 IPA",
             UploadReadinessErrorCodes.IpaBundleIdMissing => "重打包",
             UploadReadinessErrorCodes.IpaVersionMissing => "重打包",
             UploadReadinessErrorCodes.IpaBuildMissing => "重打包",
