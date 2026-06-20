@@ -973,6 +973,60 @@ public partial class MainWindow : Window
         SetUploadSettingsStatus("未找到", (Brush)FindResource("WarningBrush"));
     }
 
+    private void OnCopyUploadAssetDescriptionClick(object sender, RoutedEventArgs e)
+    {
+        var assetDescriptionPath = UploadAssetDescriptionPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(assetDescriptionPath) || !File.Exists(assetDescriptionPath))
+        {
+            SetUploadSettingsStatus("元数据不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制元数据", OperationHistoryStatus.Failed, "元数据不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(assetDescriptionPath);
+            SetUploadSettingsStatus("元数据已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制元数据", OperationHistoryStatus.Success, "已复制", assetDescriptionPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetUploadSettingsStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制元数据", OperationHistoryStatus.Failed, "复制失败", assetDescriptionPath);
+        }
+    }
+
+    private void OnOpenUploadAssetDescriptionClick(object sender, RoutedEventArgs e)
+    {
+        var assetDescriptionPath = UploadAssetDescriptionPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(assetDescriptionPath) || !File.Exists(assetDescriptionPath))
+        {
+            SetUploadSettingsStatus("元数据不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("打开元数据", OperationHistoryStatus.Failed, "元数据不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = assetDescriptionPath,
+                UseShellExecute = true
+            });
+            SetUploadSettingsStatus("元数据已打开", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("打开元数据", OperationHistoryStatus.Success, "已打开", assetDescriptionPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("打开元数据", OperationHistoryStatus.Failed, "打开失败", assetDescriptionPath);
+        }
+    }
+
     private void OnSelectAppleApiPrivateKeyClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
