@@ -5,4 +5,5 @@ public sealed record LocalAssetItem(
     string Name,
     string Path,
     DateTimeOffset ModifiedAt,
-    string Note = "");
+    string Note = "",
+    CertificateProjectArtifactStatus? CertificateArtifacts = null);

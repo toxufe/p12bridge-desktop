@@ -6,6 +6,10 @@ namespace P12Bridge.Infrastructure;
 public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
 {
     private const string CertificateMetadataFileName = "p12bridge.project.json";
+    private const string PrivateKeyFileName = "private.key";
+    private const string CertificateSigningRequestFileName = "request.csr";
+    private const string CertificateFileName = "certificate.cer";
+    private const string P12FileName = "export.p12";
 
     public LocalAssetLibraryResult Scan(LocalAssetLibraryRequest request)
     {
@@ -49,7 +53,8 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     Path.GetFileName(projectDirectory),
                     projectDirectory,
                     File.GetLastWriteTimeUtc(metadataPath),
-                    ReadProjectNote(metadataPath)));
+                    ReadProjectNote(metadataPath),
+                    ReadCertificateArtifacts(projectDirectory)));
             }
         }
         catch (IOException exception)
@@ -122,6 +127,13 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
 
         return string.Empty;
     }
+
+    private static CertificateProjectArtifactStatus ReadCertificateArtifacts(string projectDirectory) =>
+        new(
+            File.Exists(Path.Combine(projectDirectory, PrivateKeyFileName)),
+            File.Exists(Path.Combine(projectDirectory, CertificateSigningRequestFileName)),
+            File.Exists(Path.Combine(projectDirectory, CertificateFileName)),
+            File.Exists(Path.Combine(projectDirectory, P12FileName)));
 
     private static void AddScanIssue(List<ValidationIssue> issues, string path, Exception exception)
     {

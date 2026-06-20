@@ -85,6 +85,61 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsEmptyCertificateProjectArtifactStatus()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "Empty");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.NotNull(item.CertificateArtifacts);
+        Assert.False(item.CertificateArtifacts.HasAny);
+    }
+
+    [Fact]
+    public void ScanReportsPrivateKeyAndCsrArtifactStatus()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "CsrReady");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllText(Path.Combine(projectDirectory, "private.key"), "PRIVATE KEY CONTENT");
+        File.WriteAllText(Path.Combine(projectDirectory, "request.csr"), "CSR CONTENT");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.NotNull(item.CertificateArtifacts);
+        Assert.True(item.CertificateArtifacts.HasPrivateKey);
+        Assert.True(item.CertificateArtifacts.HasCertificateSigningRequest);
+        Assert.False(item.CertificateArtifacts.HasCertificate);
+        Assert.False(item.CertificateArtifacts.HasP12);
+    }
+
+    [Fact]
+    public void ScanReportsCertificateAndP12ArtifactStatus()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "Exported");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllText(Path.Combine(projectDirectory, "certificate.cer"), "CER CONTENT");
+        File.WriteAllText(Path.Combine(projectDirectory, "export.p12"), "P12 CONTENT");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.NotNull(item.CertificateArtifacts);
+        Assert.False(item.CertificateArtifacts.HasPrivateKey);
+        Assert.False(item.CertificateArtifacts.HasCertificateSigningRequest);
+        Assert.True(item.CertificateArtifacts.HasCertificate);
+        Assert.True(item.CertificateArtifacts.HasP12);
+    }
+
+    [Fact]
     public void ScanKeepsCertificateProjectWhenMetadataNoteIsMalformed()
     {
         var projectDirectory = Path.Combine(certificateDirectory, "Broken");

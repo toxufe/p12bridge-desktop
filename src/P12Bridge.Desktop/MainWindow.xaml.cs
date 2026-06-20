@@ -3886,6 +3886,37 @@ public partial class MainWindow : Window
             _ => "资产"
         };
 
+    private static string FormatCertificateArtifactStatus(CertificateProjectArtifactStatus? status)
+    {
+        if (status is null || !status.HasAny)
+        {
+            return string.Empty;
+        }
+
+        var parts = new List<string>();
+        if (status.HasPrivateKey)
+        {
+            parts.Add("私钥");
+        }
+
+        if (status.HasCertificateSigningRequest)
+        {
+            parts.Add("CSR");
+        }
+
+        if (status.HasCertificate)
+        {
+            parts.Add("CER");
+        }
+
+        if (status.HasP12)
+        {
+            parts.Add("P12");
+        }
+
+        return string.Join(" ", parts);
+    }
+
     private static string FormatExpirationReminderType(AssetExpirationReminderType type) =>
         type switch
         {
@@ -4796,6 +4827,8 @@ public partial class MainWindow : Window
         string Path,
         string Note,
         Visibility NoteVisibility,
+        string ArtifactText,
+        Visibility ArtifactVisibility,
         string ModifiedText)
     {
         public static AssetListItem FromAsset(LocalAssetItem item) =>
@@ -4806,6 +4839,8 @@ public partial class MainWindow : Window
                 item.Path,
                 item.Note,
                 string.IsNullOrWhiteSpace(item.Note) ? Visibility.Collapsed : Visibility.Visible,
+                FormatCertificateArtifactStatus(item.CertificateArtifacts),
+                item.CertificateArtifacts?.HasAny == true ? Visibility.Visible : Visibility.Collapsed,
                 item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
     }
 
