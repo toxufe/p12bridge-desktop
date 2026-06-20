@@ -4,4 +4,5 @@ public sealed record LocalAssetItem(
     LocalAssetType Type,
     string Name,
     string Path,
-    DateTimeOffset ModifiedAt);
+    DateTimeOffset ModifiedAt,
+    string Note = "");

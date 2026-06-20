@@ -1,3 +1,4 @@
+using System.Text.Json;
 using P12Bridge.Core;
 
 namespace P12Bridge.Infrastructure;
@@ -47,7 +48,8 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     LocalAssetType.CertificateProject,
                     Path.GetFileName(projectDirectory),
                     projectDirectory,
-                    File.GetLastWriteTimeUtc(metadataPath)));
+                    File.GetLastWriteTimeUtc(metadataPath),
+                    ReadProjectNote(metadataPath)));
             }
         }
         catch (IOException exception)
@@ -99,6 +101,27 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
             .ThenBy(item => item.Type)
             .ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+    private static string ReadProjectNote(string metadataPath)
+    {
+        try
+        {
+            using var metadata = JsonDocument.Parse(File.ReadAllText(metadataPath));
+            if (metadata.RootElement.TryGetProperty("Note", out var noteElement)
+                && noteElement.ValueKind == JsonValueKind.String)
+            {
+                return noteElement.GetString()?.Trim() ?? string.Empty;
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or JsonException)
+        {
+            return string.Empty;
+        }
+
+        return string.Empty;
+    }
 
     private static void AddScanIssue(List<ValidationIssue> issues, string path, Exception exception)
     {

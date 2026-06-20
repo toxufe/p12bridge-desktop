@@ -67,6 +67,39 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReadsCertificateProjectNoteFromMetadata()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "Demo");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), """
+            {
+              "Note": "  发布证书  "
+            }
+            """);
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Equal("发布证书", item.Note);
+    }
+
+    [Fact]
+    public void ScanKeepsCertificateProjectWhenMetadataNoteIsMalformed()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "Broken");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.Equal("Broken", item.Name);
+        Assert.Equal(string.Empty, item.Note);
+    }
+
+    [Fact]
     public void ScanDoesNotReadPrivateKeyContents()
     {
         var projectDirectory = Path.Combine(certificateDirectory, "Secret");

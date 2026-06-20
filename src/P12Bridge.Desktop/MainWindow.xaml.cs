@@ -4794,6 +4794,8 @@ public partial class MainWindow : Window
         string TypeText,
         string Name,
         string Path,
+        string Note,
+        Visibility NoteVisibility,
         string ModifiedText)
     {
         public static AssetListItem FromAsset(LocalAssetItem item) =>
@@ -4802,6 +4804,8 @@ public partial class MainWindow : Window
                 FormatLocalAssetType(item.Type),
                 item.Name,
                 item.Path,
+                item.Note,
+                string.IsNullOrWhiteSpace(item.Note) ? Visibility.Collapsed : Visibility.Visible,
                 item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
     }
 
