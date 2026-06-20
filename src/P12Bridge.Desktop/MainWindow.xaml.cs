@@ -479,6 +479,60 @@ public partial class MainWindow : Window
                 : $"{result.Profile.BundleIdentifier}{Environment.NewLine}{result.ImportedPath}");
     }
 
+    private void OnCopyImportedProfilePathClick(object sender, RoutedEventArgs e)
+    {
+        var profilePath = ProfileImportedPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(profilePath) || !File.Exists(profilePath))
+        {
+            SetProfileStatus("描述不存在", isSuccess: false);
+            RecordHistory("复制描述", OperationHistoryStatus.Failed, "描述不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(profilePath);
+            SetProfileStatus("描述已复制", isSuccess: true);
+            RecordHistory("复制描述", OperationHistoryStatus.Success, "已复制", profilePath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetProfileStatus("复制失败", isSuccess: false);
+            RecordHistory("复制描述", OperationHistoryStatus.Failed, "复制失败", profilePath);
+        }
+    }
+
+    private void OnOpenImportedProfileClick(object sender, RoutedEventArgs e)
+    {
+        var profilePath = ProfileImportedPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(profilePath) || !File.Exists(profilePath))
+        {
+            SetProfileStatus("描述不存在", isSuccess: false);
+            RecordHistory("打开描述", OperationHistoryStatus.Failed, "描述不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = profilePath,
+                UseShellExecute = true
+            });
+            SetProfileStatus("描述已打开", isSuccess: true);
+            RecordHistory("打开描述", OperationHistoryStatus.Success, "已打开", profilePath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetProfileStatus("打开失败", isSuccess: false);
+            RecordHistory("打开描述", OperationHistoryStatus.Failed, "打开失败", profilePath);
+        }
+    }
+
     private void OnSelectIpaFileClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
