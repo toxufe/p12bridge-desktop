@@ -919,6 +919,16 @@ public partial class MainWindow : Window
 
     private async void OnLookupAppStoreBuildsClick(object sender, RoutedEventArgs e)
     {
+        await RunAppStoreBuildLookupAsync(IpaBundleIdTextBox.Text);
+    }
+
+    private async void OnLookupUploadAppStoreBuildsClick(object sender, RoutedEventArgs e)
+    {
+        await RunAppStoreBuildLookupAsync(lastIpaMetadata?.BundleIdentifier ?? string.Empty);
+    }
+
+    private async Task RunAppStoreBuildLookupAsync(string bundleIdentifier)
+    {
         if (isAppStoreBuildLookupRunning)
         {
             return;
@@ -936,7 +946,7 @@ public partial class MainWindow : Window
                 ReadAppleApiPrivateKeyPem());
             var request = new AppStoreConnectBuildLookupRequest(
                 credential,
-                IpaBundleIdTextBox.Text);
+                bundleIdentifier);
 
             var result = await appStoreConnectBuildLookupService.LookupByBundleIdAsync(request);
             ShowAppStoreBuildLookupResult(result);
@@ -2152,55 +2162,70 @@ public partial class MainWindow : Window
     {
         SetAppStoreBuildLookupStatus("未查询", (Brush)FindResource("MutedTextBrush"));
         AppStoreBuildLookupResultTextBox.Text = string.Empty;
+        UploadAppStoreBuildLookupResultTextBox.Text = string.Empty;
         AppStoreBuildLookupIssuesPanel.Children.Clear();
+        UploadAppStoreBuildLookupIssuesPanel.Children.Clear();
     }
 
     private void SetAppStoreBuildLookupStatus(string status, Brush foreground)
     {
         AppStoreBuildLookupStatusText.Text = status;
         AppStoreBuildLookupStatusText.Foreground = foreground;
+        UploadAppStoreBuildLookupStatusText.Text = status;
+        UploadAppStoreBuildLookupStatusText.Foreground = foreground;
     }
 
     private void ShowAppStoreBuildLookupResult(AppStoreConnectBuildLookupResult result)
     {
         AppStoreBuildLookupIssuesPanel.Children.Clear();
-        AppStoreBuildLookupResultTextBox.Text = FormatAppStoreBuildLookupDetail(result);
+        UploadAppStoreBuildLookupIssuesPanel.Children.Clear();
+
+        var detail = FormatAppStoreBuildLookupDetail(result);
+        AppStoreBuildLookupResultTextBox.Text = detail;
+        UploadAppStoreBuildLookupResultTextBox.Text = detail;
 
         if (result.IsSuccess && result.HasBuilds)
         {
             SetAppStoreBuildLookupStatus("已找到", (Brush)FindResource("SuccessBrush"));
-            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow("构建", $"{result.Builds.Count} 个", true));
+            AddAppStoreBuildLookupIssueRow("构建", $"{result.Builds.Count} 个", true);
             return;
         }
 
         if (result.IsSuccess && !result.IsAppFound)
         {
             SetAppStoreBuildLookupStatus("App 未找到", (Brush)FindResource("WarningBrush"));
-            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow("App", "未找到", false));
+            AddAppStoreBuildLookupIssueRow("App", "未找到", false);
             return;
         }
 
         if (result.IsSuccess)
         {
             SetAppStoreBuildLookupStatus("无构建", (Brush)FindResource("WarningBrush"));
-            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow("构建", "无", false));
+            AddAppStoreBuildLookupIssueRow("构建", "无", false);
             return;
         }
 
         SetAppStoreBuildLookupStatus("查询失败", (Brush)FindResource("DangerBrush"));
         foreach (ValidationIssue issue in result.Issues)
         {
-            AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow(
+            AddAppStoreBuildLookupIssueRow(
                 FormatAppStoreBuildLookupIssueName(issue.Code),
                 FormatAppStoreBuildLookupIssueAction(issue.Code),
-                false));
+                false);
         }
+    }
+
+    private void AddAppStoreBuildLookupIssueRow(string name, string action, bool isSuccess)
+    {
+        AppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow(name, action, isSuccess));
+        UploadAppStoreBuildLookupIssuesPanel.Children.Add(CreateUploadIssueRow(name, action, isSuccess));
     }
 
     private void SetAppStoreBuildLookupRunning(bool isRunning)
     {
         isAppStoreBuildLookupRunning = isRunning;
         LookupAppStoreBuildsButton.IsEnabled = !isRunning;
+        UploadAppStoreBuildLookupButton.IsEnabled = !isRunning;
     }
 
     private void ClearAppStoreProfileLookupResult()

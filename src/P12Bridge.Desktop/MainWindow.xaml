@@ -1030,6 +1030,46 @@
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
 
+                                            <TextBlock Text="构建查询"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+
+                                            <Button x:Name="UploadAppStoreBuildLookupButton"
+                                                    Grid.Column="1"
+                                                    Content="构建"
+                                                    Click="OnLookupUploadAppStoreBuildsClick"
+                                                    Style="{StaticResource ActionButtonStyle}" />
+                                        </Grid>
+
+                                        <TextBlock x:Name="UploadAppStoreBuildLookupStatusText"
+                                                   Text="未查询"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,12,0,0" />
+                                        <TextBox x:Name="UploadAppStoreBuildLookupResultTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True"
+                                                 AcceptsReturn="True"
+                                                 MinHeight="96"
+                                                 Margin="0,12,0,0"
+                                                 VerticalContentAlignment="Top"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 TextWrapping="Wrap" />
+                                        <StackPanel x:Name="UploadAppStoreBuildLookupIssuesPanel" Margin="0,12,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
                                             <TextBlock Text="Transporter 校验"
                                                        Foreground="{StaticResource TextBrush}"
                                                        FontSize="18"
