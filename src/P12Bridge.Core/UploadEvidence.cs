@@ -2,6 +2,10 @@ namespace P12Bridge.Core;
 
 public sealed record UploadEvidence(
     DateTimeOffset CapturedAt,
+    string WindowsVersion = "",
+    string DotNetVersion = "",
+    string TransporterPath = "",
+    string CredentialMode = "",
     string BundleIdentifier = "",
     string Version = "",
     string Build = "",
@@ -16,6 +20,7 @@ public sealed record UploadEvidence(
     string EnvironmentStatus = "",
     string ProofStatus = "",
     string VerifyStatus = "",
+    string BuildLookupStatus = "",
     string ReadinessDetail = "",
     string RemotePreflightDetail = "",
     string BuildLookupDetail = "",

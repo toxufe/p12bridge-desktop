@@ -20,6 +20,10 @@ public static class UploadEvidenceFormatter
         var detailSections = new List<string>();
         var overview = new List<string>();
 
+        AddLine(overview, "Windows", evidence.WindowsVersion);
+        AddLine(overview, ".NET", evidence.DotNetVersion);
+        AddLine(overview, "Transporter", evidence.TransporterPath);
+        AddLine(overview, "凭据", evidence.CredentialMode);
         AddLine(overview, "Bundle ID", evidence.BundleIdentifier);
         AddLine(overview, "版本", evidence.Version);
         AddLine(overview, "Build", evidence.Build);
@@ -34,6 +38,7 @@ public static class UploadEvidenceFormatter
         AddLine(overview, "环境", evidence.EnvironmentStatus);
         AddLine(overview, "链路", evidence.ProofStatus);
         AddLine(overview, "校验", evidence.VerifyStatus);
+        AddLine(overview, "构建", evidence.BuildLookupStatus);
 
         AddSection(detailSections, "检查项", evidence.ReadinessDetail);
         AddSection(detailSections, "远端检查", evidence.RemotePreflightDetail);

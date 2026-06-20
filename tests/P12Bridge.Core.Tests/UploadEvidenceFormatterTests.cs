@@ -20,6 +20,10 @@ public sealed class UploadEvidenceFormatterTests
     {
         var text = UploadEvidenceFormatter.Format(new UploadEvidence(
             CapturedAt,
+            WindowsVersion: "Microsoft Windows 10.0.26100",
+            DotNetVersion: ".NET 8.0.22",
+            TransporterPath: @"C:\Transporter\iTMSTransporter.cmd",
+            CredentialMode: "API Key",
             BundleIdentifier: "com.example.app",
             Version: "1.2.3",
             Build: "45",
@@ -33,16 +37,22 @@ public sealed class UploadEvidenceFormatterTests
             ReadinessStatus: "可上传",
             EnvironmentStatus: "已验证",
             ProofStatus: "待核验",
-            VerifyStatus: "校验完成"));
+            VerifyStatus: "校验完成",
+            BuildLookupStatus: "已找到"));
 
         Assert.Contains("概览", text, StringComparison.Ordinal);
         Assert.Contains("时间: 2026-06-21 10:15:30", text, StringComparison.Ordinal);
+        Assert.Contains("Windows: Microsoft Windows 10.0.26100", text, StringComparison.Ordinal);
+        Assert.Contains(".NET: .NET 8.0.22", text, StringComparison.Ordinal);
+        Assert.Contains(@"Transporter: C:\Transporter\iTMSTransporter.cmd", text, StringComparison.Ordinal);
+        Assert.Contains("凭据: API Key", text, StringComparison.Ordinal);
         Assert.Contains("Bundle ID: com.example.app", text, StringComparison.Ordinal);
         Assert.Contains("版本: 1.2.3", text, StringComparison.Ordinal);
         Assert.Contains("Build: 45", text, StringComparison.Ordinal);
         Assert.Contains("Team ID: TEAM123456", text, StringComparison.Ordinal);
         Assert.Contains(@"IPA 路径: C:\Safe\demo.ipa", text, StringComparison.Ordinal);
         Assert.Contains("校验: 校验完成", text, StringComparison.Ordinal);
+        Assert.Contains("构建: 已找到", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -73,6 +83,7 @@ public sealed class UploadEvidenceFormatterTests
             EnvironmentStatus: "未验证",
             ProofStatus: "待实测",
             VerifyStatus: "未校验",
+            BuildLookupStatus: "未查询",
             BuildLookupDetail: "构建: 45"));
 
         Assert.DoesNotContain("IPA:", text, StringComparison.Ordinal);
@@ -82,6 +93,7 @@ public sealed class UploadEvidenceFormatterTests
         Assert.DoesNotContain("环境:", text, StringComparison.Ordinal);
         Assert.DoesNotContain("链路:", text, StringComparison.Ordinal);
         Assert.DoesNotContain("校验:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("构建: 未查询", text, StringComparison.Ordinal);
         Assert.Contains("构建查询", text, StringComparison.Ordinal);
         Assert.Contains("时间: 2026-06-21 10:15:30", text, StringComparison.Ordinal);
     }

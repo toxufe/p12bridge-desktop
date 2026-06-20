@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -2954,6 +2955,10 @@ public partial class MainWindow : Window
     private string FormatUploadEvidenceCopy()
         => UploadEvidenceFormatter.Format(new UploadEvidence(
             DateTimeOffset.Now,
+            WindowsVersion: RuntimeInformation.OSDescription,
+            DotNetVersion: $".NET {Environment.Version}",
+            TransporterPath: TransporterPathTextBox.Text,
+            CredentialMode: FormatUploadCredentialMode(ReadUploadCredentialMode()),
             BundleIdentifier: lastIpaMetadata?.BundleIdentifier ?? string.Empty,
             Version: lastIpaMetadata?.ShortVersion ?? string.Empty,
             Build: lastIpaMetadata?.BuildVersion ?? string.Empty,
@@ -2968,6 +2973,7 @@ public partial class MainWindow : Window
             EnvironmentStatus: UploadEnvironmentStatusText.Text,
             ProofStatus: UploadProofStatusText.Text,
             VerifyStatus: UploadVerifyStatusText.Text,
+            BuildLookupStatus: UploadAppStoreBuildLookupStatusText.Text,
             ReadinessDetail: lastUploadReadinessCopyText,
             RemotePreflightDetail: lastUploadRemotePreflightCopyText,
             BuildLookupDetail: UploadAppStoreBuildLookupResultTextBox.Text,
