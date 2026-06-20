@@ -129,11 +129,7 @@ public sealed class TransporterUploadService : IUploadService
                 processResult.ExitCode,
                 standardOutput,
                 standardError,
-                new ValidationIssue(
-                    UploadErrorCodes.ProcessExitFailed,
-                    ValidationSeverity.Error,
-                    $"Transporter {actionName} failed.",
-                    "Review the Transporter output and fix the reported issue."));
+                ClassifyProcessExitFailure(actionName, standardOutput, standardError));
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -305,6 +301,56 @@ public sealed class TransporterUploadService : IUploadService
 
         return redacted;
     }
+
+    private static ValidationIssue ClassifyProcessExitFailure(string actionName, string standardOutput, string standardError)
+    {
+        var output = $"{standardOutput}{Environment.NewLine}{standardError}".ToLowerInvariant();
+
+        if (ContainsAny(output, "unauthorized", "authentication", "authenticate", "invalid credentials", "invalid token", "api key", "issuer", "jwt", "password"))
+        {
+            return new ValidationIssue(
+                UploadErrorCodes.TransporterAuthenticationFailed,
+                ValidationSeverity.Error,
+                $"Transporter {actionName} authentication failed.",
+                "Check the upload credential and App Store Connect access.");
+        }
+
+        if (ContainsAny(output, "appstoreinfo", "asset description", "assetdescription", "metadata.xml", "metadata"))
+        {
+            return new ValidationIssue(
+                UploadErrorCodes.TransporterAssetMetadataFailed,
+                ValidationSeverity.Error,
+                $"Transporter {actionName} metadata failed.",
+                "Choose the AppStoreInfo.plist exported with the signed IPA.");
+        }
+
+        if (ContainsAny(output, "network", "connection", "timed out", "timeout", "could not connect", "unable to connect", "ssl", "proxy"))
+        {
+            return new ValidationIssue(
+                UploadErrorCodes.TransporterNetworkFailed,
+                ValidationSeverity.Error,
+                $"Transporter {actionName} network failed.",
+                "Check network connectivity and retry.");
+        }
+
+        if (ContainsAny(output, "invalid binary", "validation failed", "asset validation", "bundle", "version", "build number", "signature", "provisioning profile"))
+        {
+            return new ValidationIssue(
+                UploadErrorCodes.TransporterValidationFailed,
+                ValidationSeverity.Error,
+                $"Transporter {actionName} validation failed.",
+                "Fix the IPA validation issue reported by Transporter.");
+        }
+
+        return new ValidationIssue(
+            UploadErrorCodes.ProcessExitFailed,
+            ValidationSeverity.Error,
+            $"Transporter {actionName} failed.",
+            "Review the Transporter output and fix the reported issue.");
+    }
+
+    private static bool ContainsAny(string value, params string[] needles) =>
+        needles.Any(needle => value.Contains(needle, StringComparison.Ordinal));
 
     private static string FormatActionName(UploadExecutionMode executionMode) =>
         executionMode == UploadExecutionMode.Upload ? "upload" : "verification";

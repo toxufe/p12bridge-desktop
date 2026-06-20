@@ -16,5 +16,9 @@ public static class UploadErrorCodes
     public const string ProcessTimedOut = "UPLOAD_PROCESS_TIMED_OUT";
     public const string ProcessCancelled = "UPLOAD_PROCESS_CANCELLED";
     public const string ProcessExitFailed = "UPLOAD_PROCESS_EXIT_FAILED";
+    public const string TransporterAuthenticationFailed = "UPLOAD_TRANSPORTER_AUTHENTICATION_FAILED";
+    public const string TransporterAssetMetadataFailed = "UPLOAD_TRANSPORTER_ASSET_METADATA_FAILED";
+    public const string TransporterNetworkFailed = "UPLOAD_TRANSPORTER_NETWORK_FAILED";
+    public const string TransporterValidationFailed = "UPLOAD_TRANSPORTER_VALIDATION_FAILED";
     public const string UnexpectedProcessResult = "UPLOAD_PROCESS_RESULT_UNEXPECTED";
 }

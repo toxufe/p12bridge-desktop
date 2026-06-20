@@ -351,11 +351,86 @@ public sealed class TransporterUploadServiceTests : IDisposable
 
         Assert.False(result.IsSuccess);
         Assert.Equal(1, result.ExitCode);
-        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.ProcessExitFailed);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.TransporterAuthenticationFailed);
         Assert.DoesNotContain(token, result.StandardOutput, StringComparison.Ordinal);
         Assert.DoesNotContain(token, result.StandardError, StringComparison.Ordinal);
         Assert.Contains("[REDACTED-JWT]", result.StandardOutput, StringComparison.Ordinal);
         Assert.Contains("Authorization: Bearer [REDACTED]", result.StandardError, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task UploadAsyncClassifiesAuthenticationFailureOutput()
+    {
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(1, string.Empty, "Transporter authentication failed: invalid token")
+        };
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.TransporterAuthenticationFailed);
+    }
+
+    [Fact]
+    public async Task UploadAsyncClassifiesAssetMetadataFailureOutput()
+    {
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(1, string.Empty, "Asset description file AppStoreInfo.plist is invalid")
+        };
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidUploadRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.TransporterAssetMetadataFailed);
+    }
+
+    [Fact]
+    public async Task UploadAsyncClassifiesNetworkFailureOutput()
+    {
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(1, string.Empty, "Could not connect to App Store Connect due to network error")
+        };
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.TransporterNetworkFailed);
+    }
+
+    [Fact]
+    public async Task UploadAsyncClassifiesValidationFailureOutput()
+    {
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(1, string.Empty, "Asset validation failed: invalid binary bundle version")
+        };
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidUploadRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.TransporterValidationFailed);
+    }
+
+    [Fact]
+    public async Task UploadAsyncFallsBackForUnknownNonZeroOutput()
+    {
+        var runner = new FakeProcessRunner
+        {
+            Result = new ProcessRunResult(1, "unexpected failure", "no known signal")
+        };
+        var service = new TransporterUploadService(runner);
+
+        var result = await service.UploadAsync(ValidRequest());
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains(result.Issues, issue => issue.Code == UploadErrorCodes.ProcessExitFailed);
     }
 
     [Fact]

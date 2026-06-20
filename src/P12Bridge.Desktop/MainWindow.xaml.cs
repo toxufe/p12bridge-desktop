@@ -3021,6 +3021,10 @@ public partial class MainWindow : Window
             UploadErrorCodes.ProcessTimedOut => "网络重试",
             UploadErrorCodes.ProcessStartFailed => "检查权限",
             UploadErrorCodes.ProcessExitFailed => "查看日志",
+            UploadErrorCodes.TransporterAuthenticationFailed => "检查凭据",
+            UploadErrorCodes.TransporterAssetMetadataFailed => "选元数据",
+            UploadErrorCodes.TransporterNetworkFailed => "网络重试",
+            UploadErrorCodes.TransporterValidationFailed => "修复 IPA",
             UploadErrorCodes.TransporterPathMissing or UploadErrorCodes.TransporterNotFound => "检查工具",
             UploadErrorCodes.PackagePathMissing or UploadErrorCodes.PackageNotFound => "检查 IPA",
             UploadErrorCodes.AssetDescriptionPathMissing or UploadErrorCodes.AssetDescriptionNotFound => "选元数据",
@@ -3117,6 +3121,10 @@ public partial class MainWindow : Window
             UploadErrorCodes.ProcessTimedOut => "超时",
             UploadErrorCodes.ProcessCancelled => "取消",
             UploadErrorCodes.ProcessExitFailed => "Transporter",
+            UploadErrorCodes.TransporterAuthenticationFailed => "凭据",
+            UploadErrorCodes.TransporterAssetMetadataFailed => "元数据",
+            UploadErrorCodes.TransporterNetworkFailed => "网络",
+            UploadErrorCodes.TransporterValidationFailed => "IPA",
             UploadErrorCodes.UnexpectedProcessResult => "结果",
             _ => "环境"
         };
@@ -3138,6 +3146,10 @@ public partial class MainWindow : Window
             UploadErrorCodes.ProcessTimedOut => "重试",
             UploadErrorCodes.ProcessCancelled => "重试",
             UploadErrorCodes.ProcessExitFailed => "看日志",
+            UploadErrorCodes.TransporterAuthenticationFailed => "检查凭据",
+            UploadErrorCodes.TransporterAssetMetadataFailed => "选元数据",
+            UploadErrorCodes.TransporterNetworkFailed => "重试",
+            UploadErrorCodes.TransporterValidationFailed => "修复 IPA",
             UploadErrorCodes.UnexpectedProcessResult => "重试",
             _ => "处理"
         };
