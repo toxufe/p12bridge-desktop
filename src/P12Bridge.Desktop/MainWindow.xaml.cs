@@ -927,6 +927,21 @@ public partial class MainWindow : Window
         await RunAppStoreBuildLookupAsync(lastIpaMetadata?.BundleIdentifier ?? string.Empty);
     }
 
+    private void OnCopyAppStoreBuildLookupClick(object sender, RoutedEventArgs e)
+    {
+        var copyText = AppStoreBuildLookupResultTextBox.Text;
+        if (string.IsNullOrWhiteSpace(copyText))
+        {
+            SetAppStoreBuildLookupStatus("无结果", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制构建", OperationHistoryStatus.Failed, "无结果");
+            return;
+        }
+
+        Clipboard.SetText(copyText);
+        SetAppStoreBuildLookupStatus("已复制", (Brush)FindResource("SuccessBrush"));
+        RecordHistory("复制构建", OperationHistoryStatus.Success, "已复制", copyText);
+    }
+
     private async Task RunAppStoreBuildLookupAsync(string bundleIdentifier)
     {
         if (isAppStoreBuildLookupRunning)
@@ -3331,19 +3346,7 @@ public partial class MainWindow : Window
             return "未找到";
         }
 
-        var parts = new List<string>
-        {
-            $"名称: {result.App.Name}",
-            $"Bundle: {result.App.BundleIdentifier}",
-            $"App ID: {result.App.Id}"
-        };
-
-        if (!string.IsNullOrWhiteSpace(result.App.Sku))
-        {
-            parts.Add($"SKU: {result.App.Sku}");
-        }
-
-        return string.Join(Environment.NewLine, parts);
+        return FormatAppStoreApp(result.App);
     }
 
     private static string FormatAppStoreBuildLookupIssueName(string code) =>
@@ -3382,14 +3385,36 @@ public partial class MainWindow : Window
             return "App 未找到";
         }
 
+        var parts = new List<string>
+        {
+            FormatAppStoreApp(result.App)
+        };
+
         if (result.Builds.Count == 0)
         {
-            return "无构建";
+            parts.Add("无构建");
+            return string.Join($"{Environment.NewLine}{Environment.NewLine}", parts);
         }
 
-        return string.Join(
-            $"{Environment.NewLine}{Environment.NewLine}",
-            result.Builds.Select(FormatAppStoreBuild));
+        parts.AddRange(result.Builds.Select(FormatAppStoreBuild));
+        return string.Join($"{Environment.NewLine}{Environment.NewLine}", parts);
+    }
+
+    private static string FormatAppStoreApp(AppStoreConnectApp app)
+    {
+        var parts = new List<string>
+        {
+            $"名称: {app.Name}",
+            $"Bundle: {app.BundleIdentifier}",
+            $"App ID: {app.Id}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(app.Sku))
+        {
+            parts.Add($"SKU: {app.Sku}");
+        }
+
+        return string.Join(Environment.NewLine, parts);
     }
 
     private static string FormatAppStoreBuild(AppStoreConnectBuild build)

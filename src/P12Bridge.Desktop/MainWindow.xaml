@@ -1036,11 +1036,16 @@
                                                        FontWeight="SemiBold"
                                                        VerticalAlignment="Center" />
 
-                                            <Button x:Name="UploadAppStoreBuildLookupButton"
-                                                    Grid.Column="1"
-                                                    Content="构建"
-                                                    Click="OnLookupUploadAppStoreBuildsClick"
-                                                    Style="{StaticResource ActionButtonStyle}" />
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                                <Button x:Name="UploadAppStoreBuildLookupButton"
+                                                        Content="构建"
+                                                        Click="OnLookupUploadAppStoreBuildsClick"
+                                                        Style="{StaticResource ActionButtonStyle}" />
+                                                <Button Content="复制"
+                                                        Click="OnCopyAppStoreBuildLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="10,0,0,0" />
+                                            </StackPanel>
                                         </Grid>
 
                                         <TextBlock x:Name="UploadAppStoreBuildLookupStatusText"
@@ -1807,10 +1812,23 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="构建查询"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="构建查询"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreBuildLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreBuildLookupStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"
