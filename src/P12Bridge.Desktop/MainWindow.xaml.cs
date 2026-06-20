@@ -38,6 +38,8 @@ public partial class MainWindow : Window
     private string lastImportedProfilePath = string.Empty;
     private IpaMetadata? lastIpaMetadata;
     private string lastIpaImportedPath = string.Empty;
+    private string lastAppStoreRemotePreflightCopyText = string.Empty;
+    private string lastUploadRemotePreflightCopyText = string.Empty;
     private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
     private CancellationTokenSource? uploadVerificationCancellation;
     private bool isUploadVerificationRunning;
@@ -962,6 +964,42 @@ public partial class MainWindow : Window
         finally
         {
             SetAppStoreRemotePreflightRunning(false);
+        }
+    }
+
+    private void OnCopyAppStoreRemotePreflightClick(object sender, RoutedEventArgs e)
+    {
+        CopyRemotePreflightResult(
+            lastAppStoreRemotePreflightCopyText,
+            SetAppStoreRemotePreflightStatus);
+    }
+
+    private void OnCopyUploadRemotePreflightClick(object sender, RoutedEventArgs e)
+    {
+        CopyRemotePreflightResult(
+            lastUploadRemotePreflightCopyText,
+            SetUploadRemotePreflightStatus);
+    }
+
+    private void CopyRemotePreflightResult(string copyText, Action<string, Brush> setStatus)
+    {
+        if (string.IsNullOrWhiteSpace(copyText))
+        {
+            setStatus("无结果", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制远端", OperationHistoryStatus.Failed, "无结果");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(copyText);
+            setStatus("已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制远端", OperationHistoryStatus.Success, "已复制", copyText);
+        }
+        catch (Exception)
+        {
+            setStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制远端", OperationHistoryStatus.Failed, "复制失败");
         }
     }
 
@@ -2048,6 +2086,7 @@ public partial class MainWindow : Window
     {
         SetAppStoreRemotePreflightStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         AppStoreRemotePreflightResultTextBox.Text = string.Empty;
+        lastAppStoreRemotePreflightCopyText = string.Empty;
         AppStoreRemotePreflightIssuesPanel.Children.Clear();
     }
 
@@ -2061,6 +2100,7 @@ public partial class MainWindow : Window
     {
         AppStoreRemotePreflightIssuesPanel.Children.Clear();
         AppStoreRemotePreflightResultTextBox.Text = FormatAppStoreRemotePreflightDetail(result);
+        lastAppStoreRemotePreflightCopyText = FormatAppStoreRemotePreflightCopy(result);
 
         if (result.IsSuccess && !result.HasWarnings)
         {
@@ -2105,6 +2145,16 @@ public partial class MainWindow : Window
         {
             RunUploadRemotePreflightButton.IsEnabled = !isRunning;
         }
+
+        if (CopyAppStoreRemotePreflightButton is not null)
+        {
+            CopyAppStoreRemotePreflightButton.IsEnabled = !isRunning;
+        }
+
+        if (CopyUploadRemotePreflightButton is not null)
+        {
+            CopyUploadRemotePreflightButton.IsEnabled = !isRunning;
+        }
     }
 
     private void ClearUploadRemotePreflightResult()
@@ -2118,6 +2168,7 @@ public partial class MainWindow : Window
 
         SetUploadRemotePreflightStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         UploadRemotePreflightResultTextBox.Text = string.Empty;
+        lastUploadRemotePreflightCopyText = string.Empty;
         UploadRemotePreflightIssuesPanel.Children.Clear();
     }
 
@@ -2131,6 +2182,7 @@ public partial class MainWindow : Window
     {
         UploadRemotePreflightIssuesPanel.Children.Clear();
         UploadRemotePreflightResultTextBox.Text = FormatAppStoreRemotePreflightDetail(result);
+        lastUploadRemotePreflightCopyText = FormatAppStoreRemotePreflightCopy(result);
 
         if (result.IsSuccess && !result.HasWarnings)
         {
@@ -3419,6 +3471,9 @@ public partial class MainWindow : Window
 
         return result.HasWarnings ? "有提醒" : "可用";
     }
+
+    private static string FormatAppStoreRemotePreflightCopy(AppStoreConnectRemotePreflightResult result) =>
+        $"状态: {FormatAppStoreRemotePreflightSummary(result)}{Environment.NewLine}{FormatAppStoreRemotePreflightDetail(result)}";
 
     private static string FormatAppStoreRemotePreflightDetail(AppStoreConnectRemotePreflightResult result)
     {

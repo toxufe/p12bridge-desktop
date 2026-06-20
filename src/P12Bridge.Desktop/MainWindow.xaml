@@ -1077,10 +1077,24 @@
 
                                 <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top" Margin="0,12,0,0">
                                     <StackPanel>
-                                        <TextBlock Text="远端检查"
-                                                   Foreground="{StaticResource TextBrush}"
-                                                   FontSize="18"
-                                                   FontWeight="SemiBold" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="远端检查"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+
+                                            <Button x:Name="CopyUploadRemotePreflightButton"
+                                                    Grid.Column="1"
+                                                    Content="复制"
+                                                    Click="OnCopyUploadRemotePreflightClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                        </Grid>
                                         <TextBlock x:Name="UploadRemotePreflightStatusText"
                                                    Text="未检查"
                                                    Foreground="{StaticResource MutedTextBrush}"
@@ -1777,10 +1791,24 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="远端检查"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="远端检查"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button x:Name="CopyAppStoreRemotePreflightButton"
+                                                        Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreRemotePreflightClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreRemotePreflightStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"
