@@ -1888,7 +1888,26 @@
                                                  Style="{StaticResource InputTextBoxStyle}"
                                                  TextChanged="OnUploadEnvironmentInputChanged" />
 
-                                        <TextBlock Text="专用密码" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
+                                        <Grid Margin="0,12,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="专用密码" Style="{StaticResource FieldLabelStyle}" />
+                                            <StackPanel Grid.Column="1"
+                                                        Orientation="Horizontal"
+                                                        HorizontalAlignment="Right"
+                                                        VerticalAlignment="Center">
+                                                <TextBlock Text="非登录密码"
+                                                           Foreground="{StaticResource MutedTextBrush}"
+                                                           VerticalAlignment="Center" />
+                                                <Button x:Name="OpenAppSpecificPasswordPageButton"
+                                                        Content="生成"
+                                                        Click="OnOpenAppSpecificPasswordPageClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="10,0,0,0" />
+                                            </StackPanel>
+                                        </Grid>
                                         <PasswordBox x:Name="UploadAppSpecificPasswordBox"
                                                      MinHeight="34"
                                                      Padding="9,6"

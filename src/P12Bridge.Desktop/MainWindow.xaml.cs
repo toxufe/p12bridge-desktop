@@ -13,6 +13,7 @@ public partial class MainWindow : Window
 {
     private const string ProjectCertificateFileName = "certificate.cer";
     private const string AppStoreInfoFileName = "AppStoreInfo.plist";
+    private const string AppleAccountManageUrl = "https://account.apple.com/account/manage";
 
     private readonly ICertificateProjectService certificateProjectService;
     private readonly IProvisioningProfileImportService profileImportService;
@@ -1383,6 +1384,28 @@ public partial class MainWindow : Window
         {
             SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
             RecordHistory("打开元数据", OperationHistoryStatus.Failed, "打开失败", assetDescriptionPath);
+        }
+    }
+
+    private void OnOpenAppSpecificPasswordPageClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = AppleAccountManageUrl,
+                UseShellExecute = true
+            });
+            SetUploadSettingsStatus("已打开", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("打开生成", OperationHistoryStatus.Success, "已打开", AppleAccountManageUrl);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("打开生成", OperationHistoryStatus.Failed, "打开失败", AppleAccountManageUrl);
         }
     }
 
