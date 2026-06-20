@@ -615,6 +615,31 @@ public partial class MainWindow : Window
         });
     }
 
+    private void OnCopySelectedAssetPathClick(object sender, RoutedEventArgs e)
+    {
+        if (AssetListBox.SelectedItem is not AssetListItem selectedAsset)
+        {
+            AssetStatusText.Text = "未选择";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制路径", OperationHistoryStatus.Failed, "未选择");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(selectedAsset.Path);
+            AssetStatusText.Text = "已复制";
+            AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制路径", OperationHistoryStatus.Success, "已复制", selectedAsset.Path);
+        }
+        catch (Exception)
+        {
+            AssetStatusText.Text = "复制失败";
+            AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制路径", OperationHistoryStatus.Failed, "复制失败", selectedAsset.Path);
+        }
+    }
+
     private void OnBackupSelectedAssetClick(object sender, RoutedEventArgs e)
     {
         if (AssetListBox.SelectedItem is not AssetListItem selectedAsset)
