@@ -1072,6 +1072,30 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopyAppleApiPrivateKeyPathClick(object sender, RoutedEventArgs e)
+    {
+        var privateKeyPath = AppleApiPrivateKeyPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(privateKeyPath) || !File.Exists(privateKeyPath))
+        {
+            SetAppleApiConnectionStatus("P8 不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制 P8", OperationHistoryStatus.Failed, "P8 不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(privateKeyPath);
+            SetAppleApiConnectionStatus("P8 已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制 P8", OperationHistoryStatus.Success, "已复制", privateKeyPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetAppleApiConnectionStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制 P8", OperationHistoryStatus.Failed, "复制失败", privateKeyPath);
+        }
+    }
+
     private void OnUploadCredentialModeChanged(object sender, SelectionChangedEventArgs e)
     {
         SetCredentialPanelsVisibility();
