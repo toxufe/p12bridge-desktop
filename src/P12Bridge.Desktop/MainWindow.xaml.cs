@@ -445,6 +445,60 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopyCertificateCerPathClick(object sender, RoutedEventArgs e)
+    {
+        var cerPath = CertificateCerPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(cerPath) || !File.Exists(cerPath))
+        {
+            SetCertificateStatus("CER 不存在", isSuccess: false);
+            RecordHistory("复制 CER", OperationHistoryStatus.Failed, "CER 不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(cerPath);
+            SetCertificateStatus("CER 已复制", isSuccess: true);
+            RecordHistory("复制 CER", OperationHistoryStatus.Success, "已复制", cerPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetCertificateStatus("复制失败", isSuccess: false);
+            RecordHistory("复制 CER", OperationHistoryStatus.Failed, "复制失败", cerPath);
+        }
+    }
+
+    private void OnOpenCertificateCerClick(object sender, RoutedEventArgs e)
+    {
+        var cerPath = CertificateCerPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(cerPath) || !File.Exists(cerPath))
+        {
+            SetCertificateStatus("CER 不存在", isSuccess: false);
+            RecordHistory("打开 CER", OperationHistoryStatus.Failed, "CER 不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = cerPath,
+                UseShellExecute = true
+            });
+            SetCertificateStatus("CER 已打开", isSuccess: true);
+            RecordHistory("打开 CER", OperationHistoryStatus.Success, "已打开", cerPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetCertificateStatus("打开失败", isSuccess: false);
+            RecordHistory("打开 CER", OperationHistoryStatus.Failed, "打开失败", cerPath);
+        }
+    }
+
     private void OnExportP12Click(object sender, RoutedEventArgs e)
     {
         CertificateP12PathTextBox.Text = string.Empty;

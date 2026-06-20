@@ -730,6 +730,10 @@
                                             <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="8" />
                                             <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
                                         <TextBox x:Name="CertificateCerPathTextBox"
                                                  Style="{StaticResource InputTextBoxStyle}"
@@ -741,6 +745,14 @@
                                         <Button Grid.Column="4"
                                                 Content="导入"
                                                 Click="OnImportCertificateFileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Grid.Column="6"
+                                                Content="复制"
+                                                Click="OnCopyCertificateCerPathClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Grid.Column="8"
+                                                Content="打开"
+                                                Click="OnOpenCertificateCerClick"
                                                 Style="{StaticResource SecondaryButtonStyle}" />
                                     </Grid>
 
