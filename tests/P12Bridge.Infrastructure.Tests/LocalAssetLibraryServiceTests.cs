@@ -279,7 +279,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         var result = service.Scan(ValidRequest());
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
-        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 0", item.SafeMetadataSummary);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 0 / 匹配 0", item.SafeMetadataSummary);
         Assert.Empty(result.Issues);
     }
 
@@ -297,8 +297,52 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         var result = service.Scan(ValidRequest());
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
-        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 2", item.SafeMetadataSummary);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 2 / 匹配 0", item.SafeMetadataSummary);
         Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanReportsProvisioningProfileCertificateMatchCount()
+    {
+        var expiresAt = new DateTimeOffset(2027, 1, 2, 0, 0, 0, TimeSpan.Zero);
+        var certificateBytes = CreateCertificate(expiresAt);
+        var certificatePayload = Convert.ToBase64String(certificateBytes);
+        var projectDirectory = Path.Combine(certificateDirectory, "Matched");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllBytes(Path.Combine(projectDirectory, "certificate.cer"), certificateBytes);
+        var profilePath = Path.Combine(profileDirectory, "demo.mobileprovision");
+        File.WriteAllBytes(profilePath, WrapMobileProvision(ProfilePlist(expiresAt, [
+            certificatePayload,
+            Convert.ToBase64String([4, 5, 6])
+        ])));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 2 / 匹配 1", item.SafeMetadataSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanKeepsProfileMatchCountWhenLocalCertificateIsInvalid()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "InvalidCertificate");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), "{}");
+        File.WriteAllText(Path.Combine(projectDirectory, "certificate.cer"), "not a certificate");
+        var profilePath = Path.Combine(profileDirectory, "demo.mobileprovision");
+        File.WriteAllBytes(profilePath, WrapMobileProvision(ProfilePlist(
+            new DateTimeOffset(2027, 1, 2, 0, 0, 0, TimeSpan.Zero),
+            [Convert.ToBase64String([1, 2, 3])])));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 1 / 匹配 0", item.SafeMetadataSummary);
+        Assert.Contains(result.Issues, issue => issue.Code == LocalAssetLibraryErrorCodes.ScanFailed);
     }
 
     [Fact]
@@ -441,7 +485,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         var result = service.Scan(ValidRequest());
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
-        Assert.Contains("/ 证书 1", item.SafeMetadataSummary, StringComparison.Ordinal);
+        Assert.Contains("/ 证书 1 / 匹配 0", item.SafeMetadataSummary, StringComparison.Ordinal);
         Assert.DoesNotContain(certificatePayload, item.SafeMetadataSummary, StringComparison.Ordinal);
         Assert.DoesNotContain(fingerprint, item.SafeMetadataSummary, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(certificatePayload, StringComparison.Ordinal));

@@ -30,8 +30,8 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         var items = new List<LocalAssetItem>();
         var issues = new List<ValidationIssue>();
 
-        AddCertificateProjects(request.CertificateDirectory, items, issues);
-        AddProvisioningProfiles(request.ProfileDirectory, items, issues);
+        var localCertificateFingerprints = AddCertificateProjects(request.CertificateDirectory, items, issues);
+        AddProvisioningProfiles(request.ProfileDirectory, items, issues, localCertificateFingerprints);
         AddIpas(request.IpaDirectory, items, issues);
 
         return issues.Count == 0
@@ -39,14 +39,16 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
             : LocalAssetLibraryResult.Partial(SortItems(items), issues.ToArray());
     }
 
-    private static void AddCertificateProjects(
+    private static IReadOnlySet<string> AddCertificateProjects(
         string rootDirectory,
         List<LocalAssetItem> items,
         List<ValidationIssue> issues)
     {
+        var certificateFingerprints = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
         if (!Directory.Exists(rootDirectory))
         {
-            return;
+            return certificateFingerprints;
         }
 
         try
@@ -63,6 +65,12 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     continue;
                 }
 
+                var certificateMetadata = ReadCertificateMetadata(projectDirectory, issues);
+                if (!string.IsNullOrWhiteSpace(certificateMetadata.Fingerprint))
+                {
+                    certificateFingerprints.Add(certificateMetadata.Fingerprint);
+                }
+
                 items.Add(new LocalAssetItem(
                     LocalAssetType.CertificateProject,
                     Path.GetFileName(projectDirectory),
@@ -70,7 +78,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     File.GetLastWriteTimeUtc(metadataPath),
                     ReadProjectNote(metadataPath),
                     ReadCertificateArtifacts(projectDirectory),
-                    ReadCertificateExpiration(projectDirectory, issues),
+                    certificateMetadata.ExpiresAt,
                     BackupSummary: ReadCertificateBackupSummary(projectDirectory, backupIndex),
                     BackupPath: ReadCertificateBackupPath(projectDirectory, backupIndex)));
             }
@@ -83,12 +91,15 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         {
             AddScanIssue(issues, rootDirectory, exception);
         }
+
+        return certificateFingerprints;
     }
 
     private void AddProvisioningProfiles(
         string rootDirectory,
         List<LocalAssetItem> items,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        IReadOnlySet<string> localCertificateFingerprints)
     {
         if (!Directory.Exists(rootDirectory))
         {
@@ -99,7 +110,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         {
             foreach (var path in Directory.EnumerateFiles(rootDirectory, "*.mobileprovision", SearchOption.TopDirectoryOnly))
             {
-                var profileMetadata = ReadProvisioningProfileMetadata(path, issues);
+                var profileMetadata = ReadProvisioningProfileMetadata(path, issues, localCertificateFingerprints);
                 items.Add(new LocalAssetItem(
                     LocalAssetType.ProvisioningProfile,
                     Path.GetFileName(path),
@@ -258,20 +269,23 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
             File.Exists(Path.Combine(projectDirectory, CertificateFileName)),
             File.Exists(Path.Combine(projectDirectory, P12FileName)));
 
-    private static DateTimeOffset? ReadCertificateExpiration(
+    private static (DateTimeOffset? ExpiresAt, string Fingerprint) ReadCertificateMetadata(
         string projectDirectory,
         List<ValidationIssue> issues)
     {
         var certificatePath = Path.Combine(projectDirectory, CertificateFileName);
         if (!File.Exists(certificatePath))
         {
-            return null;
+            return (null, string.Empty);
         }
 
         try
         {
             using var certificate = new X509Certificate2(certificatePath);
-            return new DateTimeOffset(certificate.NotAfter).ToUniversalTime();
+            var certificateBytes = certificate.Export(X509ContentType.Cert);
+            return (
+                new DateTimeOffset(certificate.NotAfter).ToUniversalTime(),
+                Convert.ToHexString(SHA256.HashData(certificateBytes)));
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
@@ -282,13 +296,14 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                 ValidationSeverity.Warning,
                 $"Could not read certificate metadata for {projectDirectory}.",
                 exception.GetType().Name));
-            return null;
+            return (null, string.Empty);
         }
     }
 
     private (DateTimeOffset? ExpiresAt, string SafeSummary) ReadProvisioningProfileMetadata(
         string profilePath,
-        List<ValidationIssue> issues)
+        List<ValidationIssue> issues,
+        IReadOnlySet<string> localCertificateFingerprints)
     {
         try
         {
@@ -298,7 +313,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                 AddProfileWarnings(issues, profilePath, result.Issues);
                 return (
                     result.Profile.ExpirationDate,
-                    FormatProfileSummary(result.Profile));
+                    FormatProfileSummary(result.Profile, localCertificateFingerprints));
             }
 
             AddProfileWarnings(issues, profilePath, result.Issues);
@@ -312,8 +327,14 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         }
     }
 
-    private static string FormatProfileSummary(ProvisioningProfile profile) =>
-        $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier} / {profile.TeamId} / 证书 {profile.DeveloperCertificateFingerprints.Count}";
+    private static string FormatProfileSummary(
+        ProvisioningProfile profile,
+        IReadOnlySet<string> localCertificateFingerprints)
+    {
+        var matchCount = profile.DeveloperCertificateFingerprints
+            .Count(localCertificateFingerprints.Contains);
+        return $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier} / {profile.TeamId} / 证书 {profile.DeveloperCertificateFingerprints.Count} / 匹配 {matchCount}";
+    }
 
     private static string FormatProfileType(ProvisioningProfileType type) =>
         type switch
