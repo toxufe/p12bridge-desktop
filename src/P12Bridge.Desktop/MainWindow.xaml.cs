@@ -951,7 +951,8 @@ public partial class MainWindow : Window
             AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
             RecordHistory("复制路径", OperationHistoryStatus.Success, "已复制", selectedAsset.Path);
         }
-        catch (Exception)
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
         {
             AssetStatusText.Text = "复制失败";
             AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
@@ -1017,7 +1018,8 @@ public partial class MainWindow : Window
             ExpirationReminderStatusText.Foreground = (Brush)FindResource("SuccessBrush");
             RecordHistory("复制提醒", OperationHistoryStatus.Success, "已复制", selectedReminder.Path);
         }
-        catch (Exception)
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
         {
             ExpirationReminderStatusText.Text = "复制失败";
             ExpirationReminderStatusText.Foreground = (Brush)FindResource("DangerBrush");
@@ -1607,7 +1609,8 @@ public partial class MainWindow : Window
             setStatus("已复制", (Brush)FindResource("SuccessBrush"));
             RecordHistory("复制远端", OperationHistoryStatus.Success, "已复制", copyText);
         }
-        catch (Exception)
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
         {
             setStatus("复制失败", (Brush)FindResource("DangerBrush"));
             RecordHistory("复制远端", OperationHistoryStatus.Failed, "复制失败");
@@ -1769,7 +1772,8 @@ public partial class MainWindow : Window
             setStatus("已复制", (Brush)FindResource("SuccessBrush"));
             RecordHistory(operation, OperationHistoryStatus.Success, "已复制", copyText);
         }
-        catch (Exception)
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
         {
             setStatus("复制失败", (Brush)FindResource("DangerBrush"));
             RecordHistory(operation, OperationHistoryStatus.Failed, "复制失败");
