@@ -1143,6 +1143,60 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopyTransporterPathClick(object sender, RoutedEventArgs e)
+    {
+        var transporterPath = TransporterPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(transporterPath) || !File.Exists(transporterPath))
+        {
+            SetUploadSettingsStatus("工具不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制工具", OperationHistoryStatus.Failed, "工具不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(transporterPath);
+            SetUploadSettingsStatus("工具已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制工具", OperationHistoryStatus.Success, "已复制", transporterPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetUploadSettingsStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制工具", OperationHistoryStatus.Failed, "复制失败", transporterPath);
+        }
+    }
+
+    private void OnOpenTransporterClick(object sender, RoutedEventArgs e)
+    {
+        var transporterPath = TransporterPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(transporterPath) || !File.Exists(transporterPath))
+        {
+            SetUploadSettingsStatus("工具不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("打开工具", OperationHistoryStatus.Failed, "工具不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = transporterPath,
+                UseShellExecute = true
+            });
+            SetUploadSettingsStatus("工具已打开", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("打开工具", OperationHistoryStatus.Success, "已打开", transporterPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("打开工具", OperationHistoryStatus.Failed, "打开失败", transporterPath);
+        }
+    }
+
     private void OnSelectUploadAssetDescriptionClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
