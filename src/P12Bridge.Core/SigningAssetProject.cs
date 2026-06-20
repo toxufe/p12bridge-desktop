@@ -4,4 +4,5 @@ public sealed record SigningAssetProject(
     string Name,
     SigningPurpose Purpose,
     string ProjectDirectory,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string Note = "");

@@ -601,6 +601,7 @@
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
                                             <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
                                         </Grid.RowDefinitions>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -653,6 +654,12 @@
                                         <StackPanel Grid.Row="3" Grid.ColumnSpan="3" Margin="0,12,0,0">
                                             <TextBlock Text="目录" Style="{StaticResource FieldLabelStyle}" />
                                             <TextBox x:Name="CertificateBaseDirectoryTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}" />
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="4" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                            <TextBlock Text="备注" Style="{StaticResource FieldLabelStyle}" />
+                                            <TextBox x:Name="CertificateNoteTextBox"
                                                      Style="{StaticResource InputTextBoxStyle}" />
                                         </StackPanel>
                                     </Grid>

@@ -31,7 +31,8 @@ public sealed class CertificateProjectServiceTests : IDisposable
                 EmailAddress: "developer@example.com",
                 Organization: "P12Bridge",
                 CountryCode: "CN"),
-            temporaryDirectory);
+            temporaryDirectory,
+            "  发布证书  ");
 
         var result = service.Create(request);
 
@@ -39,6 +40,7 @@ public sealed class CertificateProjectServiceTests : IDisposable
         Assert.NotNull(result.Project);
         Assert.NotNull(result.Artifacts);
         Assert.Equal(SigningPurpose.Distribution, result.Project.Purpose);
+        Assert.Equal("发布证书", result.Project.Note);
         Assert.Equal(Path.Combine(temporaryDirectory, "Demo-App-20260620083000"), result.Artifacts.ProjectDirectory);
         Assert.StartsWith("-----BEGIN PRIVATE KEY-----", File.ReadAllText(result.Artifacts.PrivateKeyPath), StringComparison.Ordinal);
         Assert.StartsWith("-----BEGIN CERTIFICATE REQUEST-----", File.ReadAllText(result.Artifacts.CertificateSigningRequestPath), StringComparison.Ordinal);
@@ -48,6 +50,7 @@ public sealed class CertificateProjectServiceTests : IDisposable
 
         Assert.Equal("Demo App", root.GetProperty("Name").GetString());
         Assert.Equal("Distribution", root.GetProperty("Purpose").GetString());
+        Assert.Equal("发布证书", root.GetProperty("Note").GetString());
         Assert.Equal("Developer Name", root.GetProperty("Subject").GetProperty("CommonName").GetString());
         Assert.Equal("private.key", root.GetProperty("Artifacts").GetProperty("PrivateKey").GetString());
         Assert.Equal("request.csr", root.GetProperty("Artifacts").GetProperty("CertificateSigningRequest").GetString());

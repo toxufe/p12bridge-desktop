@@ -60,7 +60,8 @@ public sealed class CertificateProjectService : ICertificateProjectService
                 request.ProjectName.Trim(),
                 request.Purpose,
                 projectDirectory,
-                createdAt);
+                createdAt,
+                request.Note.Trim());
 
             WriteMetadata(metadataPath, project, request.Subject, PrivateKeyFileName, CertificateSigningRequestFileName);
 
@@ -285,6 +286,7 @@ public sealed class CertificateProjectService : ICertificateProjectService
             project.Name,
             Purpose = project.Purpose.ToString(),
             CreatedAt = project.CreatedAt,
+            project.Note,
             Subject = new
             {
                 subject.CommonName,

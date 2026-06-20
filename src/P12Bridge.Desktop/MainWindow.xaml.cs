@@ -197,7 +197,8 @@ public partial class MainWindow : Window
                 EmailAddress: OptionalText(CertificateEmailTextBox.Text),
                 Organization: OptionalText(CertificateOrganizationTextBox.Text),
                 CountryCode: OptionalText(CertificateCountryTextBox.Text)),
-            CertificateBaseDirectoryTextBox.Text);
+            CertificateBaseDirectoryTextBox.Text,
+            CertificateNoteTextBox.Text);
 
         var result = certificateProjectService.Create(request);
         if (!result.IsSuccess || result.Artifacts is null)
