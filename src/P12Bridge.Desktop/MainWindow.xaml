@@ -499,6 +499,84 @@
                                 </ListBox>
                             </StackPanel>
                         </Border>
+
+                        <Border Style="{StaticResource CardBorderStyle}" Margin="0,18,0,0">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <StackPanel>
+                                        <TextBlock Text="最近操作"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="16"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock x:Name="DashboardRecentHistoryStatusText"
+                                                   Text="暂无记录"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="13"
+                                                   Margin="0,8,0,12" />
+                                    </StackPanel>
+
+                                    <Button Grid.Column="1"
+                                            Content="全部"
+                                            Tag="History"
+                                            Click="OnModuleShortcutClick"
+                                            Style="{StaticResource SecondaryButtonStyle}"
+                                            VerticalAlignment="Top" />
+                                </Grid>
+
+                                <ListBox x:Name="DashboardRecentHistoryListBox"
+                                         BorderThickness="0"
+                                         Background="Transparent"
+                                         MinHeight="72">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#F8FAFC"
+                                                    BorderBrush="{StaticResource BorderBrushSoft}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="6"
+                                                    Padding="10"
+                                                    Margin="0,0,0,8">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="82" />
+                                                        <ColumnDefinition Width="96" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="112" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Text="{Binding StatusText}"
+                                                               Foreground="{Binding StatusBrush}"
+                                                               FontSize="12"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="1"
+                                                               Text="{Binding Operation}"
+                                                               Foreground="{StaticResource TextBrush}"
+                                                               FontSize="13"
+                                                               FontWeight="SemiBold"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="2"
+                                                               Text="{Binding Summary}"
+                                                               Foreground="{StaticResource TextBrush}"
+                                                               FontSize="13"
+                                                               TextWrapping="Wrap"
+                                                               VerticalAlignment="Center" />
+                                                    <TextBlock Grid.Column="3"
+                                                               Text="{Binding TimeText}"
+                                                               Foreground="{StaticResource MutedTextBrush}"
+                                                               FontSize="12"
+                                                               HorizontalAlignment="Right"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
 

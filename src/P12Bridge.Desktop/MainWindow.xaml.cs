@@ -145,6 +145,7 @@ public partial class MainWindow : Window
         {
             RefreshAssets();
             RefreshExpirationReminders();
+            RefreshDashboardRecentHistory();
         }
 
         if (pageKey == "Settings")
@@ -1482,13 +1483,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        var result = operationHistoryService.List();
-        var items = result.Items
-            .Select(item => HistoryListItem.FromHistory(
-                item,
-                GetHistoryStatusText(item.Status),
-                GetHistoryStatusBrush(item.Status)))
-            .ToArray();
+        var items = GetHistoryListItems();
 
         HistoryListBox.ItemsSource = items;
         HistoryCountsText.Text = $"{items.Length} 条";
@@ -1508,6 +1503,37 @@ public partial class MainWindow : Window
         {
             HistoryListBox.SelectedIndex = 0;
         }
+    }
+
+    private void RefreshDashboardRecentHistory()
+    {
+        if (DashboardRecentHistoryListBox is null || DashboardRecentHistoryStatusText is null)
+        {
+            return;
+        }
+
+        var items = GetHistoryListItems(5);
+        DashboardRecentHistoryListBox.ItemsSource = items;
+        DashboardRecentHistoryStatusText.Text = items.Length == 0 ? "暂无记录" : $"最近 {items.Length}";
+        DashboardRecentHistoryStatusText.Foreground = items.Length == 0
+            ? (Brush)FindResource("MutedTextBrush")
+            : (Brush)FindResource("SuccessBrush");
+    }
+
+    private HistoryListItem[] GetHistoryListItems(int? limit = null)
+    {
+        var items = operationHistoryService.List().Items
+            .Select(item => HistoryListItem.FromHistory(
+                item,
+                GetHistoryStatusText(item.Status),
+                GetHistoryStatusBrush(item.Status)));
+
+        if (limit is not null)
+        {
+            items = items.Take(limit.Value);
+        }
+
+        return items.ToArray();
     }
 
     private void RefreshUploadSettingsInputs()
@@ -2388,6 +2414,11 @@ public partial class MainWindow : Window
         if (HistoryPage is not null && HistoryPage.Visibility == Visibility.Visible)
         {
             RefreshHistory();
+        }
+
+        if (DashboardPage is not null && DashboardPage.Visibility == Visibility.Visible)
+        {
+            RefreshDashboardRecentHistory();
         }
     }
 
