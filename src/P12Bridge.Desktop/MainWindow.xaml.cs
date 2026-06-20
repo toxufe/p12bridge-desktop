@@ -419,6 +419,8 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             CertificateCerPathTextBox.Text = dialog.FileName;
+            SetCertificateStatus("CER 已选择", isSuccess: true);
+            RecordHistory("选择 CER", OperationHistoryStatus.Success, "已选择", dialog.FileName);
         }
     }
 
@@ -562,6 +564,8 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             ProfileSourcePathTextBox.Text = dialog.FileName;
+            SetProfileStatus("描述已选择", isSuccess: true);
+            RecordHistory("选择描述", OperationHistoryStatus.Success, "已选择", dialog.FileName);
         }
     }
 
@@ -665,6 +669,8 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             IpaSourcePathTextBox.Text = dialog.FileName;
+            SetIpaStatus("IPA 已选择", isSuccess: true);
+            RecordHistory("选择 IPA", OperationHistoryStatus.Success, "已选择", dialog.FileName);
         }
     }
 
