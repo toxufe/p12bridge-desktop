@@ -2275,6 +2275,7 @@ public partial class MainWindow : Window
         ProfileTypeTextBox.Text = string.Empty;
         ProfileParsedStatusTextBox.Text = string.Empty;
         ProfileDeviceCountTextBox.Text = string.Empty;
+        ProfileCertificateCountTextBox.Text = string.Empty;
         ProfileTeamIdTextBox.Text = string.Empty;
         ProfileBundleIdTextBox.Text = string.Empty;
         ProfileUuidTextBox.Text = string.Empty;
@@ -2309,6 +2310,7 @@ public partial class MainWindow : Window
         ProfileTypeTextBox.Text = FormatProfileType(profile.Type);
         ProfileParsedStatusTextBox.Text = profile.Status == ProvisioningProfileStatus.Active ? "有效" : "过期";
         ProfileDeviceCountTextBox.Text = profile.ProvisionedDeviceCount.ToString();
+        ProfileCertificateCountTextBox.Text = profile.DeveloperCertificateFingerprints.Count.ToString();
         ProfileTeamIdTextBox.Text = profile.TeamId;
         ProfileBundleIdTextBox.Text = profile.BundleIdentifier;
         ProfileUuidTextBox.Text = profile.Uuid;

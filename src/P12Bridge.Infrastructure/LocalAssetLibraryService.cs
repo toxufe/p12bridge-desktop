@@ -313,7 +313,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
     }
 
     private static string FormatProfileSummary(ProvisioningProfile profile) =>
-        $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier} / {profile.TeamId}";
+        $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier} / {profile.TeamId} / 证书 {profile.DeveloperCertificateFingerprints.Count}";
 
     private static string FormatProfileType(ProvisioningProfileType type) =>
         type switch

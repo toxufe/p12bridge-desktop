@@ -890,6 +890,7 @@
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*" />
@@ -925,26 +926,31 @@
                                     </StackPanel>
 
                                     <StackPanel Grid.Row="3" Grid.Column="0" Margin="0,12,0,0">
+                                        <TextBlock Text="证书数" Style="{StaticResource FieldLabelStyle}" />
+                                        <TextBox x:Name="ProfileCertificateCountTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,12,0,0">
                                         <TextBlock Text="Team" Style="{StaticResource FieldLabelStyle}" />
                                         <TextBox x:Name="ProfileTeamIdTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="3" Grid.Column="2" Margin="0,12,0,0">
+                                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
                                         <TextBlock Text="Bundle" Style="{StaticResource FieldLabelStyle}" />
                                         <TextBox x:Name="ProfileBundleIdTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
                                         <TextBlock Text="UUID" Style="{StaticResource FieldLabelStyle}" />
                                         <TextBox x:Name="ProfileUuidTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
                                         <TextBlock Text="有效期" Style="{StaticResource FieldLabelStyle}" />
                                         <TextBox x:Name="ProfileExpirationTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
                                     </StackPanel>
 
-                                    <StackPanel Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
                                         <TextBlock Text="导入路径" Style="{StaticResource FieldLabelStyle}" />
                                         <Grid>
                                             <Grid.ColumnDefinitions>

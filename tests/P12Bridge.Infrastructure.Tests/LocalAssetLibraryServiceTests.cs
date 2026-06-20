@@ -279,7 +279,25 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         var result = service.Scan(ValidRequest());
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
-        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456", item.SafeMetadataSummary);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 0", item.SafeMetadataSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanReportsProvisioningProfileCertificateCount()
+    {
+        var expiresAt = new DateTimeOffset(2027, 1, 2, 0, 0, 0, TimeSpan.Zero);
+        var profilePath = Path.Combine(profileDirectory, "demo.mobileprovision");
+        File.WriteAllBytes(profilePath, WrapMobileProvision(ProfilePlist(expiresAt, [
+            Convert.ToBase64String([1, 2, 3]),
+            Convert.ToBase64String([4, 5, 6])
+        ])));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456 / 证书 2", item.SafeMetadataSummary);
         Assert.Empty(result.Issues);
     }
 
@@ -423,6 +441,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         var result = service.Scan(ValidRequest());
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Contains("/ 证书 1", item.SafeMetadataSummary, StringComparison.Ordinal);
         Assert.DoesNotContain(certificatePayload, item.SafeMetadataSummary, StringComparison.Ordinal);
         Assert.DoesNotContain(fingerprint, item.SafeMetadataSummary, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(certificatePayload, StringComparison.Ordinal));
