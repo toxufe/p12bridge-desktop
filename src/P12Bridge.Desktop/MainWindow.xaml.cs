@@ -706,6 +706,7 @@ public partial class MainWindow : Window
     {
         lastUploadEnvironmentValidation = null;
         ClearUploadRemotePreflightResult();
+        RefreshUploadAssetDescriptionInput();
         RefreshUploadEnvironmentStatus();
     }
 
@@ -1276,6 +1277,7 @@ public partial class MainWindow : Window
     {
         UploadIpaTextBox.Text = FormatUploadIpa(lastIpaMetadata, lastIpaImportedPath);
         UploadProfileTextBox.Text = FormatUploadProfile(lastImportedProfile, lastImportedProfilePath);
+        UploadAssetDescriptionTextBox.Text = FormatUploadAssetDescription(UploadAssetDescriptionPathTextBox.Text);
         RefreshUploadSettingsInputs();
         RefreshUploadEnvironmentStatus();
     }
@@ -1454,7 +1456,20 @@ public partial class MainWindow : Window
         UploadPackagePathTextBox.Text = string.IsNullOrWhiteSpace(lastIpaImportedPath)
             ? "未检查"
             : lastIpaImportedPath;
+
+        RefreshUploadAssetDescriptionInput();
+
         SetCredentialPanelsVisibility();
+    }
+
+    private void RefreshUploadAssetDescriptionInput()
+    {
+        if (UploadAssetDescriptionTextBox is null || UploadAssetDescriptionPathTextBox is null)
+        {
+            return;
+        }
+
+        UploadAssetDescriptionTextBox.Text = FormatUploadAssetDescription(UploadAssetDescriptionPathTextBox.Text);
     }
 
     private bool ApplyDiscoveredAppStoreInfo(bool force = false, bool recordHistory = false)
@@ -2760,6 +2775,18 @@ public partial class MainWindow : Window
 
         var path = string.IsNullOrWhiteSpace(importedPath) ? string.Empty : $" / {Path.GetFileName(importedPath)}";
         return $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier}{path}";
+    }
+
+    private static string FormatUploadAssetDescription(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+        {
+            return "未选择";
+        }
+
+        return File.Exists(path)
+            ? Path.GetFileName(path)
+            : "文件缺失";
     }
 
     private static string FormatAssetCounts(IReadOnlyList<LocalAssetItem> items)
