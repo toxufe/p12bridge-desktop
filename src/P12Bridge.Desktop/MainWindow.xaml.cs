@@ -913,6 +913,7 @@ public partial class MainWindow : Window
         {
             AssetStatusText.Text = "未选择";
             AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开路径", OperationHistoryStatus.Failed, "未选择");
             return;
         }
 
@@ -924,14 +925,30 @@ public partial class MainWindow : Window
         {
             AssetStatusText.Text = "目录不存在";
             AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开路径", OperationHistoryStatus.Failed, "目录不存在", selectedAsset.Path);
             return;
         }
 
-        Process.Start(new ProcessStartInfo
+        try
         {
-            FileName = directory,
-            UseShellExecute = true
-        });
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = directory,
+                UseShellExecute = true
+            });
+            AssetStatusText.Text = "已打开";
+            AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("打开路径", OperationHistoryStatus.Success, "已打开", selectedAsset.Path);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or System.ComponentModel.Win32Exception
+            or NotSupportedException)
+        {
+            AssetStatusText.Text = "打开失败";
+            AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("打开路径", OperationHistoryStatus.Failed, "打开失败", selectedAsset.Path);
+        }
     }
 
     private void OnCopySelectedAssetPathClick(object sender, RoutedEventArgs e)
