@@ -1833,10 +1833,23 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="证书查询"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="证书查询"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreCertificateLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreCertificateLookupStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"
@@ -1861,10 +1874,23 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="设备查询"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="设备查询"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreDeviceLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreDeviceLookupStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"
@@ -1889,10 +1915,23 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="Bundle 查询"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="Bundle 查询"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreBundleIdLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreBundleIdLookupStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"
@@ -1917,10 +1956,23 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="App 查询"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="App 查询"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreAppLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreAppLookupStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"
@@ -1986,10 +2038,23 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
-                                            <TextBlock Text="描述查询"
-                                                       Foreground="{StaticResource TextBrush}"
-                                                       FontSize="18"
-                                                       FontWeight="SemiBold" />
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="描述查询"
+                                                           Foreground="{StaticResource TextBrush}"
+                                                           FontSize="18"
+                                                           FontWeight="SemiBold"
+                                                           VerticalAlignment="Center" />
+
+                                                <Button Grid.Column="1"
+                                                        Content="复制"
+                                                        Click="OnCopyAppStoreProfileLookupClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                            </Grid>
                                             <TextBlock x:Name="AppStoreProfileLookupStatusText"
                                                        Foreground="{StaticResource MutedTextBrush}"
                                                        FontSize="18"

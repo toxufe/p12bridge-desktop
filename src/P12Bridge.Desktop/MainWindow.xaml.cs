@@ -1095,19 +1095,74 @@ public partial class MainWindow : Window
         await RunAppStoreBuildLookupAsync(lastIpaMetadata?.BundleIdentifier ?? string.Empty);
     }
 
+    private void OnCopyAppStoreAppLookupClick(object sender, RoutedEventArgs e)
+    {
+        CopyAppStoreLookupResult(
+            AppStoreAppLookupResultTextBox.Text,
+            SetAppStoreAppLookupStatus,
+            "复制 App");
+    }
+
+    private void OnCopyAppStoreBundleIdLookupClick(object sender, RoutedEventArgs e)
+    {
+        CopyAppStoreLookupResult(
+            AppStoreBundleIdLookupResultTextBox.Text,
+            SetAppStoreBundleIdLookupStatus,
+            "复制 Bundle");
+    }
+
     private void OnCopyAppStoreBuildLookupClick(object sender, RoutedEventArgs e)
     {
-        var copyText = AppStoreBuildLookupResultTextBox.Text;
+        CopyAppStoreLookupResult(
+            AppStoreBuildLookupResultTextBox.Text,
+            SetAppStoreBuildLookupStatus,
+            "复制构建");
+    }
+
+    private void OnCopyAppStoreProfileLookupClick(object sender, RoutedEventArgs e)
+    {
+        CopyAppStoreLookupResult(
+            AppStoreProfileLookupResultTextBox.Text,
+            SetAppStoreProfileLookupStatus,
+            "复制描述");
+    }
+
+    private void OnCopyAppStoreCertificateLookupClick(object sender, RoutedEventArgs e)
+    {
+        CopyAppStoreLookupResult(
+            AppStoreCertificateLookupResultTextBox.Text,
+            SetAppStoreCertificateLookupStatus,
+            "复制证书");
+    }
+
+    private void OnCopyAppStoreDeviceLookupClick(object sender, RoutedEventArgs e)
+    {
+        CopyAppStoreLookupResult(
+            AppStoreDeviceLookupResultTextBox.Text,
+            SetAppStoreDeviceLookupStatus,
+            "复制设备");
+    }
+
+    private void CopyAppStoreLookupResult(string copyText, Action<string, Brush> setStatus, string operation)
+    {
         if (string.IsNullOrWhiteSpace(copyText))
         {
-            SetAppStoreBuildLookupStatus("无结果", (Brush)FindResource("WarningBrush"));
-            RecordHistory("复制构建", OperationHistoryStatus.Failed, "无结果");
+            setStatus("无结果", (Brush)FindResource("WarningBrush"));
+            RecordHistory(operation, OperationHistoryStatus.Failed, "无结果");
             return;
         }
 
-        Clipboard.SetText(copyText);
-        SetAppStoreBuildLookupStatus("已复制", (Brush)FindResource("SuccessBrush"));
-        RecordHistory("复制构建", OperationHistoryStatus.Success, "已复制", copyText);
+        try
+        {
+            Clipboard.SetText(copyText);
+            setStatus("已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory(operation, OperationHistoryStatus.Success, "已复制", copyText);
+        }
+        catch (Exception)
+        {
+            setStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory(operation, OperationHistoryStatus.Failed, "复制失败");
+        }
     }
 
     private async Task RunAppStoreBuildLookupAsync(string bundleIdentifier)
