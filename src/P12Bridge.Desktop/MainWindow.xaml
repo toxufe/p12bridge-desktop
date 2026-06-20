@@ -933,6 +933,11 @@
                                         <Button Content="检查"
                                                 Click="OnCheckUploadReadinessClick"
                                                 Style="{StaticResource ActionButtonStyle}" />
+                                        <Button x:Name="RunUploadRemotePreflightButton"
+                                                Content="远端"
+                                                Click="OnRunUploadRemotePreflightClick"
+                                                Style="{StaticResource ActionButtonStyle}"
+                                                Margin="10,0,0,0" />
                                         <Button Content="IPA"
                                                 Click="OnUploadGoIpaClick"
                                                 Style="{StaticResource SecondaryButtonStyle}"
@@ -957,6 +962,31 @@
                                                    FontSize="18"
                                                    FontWeight="SemiBold" />
                                         <StackPanel x:Name="UploadChecksPanel" Margin="0,12,0,0" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Style="{StaticResource CardBorderStyle}" VerticalAlignment="Top" Margin="0,12,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="远端检查"
+                                                   Foreground="{StaticResource TextBrush}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock x:Name="UploadRemotePreflightStatusText"
+                                                   Text="未检查"
+                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                   FontSize="18"
+                                                   FontWeight="SemiBold"
+                                                   Margin="0,12,0,0" />
+                                        <TextBox x:Name="UploadRemotePreflightResultTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True"
+                                                 AcceptsReturn="True"
+                                                 MinHeight="96"
+                                                 Margin="0,12,0,0"
+                                                 VerticalContentAlignment="Top"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 TextWrapping="Wrap" />
+                                        <StackPanel x:Name="UploadRemotePreflightIssuesPanel" Margin="0,12,0,0" />
                                     </StackPanel>
                                 </Border>
 

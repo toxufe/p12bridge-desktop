@@ -579,6 +579,7 @@ public partial class MainWindow : Window
     private void OnUploadEnvironmentInputChanged(object sender, RoutedEventArgs e)
     {
         lastUploadEnvironmentValidation = null;
+        ClearUploadRemotePreflightResult();
         RefreshUploadEnvironmentStatus();
     }
 
@@ -652,6 +653,45 @@ public partial class MainWindow : Window
 
             var result = await appStoreConnectRemotePreflightService.CheckAsync(request);
             ShowAppStoreRemotePreflightResult(result);
+            RecordHistory(
+                "远端检查",
+                result.IsSuccess
+                    ? result.HasWarnings ? OperationHistoryStatus.Warning : OperationHistoryStatus.Success
+                    : OperationHistoryStatus.Failed,
+                FormatAppStoreRemotePreflightSummary(result),
+                result.IsSuccess
+                    ? FormatAppStoreRemotePreflightDetail(result)
+                    : FormatIssueDetail(result.Issues));
+        }
+        finally
+        {
+            SetAppStoreRemotePreflightRunning(false);
+        }
+    }
+
+    private async void OnRunUploadRemotePreflightClick(object sender, RoutedEventArgs e)
+    {
+        if (isAppStoreRemotePreflightRunning)
+        {
+            return;
+        }
+
+        SetAppStoreRemotePreflightRunning(true);
+        ClearUploadRemotePreflightResult();
+        SetUploadRemotePreflightStatus("检查中", (Brush)FindResource("PrimaryBrush"));
+
+        try
+        {
+            var credential = new AppleApiKeyCredential(
+                UploadApiKeyIdTextBox.Text,
+                UploadIssuerIdTextBox.Text,
+                ReadAppleApiPrivateKeyPem());
+            var request = new AppStoreConnectRemotePreflightRequest(
+                credential,
+                IpaBundleIdTextBox.Text);
+
+            var result = await appStoreConnectRemotePreflightService.CheckAsync(request);
+            ShowUploadRemotePreflightResult(result);
             RecordHistory(
                 "远端检查",
                 result.IsSuccess
@@ -1067,6 +1107,7 @@ public partial class MainWindow : Window
         lastIpaMetadata = null;
         lastIpaImportedPath = string.Empty;
         lastUploadEnvironmentValidation = null;
+        ClearUploadRemotePreflightResult();
         ClearAppStoreAppLookupResult();
         IpaBundleIdTextBox.Text = string.Empty;
         IpaVersionTextBox.Text = string.Empty;
@@ -1555,6 +1596,7 @@ public partial class MainWindow : Window
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
         AppleApiConnectionIssuesPanel.Children.Clear();
         ClearAppStoreRemotePreflightResult();
+        ClearUploadRemotePreflightResult();
         ClearAppStoreCertificateLookupResult();
         ClearAppStoreDeviceLookupResult();
         ClearAppStoreBundleIdLookupResult();
@@ -1648,7 +1690,71 @@ public partial class MainWindow : Window
     private void SetAppStoreRemotePreflightRunning(bool isRunning)
     {
         isAppStoreRemotePreflightRunning = isRunning;
-        RunAppStoreRemotePreflightButton.IsEnabled = !isRunning;
+        if (RunAppStoreRemotePreflightButton is not null)
+        {
+            RunAppStoreRemotePreflightButton.IsEnabled = !isRunning;
+        }
+
+        if (RunUploadRemotePreflightButton is not null)
+        {
+            RunUploadRemotePreflightButton.IsEnabled = !isRunning;
+        }
+    }
+
+    private void ClearUploadRemotePreflightResult()
+    {
+        if (UploadRemotePreflightStatusText is null
+            || UploadRemotePreflightResultTextBox is null
+            || UploadRemotePreflightIssuesPanel is null)
+        {
+            return;
+        }
+
+        SetUploadRemotePreflightStatus("未检查", (Brush)FindResource("MutedTextBrush"));
+        UploadRemotePreflightResultTextBox.Text = string.Empty;
+        UploadRemotePreflightIssuesPanel.Children.Clear();
+    }
+
+    private void SetUploadRemotePreflightStatus(string status, Brush foreground)
+    {
+        UploadRemotePreflightStatusText.Text = status;
+        UploadRemotePreflightStatusText.Foreground = foreground;
+    }
+
+    private void ShowUploadRemotePreflightResult(AppStoreConnectRemotePreflightResult result)
+    {
+        UploadRemotePreflightIssuesPanel.Children.Clear();
+        UploadRemotePreflightResultTextBox.Text = FormatAppStoreRemotePreflightDetail(result);
+
+        if (result.IsSuccess && !result.HasWarnings)
+        {
+            SetUploadRemotePreflightStatus("可用", (Brush)FindResource("SuccessBrush"));
+            UploadRemotePreflightIssuesPanel.Children.Add(CreateUploadIssueRow("远端", "通过", true));
+            return;
+        }
+
+        if (result.IsSuccess)
+        {
+            SetUploadRemotePreflightStatus("有提醒", (Brush)FindResource("WarningBrush"));
+            foreach (ValidationIssue issue in result.Issues)
+            {
+                UploadRemotePreflightIssuesPanel.Children.Add(CreateUploadIssueRow(
+                    FormatAppStoreRemotePreflightIssueName(issue.Code),
+                    FormatAppStoreRemotePreflightIssueAction(issue.Code),
+                    false));
+            }
+
+            return;
+        }
+
+        SetUploadRemotePreflightStatus("检查失败", (Brush)FindResource("DangerBrush"));
+        foreach (ValidationIssue issue in result.Issues)
+        {
+            UploadRemotePreflightIssuesPanel.Children.Add(CreateUploadIssueRow(
+                FormatAppStoreRemotePreflightIssueName(issue.Code),
+                FormatAppStoreRemotePreflightIssueAction(issue.Code),
+                false));
+        }
     }
 
     private void ClearAppStoreCertificateLookupResult()
