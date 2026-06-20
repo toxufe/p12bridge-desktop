@@ -81,7 +81,7 @@ public partial class MainWindow : Window
         appStoreConnectDeviceLookupService = new AppStoreConnectDeviceLookupService();
         appStoreConnectRemotePreflightService = new AppStoreConnectRemotePreflightService();
         localAssetLibraryService = new LocalAssetLibraryService();
-        operationHistoryService = new InMemoryOperationHistoryService();
+        operationHistoryService = new JsonOperationHistoryService();
         certificateProjectBackupService = new CertificateProjectBackupService();
         uploadSettingsService = new JsonUploadSettingsService();
         assetExpirationReminderService = new AssetExpirationReminderService();

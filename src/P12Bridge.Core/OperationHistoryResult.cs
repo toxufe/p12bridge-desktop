@@ -8,4 +8,10 @@ public sealed record OperationHistoryResult(
 
     public static OperationHistoryResult Success(IReadOnlyList<OperationHistoryItem> items) =>
         new(items, Array.Empty<ValidationIssue>());
+
+    public static OperationHistoryResult Warning(IReadOnlyList<OperationHistoryItem> items, params ValidationIssue[] issues) =>
+        new(items, issues);
+
+    public static OperationHistoryResult Failure(params ValidationIssue[] issues) =>
+        new(Array.Empty<OperationHistoryItem>(), issues);
 }
