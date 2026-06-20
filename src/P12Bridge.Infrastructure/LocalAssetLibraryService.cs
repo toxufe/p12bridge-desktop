@@ -71,7 +71,8 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     ReadProjectNote(metadataPath),
                     ReadCertificateArtifacts(projectDirectory),
                     ReadCertificateExpiration(projectDirectory, issues),
-                    BackupSummary: ReadCertificateBackupSummary(projectDirectory, backupIndex)));
+                    BackupSummary: ReadCertificateBackupSummary(projectDirectory, backupIndex),
+                    BackupPath: ReadCertificateBackupPath(projectDirectory, backupIndex)));
             }
         }
         catch (IOException exception)
@@ -181,19 +182,29 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
 
     private static string ReadCertificateBackupSummary(
         string projectDirectory,
-        IReadOnlyDictionary<string, DateTimeOffset> backupIndex)
+        IReadOnlyDictionary<string, CertificateBackupIndexItem> backupIndex)
     {
         var projectPrefix = CertificateProjectBackupNames.CreateProjectPrefix(projectDirectory);
-        return backupIndex.TryGetValue(projectPrefix, out var lastWriteTimeUtc)
-            ? $"备份 {lastWriteTimeUtc.ToLocalTime():yyyy-MM-dd}"
+        return backupIndex.TryGetValue(projectPrefix, out var backup)
+            ? $"备份 {backup.LastWriteTimeUtc.ToLocalTime():yyyy-MM-dd}"
             : string.Empty;
     }
 
-    private static IReadOnlyDictionary<string, DateTimeOffset> ReadCertificateBackupIndex(
+    private static string ReadCertificateBackupPath(
+        string projectDirectory,
+        IReadOnlyDictionary<string, CertificateBackupIndexItem> backupIndex)
+    {
+        var projectPrefix = CertificateProjectBackupNames.CreateProjectPrefix(projectDirectory);
+        return backupIndex.TryGetValue(projectPrefix, out var backup)
+            ? backup.Path
+            : string.Empty;
+    }
+
+    private static IReadOnlyDictionary<string, CertificateBackupIndexItem> ReadCertificateBackupIndex(
         string rootDirectory,
         List<ValidationIssue> issues)
     {
-        var backups = new Dictionary<string, DateTimeOffset>(StringComparer.OrdinalIgnoreCase);
+        var backups = new Dictionary<string, CertificateBackupIndexItem>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
@@ -206,9 +217,9 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                 }
 
                 var writeTime = new DateTimeOffset(File.GetLastWriteTimeUtc(backupPath), TimeSpan.Zero);
-                if (!backups.TryGetValue(projectPrefix, out var existingTime) || writeTime > existingTime)
+                if (!backups.TryGetValue(projectPrefix, out var existing) || writeTime > existing.LastWriteTimeUtc)
                 {
-                    backups[projectPrefix] = writeTime;
+                    backups[projectPrefix] = new CertificateBackupIndexItem(backupPath, writeTime);
                 }
             }
         }
@@ -235,6 +246,10 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
             ? name[..^15]
             : null;
     }
+
+    private sealed record CertificateBackupIndexItem(
+        string Path,
+        DateTimeOffset LastWriteTimeUtc);
 
     private static CertificateProjectArtifactStatus ReadCertificateArtifacts(string projectDirectory) =>
         new(

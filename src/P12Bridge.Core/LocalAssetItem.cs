@@ -9,4 +9,5 @@ public sealed record LocalAssetItem(
     CertificateProjectArtifactStatus? CertificateArtifacts = null,
     DateTimeOffset? ExpiresAt = null,
     string SafeMetadataSummary = "",
-    string BackupSummary = "");
+    string BackupSummary = "",
+    string BackupPath = "");

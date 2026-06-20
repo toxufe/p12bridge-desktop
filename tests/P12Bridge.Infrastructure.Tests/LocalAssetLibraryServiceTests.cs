@@ -163,6 +163,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
         Assert.Equal("备份 2026-06-20", item.BackupSummary);
+        Assert.Equal(newBackupPath, item.BackupPath);
         Assert.Empty(result.Issues);
     }
 
@@ -183,6 +184,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
         Assert.Equal("备份 2026-06-20", item.BackupSummary);
+        Assert.Equal(backupPath, item.BackupPath);
         Assert.Empty(result.Issues);
     }
 
@@ -198,6 +200,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
         Assert.Equal(string.Empty, item.BackupSummary);
+        Assert.Equal(string.Empty, item.BackupPath);
         Assert.Empty(result.Issues);
     }
 
@@ -383,7 +386,9 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
         var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
         Assert.DoesNotContain(privateKeyContent, item.BackupSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(privateKeyContent, item.BackupPath, StringComparison.Ordinal);
         Assert.DoesNotContain(backupContent, item.BackupSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(backupContent, item.BackupPath, StringComparison.Ordinal);
         Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(privateKeyContent, StringComparison.Ordinal));
         Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(backupContent, StringComparison.Ordinal));
     }

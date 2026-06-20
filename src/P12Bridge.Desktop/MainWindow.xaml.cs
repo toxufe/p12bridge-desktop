@@ -1114,7 +1114,8 @@ public partial class MainWindow : Window
 
     private void OnCopyLastCertificateBackupClick(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(lastCertificateBackupPath) || !File.Exists(lastCertificateBackupPath))
+        var backupPath = GetSelectedAssetBackupPath();
+        if (string.IsNullOrWhiteSpace(backupPath) || !File.Exists(backupPath))
         {
             AssetStatusText.Text = "备份不存在";
             AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
@@ -1124,23 +1125,24 @@ public partial class MainWindow : Window
 
         try
         {
-            Clipboard.SetText(lastCertificateBackupPath);
+            Clipboard.SetText(backupPath);
             AssetStatusText.Text = "已复制";
             AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
-            RecordHistory("复制备份", OperationHistoryStatus.Success, "已复制", lastCertificateBackupPath);
+            RecordHistory("复制备份", OperationHistoryStatus.Success, "已复制", backupPath);
         }
         catch (Exception exception) when (exception is NotSupportedException
             or System.Runtime.InteropServices.ExternalException)
         {
             AssetStatusText.Text = "复制失败";
             AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
-            RecordHistory("复制备份", OperationHistoryStatus.Failed, "复制失败", lastCertificateBackupPath);
+            RecordHistory("复制备份", OperationHistoryStatus.Failed, "复制失败", backupPath);
         }
     }
 
     private void OnOpenLastCertificateBackupClick(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(lastCertificateBackupPath) || !File.Exists(lastCertificateBackupPath))
+        var backupPath = GetSelectedAssetBackupPath();
+        if (string.IsNullOrWhiteSpace(backupPath) || !File.Exists(backupPath))
         {
             AssetStatusText.Text = "备份不存在";
             AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
@@ -1152,12 +1154,12 @@ public partial class MainWindow : Window
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = lastCertificateBackupPath,
+                FileName = backupPath,
                 UseShellExecute = true
             });
             AssetStatusText.Text = "已打开";
             AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
-            RecordHistory("打开备份", OperationHistoryStatus.Success, "已打开", lastCertificateBackupPath);
+            RecordHistory("打开备份", OperationHistoryStatus.Success, "已打开", backupPath);
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException
@@ -1166,8 +1168,19 @@ public partial class MainWindow : Window
         {
             AssetStatusText.Text = "打开失败";
             AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
-            RecordHistory("打开备份", OperationHistoryStatus.Failed, "打开失败", lastCertificateBackupPath);
+            RecordHistory("打开备份", OperationHistoryStatus.Failed, "打开失败", backupPath);
         }
+    }
+
+    private string GetSelectedAssetBackupPath()
+    {
+        if (AssetListBox.SelectedItem is AssetListItem { Type: LocalAssetType.CertificateProject } selectedAsset
+            && !string.IsNullOrWhiteSpace(selectedAsset.BackupPath))
+        {
+            return selectedAsset.BackupPath;
+        }
+
+        return lastCertificateBackupPath;
     }
 
     private void OnSelectTransporterClick(object sender, RoutedEventArgs e)
@@ -4828,6 +4841,7 @@ public partial class MainWindow : Window
         string SafeMetadataSummary,
         Visibility SafeMetadataSummaryVisibility,
         string BackupSummary,
+        string BackupPath,
         Visibility BackupSummaryVisibility,
         string ExpirationText,
         Visibility ExpirationVisibility,
@@ -4846,6 +4860,7 @@ public partial class MainWindow : Window
                 item.SafeMetadataSummary,
                 string.IsNullOrWhiteSpace(item.SafeMetadataSummary) ? Visibility.Collapsed : Visibility.Visible,
                 item.BackupSummary,
+                item.BackupPath,
                 string.IsNullOrWhiteSpace(item.BackupSummary) ? Visibility.Collapsed : Visibility.Visible,
                 item.ExpiresAt is null ? string.Empty : $"到期 {item.ExpiresAt.Value.ToLocalTime():yyyy-MM-dd}",
                 item.ExpiresAt is null ? Visibility.Collapsed : Visibility.Visible,
