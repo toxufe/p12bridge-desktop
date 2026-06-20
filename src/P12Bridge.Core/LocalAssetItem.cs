@@ -7,4 +7,5 @@ public sealed record LocalAssetItem(
     DateTimeOffset ModifiedAt,
     string Note = "",
     CertificateProjectArtifactStatus? CertificateArtifacts = null,
-    DateTimeOffset? ExpiresAt = null);
+    DateTimeOffset? ExpiresAt = null,
+    string SafeMetadataSummary = "");

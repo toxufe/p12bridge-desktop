@@ -4825,6 +4825,8 @@ public partial class MainWindow : Window
         Visibility NoteVisibility,
         string ArtifactText,
         Visibility ArtifactVisibility,
+        string SafeMetadataSummary,
+        Visibility SafeMetadataSummaryVisibility,
         string ExpirationText,
         Visibility ExpirationVisibility,
         string ModifiedText)
@@ -4839,6 +4841,8 @@ public partial class MainWindow : Window
                 string.IsNullOrWhiteSpace(item.Note) ? Visibility.Collapsed : Visibility.Visible,
                 FormatCertificateArtifactStatus(item.CertificateArtifacts),
                 item.CertificateArtifacts?.HasAny == true ? Visibility.Visible : Visibility.Collapsed,
+                item.SafeMetadataSummary,
+                string.IsNullOrWhiteSpace(item.SafeMetadataSummary) ? Visibility.Collapsed : Visibility.Visible,
                 item.ExpiresAt is null ? string.Empty : $"到期 {item.ExpiresAt.Value.ToLocalTime():yyyy-MM-dd}",
                 item.ExpiresAt is null ? Visibility.Collapsed : Visibility.Visible,
                 item.ModifiedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));

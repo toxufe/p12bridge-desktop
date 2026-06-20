@@ -124,12 +124,14 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         {
             foreach (var path in Directory.EnumerateFiles(rootDirectory, "*.mobileprovision", SearchOption.TopDirectoryOnly))
             {
+                var profileMetadata = ReadProvisioningProfileMetadata(path, issues);
                 items.Add(new LocalAssetItem(
                     LocalAssetType.ProvisioningProfile,
                     Path.GetFileName(path),
                     path,
                     File.GetLastWriteTimeUtc(path),
-                    ExpiresAt: ReadProvisioningProfileExpiration(path, issues)));
+                    ExpiresAt: profileMetadata.ExpiresAt,
+                    SafeMetadataSummary: profileMetadata.SafeSummary));
             }
         }
         catch (IOException exception)
@@ -205,7 +207,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         }
     }
 
-    private DateTimeOffset? ReadProvisioningProfileExpiration(
+    private (DateTimeOffset? ExpiresAt, string SafeSummary) ReadProvisioningProfileMetadata(
         string profilePath,
         List<ValidationIssue> issues)
     {
@@ -215,19 +217,37 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
             if (result.Profile is not null)
             {
                 AddProfileWarnings(issues, profilePath, result.Issues);
-                return result.Profile.ExpirationDate;
+                return (
+                    result.Profile.ExpirationDate,
+                    FormatProfileSummary(result.Profile));
             }
 
             AddProfileWarnings(issues, profilePath, result.Issues);
-            return null;
+            return (null, string.Empty);
         }
         catch (Exception exception) when (exception is IOException
             or UnauthorizedAccessException)
         {
             AddScanIssue(issues, profilePath, exception);
-            return null;
+            return (null, string.Empty);
         }
     }
+
+    private static string FormatProfileSummary(ProvisioningProfile profile) =>
+        $"{FormatProfileType(profile.Type)} / {FormatProfileStatus(profile.Status)} / {profile.BundleIdentifier} / {profile.TeamId}";
+
+    private static string FormatProfileType(ProvisioningProfileType type) =>
+        type switch
+        {
+            ProvisioningProfileType.Development => "开发",
+            ProvisioningProfileType.AdHoc => "Ad Hoc",
+            ProvisioningProfileType.AppStore => "App Store",
+            ProvisioningProfileType.Enterprise => "企业",
+            _ => "未知"
+        };
+
+    private static string FormatProfileStatus(ProvisioningProfileStatus status) =>
+        status == ProvisioningProfileStatus.Active ? "有效" : "过期";
 
     private static void AddProfileWarnings(
         List<ValidationIssue> issues,

@@ -497,6 +497,12 @@
                                                                    FontSize="12"
                                                                    TextWrapping="Wrap"
                                                                    Margin="0,4,0,0" />
+                                                        <TextBlock Text="{Binding SafeMetadataSummary}"
+                                                                   Visibility="{Binding SafeMetadataSummaryVisibility}"
+                                                                   Foreground="{StaticResource MutedTextBrush}"
+                                                                   FontSize="12"
+                                                                   TextWrapping="Wrap"
+                                                                   Margin="0,4,0,0" />
                                                     </StackPanel>
                                                     <TextBlock Grid.Column="2"
                                                                Text="{Binding ModifiedText}"
@@ -1484,6 +1490,12 @@
                                                                        Margin="0,4,0,0" />
                                                             <TextBlock Text="{Binding ArtifactText}"
                                                                        Visibility="{Binding ArtifactVisibility}"
+                                                                       Foreground="{StaticResource MutedTextBrush}"
+                                                                       FontSize="12"
+                                                                       TextWrapping="Wrap"
+                                                                       Margin="0,4,0,0" />
+                                                            <TextBlock Text="{Binding SafeMetadataSummary}"
+                                                                       Visibility="{Binding SafeMetadataSummaryVisibility}"
                                                                        Foreground="{StaticResource MutedTextBrush}"
                                                                        FontSize="12"
                                                                        TextWrapping="Wrap"

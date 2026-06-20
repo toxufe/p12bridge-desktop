@@ -207,6 +207,21 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsProvisioningProfileSafeSummary()
+    {
+        var expiresAt = new DateTimeOffset(2027, 1, 2, 0, 0, 0, TimeSpan.Zero);
+        var profilePath = Path.Combine(profileDirectory, "demo.mobileprovision");
+        File.WriteAllBytes(profilePath, WrapMobileProvision(ProfilePlist(expiresAt)));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Equal("App Store / 有效 / com.example.app / TEAM123456", item.SafeMetadataSummary);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
     public void ScanKeepsProvisioningProfileAndWarnsWhenProfileIsInvalid()
     {
         var profilePath = Path.Combine(profileDirectory, "bad.mobileprovision");
@@ -219,6 +234,7 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         Assert.Equal("bad.mobileprovision", item.Name);
         Assert.Equal(profilePath, item.Path);
         Assert.Null(item.ExpiresAt);
+        Assert.Equal(string.Empty, item.SafeMetadataSummary);
         Assert.Contains(result.Issues, issue =>
             issue.Code == LocalAssetLibraryErrorCodes.ScanFailed
             && issue.SuggestedAction == ProvisioningProfileErrorCodes.PlistNotFound);
@@ -266,7 +282,28 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
 
         Assert.DoesNotContain(result.Items, item => item.Name.Contains(secretProfilePayload, StringComparison.Ordinal));
         Assert.DoesNotContain(result.Items, item => item.Note.Contains(secretProfilePayload, StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Items, item => item.SafeMetadataSummary.Contains(secretProfilePayload, StringComparison.Ordinal));
         Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(secretProfilePayload, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ScanDoesNotExposeProvisioningProfileCertificatePayloadOrFingerprints()
+    {
+        var certificatePayload = Convert.ToBase64String([1, 2, 3]);
+        var fingerprint = Convert.ToHexString(SHA256.HashData([1, 2, 3]));
+        var profilePath = Path.Combine(profileDirectory, "secret.mobileprovision");
+        File.WriteAllBytes(profilePath, WrapMobileProvision(ProfilePlist(
+            new DateTimeOffset(2027, 1, 2, 0, 0, 0, TimeSpan.Zero),
+            [certificatePayload])));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.DoesNotContain(certificatePayload, item.SafeMetadataSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(fingerprint, item.SafeMetadataSummary, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(certificatePayload, StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(fingerprint, StringComparison.Ordinal));
     }
 
     public void Dispose()
@@ -295,8 +332,20 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     private static byte[] WrapMobileProvision(string plist) =>
         Encoding.UTF8.GetBytes($"cms-header\0{plist}\0cms-footer");
 
-    private static string ProfilePlist(DateTimeOffset expiresAt) =>
-        $$"""
+    private static string ProfilePlist(
+        DateTimeOffset expiresAt,
+        string[]? developerCertificates = null)
+    {
+        var certificatesXml = developerCertificates is null
+            ? string.Empty
+            : $"""
+              <key>DeveloperCertificates</key>
+              <array>
+              {string.Join(Environment.NewLine, developerCertificates.Select(certificate => $"<data>{certificate}</data>"))}
+              </array>
+              """;
+
+        return $$"""
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0">
@@ -312,7 +361,9 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
                   <key>application-identifier</key><string>TEAM123456.com.example.app</string>
                   <key>get-task-allow</key><false/>
               </dict>
+              {{certificatesXml}}
           </dict>
           </plist>
           """;
+    }
 }
