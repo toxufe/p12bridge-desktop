@@ -542,6 +542,44 @@ public partial class MainWindow : Window
         HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
     }
 
+    private void OnExportHistoryClick(object sender, RoutedEventArgs e)
+    {
+        var text = FormatHistoryCopy(operationHistoryService.List().Items);
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            HistoryStatusText.Text = "暂无记录";
+            HistoryStatusText.Foreground = (Brush)FindResource("MutedTextBrush");
+            return;
+        }
+
+        var dialog = new SaveFileDialog
+        {
+            Title = "导出历史",
+            FileName = $"p12bridge-history-{DateTime.Now:yyyyMMdd-HHmmss}.txt",
+            DefaultExt = ".txt",
+            Filter = "文本文件 (*.txt)|*.txt|所有文件 (*.*)|*.*"
+        };
+
+        if (dialog.ShowDialog(this) != true)
+        {
+            return;
+        }
+
+        try
+        {
+            File.WriteAllText(dialog.FileName, text);
+            RecordHistory("导出历史", OperationHistoryStatus.Success, "已导出", dialog.FileName);
+            HistoryStatusText.Text = "已导出";
+            HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+        }
+        catch (Exception)
+        {
+            RecordHistory("导出历史", OperationHistoryStatus.Failed, "导出失败", dialog.FileName);
+            HistoryStatusText.Text = "导出失败";
+            HistoryStatusText.Foreground = (Brush)FindResource("DangerBrush");
+        }
+    }
+
     private void OnHistorySelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         HistoryDetailTextBox.Text = HistoryListBox.SelectedItem is HistoryListItem selectedItem
