@@ -583,6 +583,60 @@ public partial class MainWindow : Window
                 : $"{result.Metadata.BundleIdentifier} / {result.Metadata.ShortVersion} ({result.Metadata.BuildVersion}){Environment.NewLine}{result.ImportedPath}");
     }
 
+    private void OnCopyImportedIpaPathClick(object sender, RoutedEventArgs e)
+    {
+        var ipaPath = IpaImportedPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(ipaPath) || !File.Exists(ipaPath))
+        {
+            SetIpaStatus("IPA 不存在", isSuccess: false);
+            RecordHistory("复制 IPA", OperationHistoryStatus.Failed, "IPA 不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(ipaPath);
+            SetIpaStatus("IPA 已复制", isSuccess: true);
+            RecordHistory("复制 IPA", OperationHistoryStatus.Success, "已复制", ipaPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetIpaStatus("复制失败", isSuccess: false);
+            RecordHistory("复制 IPA", OperationHistoryStatus.Failed, "复制失败", ipaPath);
+        }
+    }
+
+    private void OnOpenImportedIpaClick(object sender, RoutedEventArgs e)
+    {
+        var ipaPath = IpaImportedPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(ipaPath) || !File.Exists(ipaPath))
+        {
+            SetIpaStatus("IPA 不存在", isSuccess: false);
+            RecordHistory("打开 IPA", OperationHistoryStatus.Failed, "IPA 不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = ipaPath,
+                UseShellExecute = true
+            });
+            SetIpaStatus("IPA 已打开", isSuccess: true);
+            RecordHistory("打开 IPA", OperationHistoryStatus.Success, "已打开", ipaPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetIpaStatus("打开失败", isSuccess: false);
+            RecordHistory("打开 IPA", OperationHistoryStatus.Failed, "打开失败", ipaPath);
+        }
+    }
+
     private void OnCheckUploadReadinessClick(object sender, RoutedEventArgs e)
     {
         var result = EvaluateUploadReadiness();

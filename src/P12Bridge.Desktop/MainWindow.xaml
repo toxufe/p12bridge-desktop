@@ -1015,7 +1015,26 @@
 
                                     <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,12,0,0">
                                         <TextBlock Text="导入路径" Style="{StaticResource FieldLabelStyle}" />
-                                        <TextBox x:Name="IpaImportedPathTextBox" Style="{StaticResource InputTextBoxStyle}" IsReadOnly="True" />
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBox x:Name="IpaImportedPathTextBox"
+                                                     Style="{StaticResource InputTextBoxStyle}"
+                                                     IsReadOnly="True" />
+                                            <Button Grid.Column="2"
+                                                    Content="复制"
+                                                    Click="OnCopyImportedIpaPathClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                            <Button Grid.Column="4"
+                                                    Content="打开"
+                                                    Click="OnOpenImportedIpaClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}" />
+                                        </Grid>
                                     </StackPanel>
                                 </Grid>
                             </Border>
