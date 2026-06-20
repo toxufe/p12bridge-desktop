@@ -13,13 +13,20 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
     private const string CertificateFileName = "certificate.cer";
     private const string P12FileName = "export.p12";
 
+    private readonly IProvisioningProfileParser profileParser;
+
+    public LocalAssetLibraryService(IProvisioningProfileParser? profileParser = null)
+    {
+        this.profileParser = profileParser ?? new ProvisioningProfileParser();
+    }
+
     public LocalAssetLibraryResult Scan(LocalAssetLibraryRequest request)
     {
         var items = new List<LocalAssetItem>();
         var issues = new List<ValidationIssue>();
 
         AddCertificateProjects(request.CertificateDirectory, items, issues);
-        AddFiles(request.ProfileDirectory, "*.mobileprovision", LocalAssetType.ProvisioningProfile, items, issues);
+        AddProvisioningProfiles(request.ProfileDirectory, items, issues);
         AddFiles(request.IpaDirectory, "*.ipa", LocalAssetType.Ipa, items, issues);
 
         return issues.Count == 0
@@ -103,6 +110,38 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         }
     }
 
+    private void AddProvisioningProfiles(
+        string rootDirectory,
+        List<LocalAssetItem> items,
+        List<ValidationIssue> issues)
+    {
+        if (!Directory.Exists(rootDirectory))
+        {
+            return;
+        }
+
+        try
+        {
+            foreach (var path in Directory.EnumerateFiles(rootDirectory, "*.mobileprovision", SearchOption.TopDirectoryOnly))
+            {
+                items.Add(new LocalAssetItem(
+                    LocalAssetType.ProvisioningProfile,
+                    Path.GetFileName(path),
+                    path,
+                    File.GetLastWriteTimeUtc(path),
+                    ExpiresAt: ReadProvisioningProfileExpiration(path, issues)));
+            }
+        }
+        catch (IOException exception)
+        {
+            AddScanIssue(issues, rootDirectory, exception);
+        }
+        catch (UnauthorizedAccessException exception)
+        {
+            AddScanIssue(issues, rootDirectory, exception);
+        }
+    }
+
     private static LocalAssetItem[] SortItems(List<LocalAssetItem> items) =>
         items
             .OrderByDescending(item => item.ModifiedAt)
@@ -163,6 +202,45 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                 $"Could not read certificate metadata for {projectDirectory}.",
                 exception.GetType().Name));
             return null;
+        }
+    }
+
+    private DateTimeOffset? ReadProvisioningProfileExpiration(
+        string profilePath,
+        List<ValidationIssue> issues)
+    {
+        try
+        {
+            var result = profileParser.Parse(File.ReadAllBytes(profilePath));
+            if (result.Profile is not null)
+            {
+                AddProfileWarnings(issues, profilePath, result.Issues);
+                return result.Profile.ExpirationDate;
+            }
+
+            AddProfileWarnings(issues, profilePath, result.Issues);
+            return null;
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException)
+        {
+            AddScanIssue(issues, profilePath, exception);
+            return null;
+        }
+    }
+
+    private static void AddProfileWarnings(
+        List<ValidationIssue> issues,
+        string profilePath,
+        IReadOnlyList<ValidationIssue> parseIssues)
+    {
+        foreach (var issue in parseIssues)
+        {
+            issues.Add(new ValidationIssue(
+                LocalAssetLibraryErrorCodes.ScanFailed,
+                ValidationSeverity.Warning,
+                $"Could not read profile metadata for {profilePath}.",
+                issue.Code));
         }
     }
 

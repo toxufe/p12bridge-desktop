@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
 using Xunit;
@@ -191,6 +192,39 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsProvisioningProfileExpiration()
+    {
+        var expiresAt = new DateTimeOffset(2027, 1, 2, 0, 0, 0, TimeSpan.Zero);
+        var profilePath = Path.Combine(profileDirectory, "demo.mobileprovision");
+        File.WriteAllBytes(profilePath, WrapMobileProvision(ProfilePlist(expiresAt)));
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Equal(expiresAt, item.ExpiresAt);
+        Assert.Empty(result.Issues);
+    }
+
+    [Fact]
+    public void ScanKeepsProvisioningProfileAndWarnsWhenProfileIsInvalid()
+    {
+        var profilePath = Path.Combine(profileDirectory, "bad.mobileprovision");
+        File.WriteAllText(profilePath, "raw profile payload");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.ProvisioningProfile);
+        Assert.Equal("bad.mobileprovision", item.Name);
+        Assert.Equal(profilePath, item.Path);
+        Assert.Null(item.ExpiresAt);
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == LocalAssetLibraryErrorCodes.ScanFailed
+            && issue.SuggestedAction == ProvisioningProfileErrorCodes.PlistNotFound);
+    }
+
+    [Fact]
     public void ScanKeepsCertificateProjectWhenMetadataNoteIsMalformed()
     {
         var projectDirectory = Path.Combine(certificateDirectory, "Broken");
@@ -220,6 +254,21 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         Assert.DoesNotContain(result.Items, item => item.Note.Contains("PRIVATE", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void ScanDoesNotExposeRawProvisioningProfileContents()
+    {
+        var secretProfilePayload = "SECRET-PROFILE-PAYLOAD";
+        var profilePath = Path.Combine(profileDirectory, "secret.mobileprovision");
+        File.WriteAllText(profilePath, secretProfilePayload);
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        Assert.DoesNotContain(result.Items, item => item.Name.Contains(secretProfilePayload, StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Items, item => item.Note.Contains(secretProfilePayload, StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Issues, issue => issue.Message.Contains(secretProfilePayload, StringComparison.Ordinal));
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(tempDirectory))
@@ -242,4 +291,28 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
         using var certificate = request.CreateSelfSigned(expiresAt.AddDays(-365), expiresAt);
         return certificate.Export(X509ContentType.Cert);
     }
+
+    private static byte[] WrapMobileProvision(string plist) =>
+        Encoding.UTF8.GetBytes($"cms-header\0{plist}\0cms-footer");
+
+    private static string ProfilePlist(DateTimeOffset expiresAt) =>
+        $$"""
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>UUID</key><string>PROFILE-UUID</string>
+              <key>Name</key><string>Demo App Store</string>
+              <key>TeamIdentifier</key>
+              <array><string>TEAM123456</string></array>
+              <key>CreationDate</key><date>2026-01-01T00:00:00Z</date>
+              <key>ExpirationDate</key><date>{{expiresAt:yyyy-MM-ddTHH:mm:ssZ}}</date>
+              <key>Entitlements</key>
+              <dict>
+                  <key>application-identifier</key><string>TEAM123456.com.example.app</string>
+                  <key>get-task-allow</key><false/>
+              </dict>
+          </dict>
+          </plist>
+          """;
 }
