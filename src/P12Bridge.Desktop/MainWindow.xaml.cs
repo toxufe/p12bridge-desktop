@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private readonly ICertificateProjectBackupService certificateProjectBackupService;
     private readonly IUploadSettingsService uploadSettingsService;
     private readonly IAssetExpirationReminderService assetExpirationReminderService;
+    private readonly ITextExportService textExportService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
     private string lastCertificateBackupPath = string.Empty;
@@ -86,6 +87,7 @@ public partial class MainWindow : Window
         certificateProjectBackupService = new CertificateProjectBackupService();
         uploadSettingsService = new JsonUploadSettingsService();
         assetExpirationReminderService = new AssetExpirationReminderService();
+        textExportService = new TextExportService();
 
         _pages = new Dictionary<string, PageDefinition>
         {
@@ -854,21 +856,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        try
+        var exportResult = textExportService.Export(new TextExportRequest(dialog.FileName, evidenceText));
+        if (exportResult.IsSuccess)
         {
-            File.WriteAllText(dialog.FileName, evidenceText);
             UploadStatusText.Text = "已保存";
             UploadStatusText.Foreground = (Brush)FindResource("SuccessBrush");
             RecordHistory("保存证据", OperationHistoryStatus.Success, "已保存", dialog.FileName);
+            return;
         }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or NotSupportedException)
-        {
-            UploadStatusText.Text = "保存失败";
-            UploadStatusText.Foreground = (Brush)FindResource("DangerBrush");
-            RecordHistory("保存证据", OperationHistoryStatus.Failed, "保存失败", dialog.FileName);
-        }
+
+        UploadStatusText.Text = "保存失败";
+        UploadStatusText.Foreground = (Brush)FindResource("DangerBrush");
+        RecordHistory("保存证据", OperationHistoryStatus.Failed, "保存失败", dialog.FileName);
     }
 
     private void OnUploadGoIpaClick(object sender, RoutedEventArgs e)
@@ -1003,21 +1002,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        try
+        var exportResult = textExportService.Export(new TextExportRequest(dialog.FileName, text));
+        if (exportResult.IsSuccess)
         {
-            File.WriteAllText(dialog.FileName, text);
             RecordHistory("导出历史", OperationHistoryStatus.Success, "已导出", dialog.FileName);
             HistoryStatusText.Text = "已导出";
             HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            return;
         }
-        catch (Exception exception) when (exception is IOException
-            or UnauthorizedAccessException
-            or NotSupportedException)
-        {
-            RecordHistory("导出历史", OperationHistoryStatus.Failed, "导出失败", dialog.FileName);
-            HistoryStatusText.Text = "导出失败";
-            HistoryStatusText.Foreground = (Brush)FindResource("DangerBrush");
-        }
+
+        RecordHistory("导出历史", OperationHistoryStatus.Failed, "导出失败", dialog.FileName);
+        HistoryStatusText.Text = "导出失败";
+        HistoryStatusText.Foreground = (Brush)FindResource("DangerBrush");
     }
 
     private void OnHistorySelectionChanged(object sender, SelectionChangedEventArgs e)
