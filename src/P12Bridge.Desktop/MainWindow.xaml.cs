@@ -11,6 +11,8 @@ namespace P12Bridge.Desktop;
 
 public partial class MainWindow : Window
 {
+    private const string ProjectCertificateFileName = "certificate.cer";
+
     private readonly ICertificateProjectService certificateProjectService;
     private readonly IProvisioningProfileImportService profileImportService;
     private readonly IIpaImportService ipaImportService;
@@ -224,6 +226,63 @@ public partial class MainWindow : Window
         });
     }
 
+    private void OnCopyCertificateCsrClick(object sender, RoutedEventArgs e)
+    {
+        var csrPath = CertificateCsrPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(csrPath) || !File.Exists(csrPath))
+        {
+            SetCertificateStatus("CSR 不存在", isSuccess: false);
+            RecordHistory("复制 CSR", OperationHistoryStatus.Failed, "CSR 不存在");
+            return;
+        }
+
+        try
+        {
+            var csrText = File.ReadAllText(csrPath);
+            Clipboard.SetText(csrText);
+            SetCertificateStatus("CSR 已复制", isSuccess: true);
+            RecordHistory("复制 CSR", OperationHistoryStatus.Success, "已复制", csrPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetCertificateStatus("复制失败", isSuccess: false);
+            RecordHistory("复制 CSR", OperationHistoryStatus.Failed, "复制失败", csrPath);
+        }
+    }
+
+    private void OnOpenCertificateCsrClick(object sender, RoutedEventArgs e)
+    {
+        var csrPath = CertificateCsrPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(csrPath) || !File.Exists(csrPath))
+        {
+            SetCertificateStatus("CSR 不存在", isSuccess: false);
+            RecordHistory("打开 CSR", OperationHistoryStatus.Failed, "CSR 不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = csrPath,
+                UseShellExecute = true
+            });
+            SetCertificateStatus("CSR 已打开", isSuccess: true);
+            RecordHistory("打开 CSR", OperationHistoryStatus.Success, "已打开", csrPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetCertificateStatus("打开失败", isSuccess: false);
+            RecordHistory("打开 CSR", OperationHistoryStatus.Failed, "打开失败", csrPath);
+        }
+    }
+
     private void OnSelectCertificateFileClick(object sender, RoutedEventArgs e)
     {
         var dialog = new OpenFileDialog
@@ -236,6 +295,53 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             CertificateCerPathTextBox.Text = dialog.FileName;
+        }
+    }
+
+    private void OnImportCertificateFileClick(object sender, RoutedEventArgs e)
+    {
+        var projectDirectory = CertificateProjectDirectoryTextBox.Text;
+        if (string.IsNullOrWhiteSpace(projectDirectory) || !Directory.Exists(projectDirectory))
+        {
+            SetCertificateStatus("项目不存在", isSuccess: false);
+            RecordHistory("导入 CER", OperationHistoryStatus.Failed, "项目不存在");
+            return;
+        }
+
+        var sourcePath = CertificateCerPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+        {
+            SetCertificateStatus("CER 不存在", isSuccess: false);
+            RecordHistory("导入 CER", OperationHistoryStatus.Failed, "CER 不存在");
+            return;
+        }
+
+        if (!Path.GetExtension(sourcePath).Equals(".cer", StringComparison.OrdinalIgnoreCase))
+        {
+            SetCertificateStatus("CER 无效", isSuccess: false);
+            RecordHistory("导入 CER", OperationHistoryStatus.Failed, "CER 无效", sourcePath);
+            return;
+        }
+
+        try
+        {
+            var importedPath = Path.Combine(projectDirectory, ProjectCertificateFileName);
+            if (!Path.GetFullPath(sourcePath).Equals(Path.GetFullPath(importedPath), StringComparison.OrdinalIgnoreCase))
+            {
+                File.Copy(sourcePath, importedPath, overwrite: true);
+            }
+
+            CertificateCerPathTextBox.Text = importedPath;
+            SetCertificateStatus("CER 已导入", isSuccess: true);
+            RecordHistory("导入 CER", OperationHistoryStatus.Success, "已导入", importedPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or ArgumentException)
+        {
+            SetCertificateStatus("导入失败", isSuccess: false);
+            RecordHistory("导入 CER", OperationHistoryStatus.Failed, "导入失败", sourcePath);
         }
     }
 

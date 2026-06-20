@@ -617,14 +617,33 @@
                                              IsReadOnly="True" />
 
                                     <TextBlock Text="CSR" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
-                                    <TextBox x:Name="CertificateCsrPathTextBox"
-                                             Style="{StaticResource InputTextBoxStyle}"
-                                             IsReadOnly="True" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="CertificateCsrPathTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True" />
+                                        <Button Grid.Column="2"
+                                                Content="复制"
+                                                Click="OnCopyCertificateCsrClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Grid.Column="4"
+                                                Content="打开"
+                                                Click="OnOpenCertificateCsrClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                    </Grid>
 
                                     <TextBlock Text="CER" Style="{StaticResource FieldLabelStyle}" Margin="0,18,0,5" />
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
                                             <ColumnDefinition Width="8" />
                                             <ColumnDefinition Width="Auto" />
                                         </Grid.ColumnDefinitions>
@@ -634,6 +653,10 @@
                                         <Button Grid.Column="2"
                                                 Content="选择"
                                                 Click="OnSelectCertificateFileClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <Button Grid.Column="4"
+                                                Content="导入"
+                                                Click="OnImportCertificateFileClick"
                                                 Style="{StaticResource SecondaryButtonStyle}" />
                                     </Grid>
 
