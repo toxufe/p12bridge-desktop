@@ -42,6 +42,7 @@ public partial class MainWindow : Window
     private string lastUploadRemotePreflightCopyText = string.Empty;
     private string lastUploadReadinessCopyText = string.Empty;
     private string lastUploadEnvironmentCopyText = string.Empty;
+    private string lastAppleApiConnectionCopyText = string.Empty;
     private UploadEnvironmentValidationResult? lastUploadEnvironmentValidation;
     private CancellationTokenSource? uploadVerificationCancellation;
     private bool isUploadVerificationRunning;
@@ -1151,11 +1152,34 @@ public partial class MainWindow : Window
                 "账号检查",
                 result.IsSuccess ? OperationHistoryStatus.Success : OperationHistoryStatus.Failed,
                 result.IsSuccess ? "已连接" : "未连接",
-                FormatIssueDetail(result.Issues));
+                FormatAppleApiConnectionCopy(result));
         }
         finally
         {
             SetAppleApiConnectionChecking(false);
+        }
+    }
+
+    private void OnCopyAppleApiConnectionClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(lastAppleApiConnectionCopyText))
+        {
+            SetAppleApiConnectionStatus("无结果", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制账号", OperationHistoryStatus.Failed, "无结果");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(lastAppleApiConnectionCopyText);
+            SetAppleApiConnectionStatus("已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制账号", OperationHistoryStatus.Success, "已复制", lastAppleApiConnectionCopyText);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetAppleApiConnectionStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制账号", OperationHistoryStatus.Failed, "复制失败");
         }
     }
 
@@ -2365,6 +2389,7 @@ public partial class MainWindow : Window
     private void ClearAppleApiConnectionResult()
     {
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
+        lastAppleApiConnectionCopyText = string.Empty;
         AppleApiConnectionIssuesPanel.Children.Clear();
         ClearAppStoreRemotePreflightResult();
         ClearUploadRemotePreflightResult();
@@ -2381,6 +2406,7 @@ public partial class MainWindow : Window
 
     private void ShowAppleApiConnectionResult(AppleDeveloperConnectionResult result)
     {
+        lastAppleApiConnectionCopyText = FormatAppleApiConnectionCopy(result);
         SetAppleApiConnectionStatus(
             result.IsSuccess ? "已连接" : "未连接",
             result.IsSuccess
@@ -2401,6 +2427,30 @@ public partial class MainWindow : Window
                 FormatAppleAuthIssueAction(issue.Code),
                 false));
         }
+    }
+
+    private static string FormatAppleApiConnectionCopy(AppleDeveloperConnectionResult result)
+    {
+        var lines = new List<string>
+        {
+            $"状态: {(result.IsSuccess ? "已连接" : "未连接")}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(result.CheckedEndpoint))
+        {
+            lines.Add($"端点: {result.CheckedEndpoint}");
+        }
+
+        if (result.IsSuccess)
+        {
+            lines.Add("账号: 通过 / 正常");
+            return string.Join(Environment.NewLine, lines);
+        }
+
+        lines.AddRange(result.Issues.Select(issue =>
+            $"{FormatAppleAuthIssueName(issue.Code)}: 错误 / {FormatAppleAuthIssueAction(issue.Code)}"));
+
+        return string.Join(Environment.NewLine, lines);
     }
 
     private void SetAppleApiConnectionChecking(bool isChecking)
