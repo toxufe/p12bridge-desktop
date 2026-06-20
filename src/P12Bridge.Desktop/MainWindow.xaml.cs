@@ -1563,6 +1563,7 @@ public partial class MainWindow : Window
         lastUploadEnvironmentValidation = null;
         ClearUploadRemotePreflightResult();
         RefreshUploadAssetDescriptionInput();
+        RefreshCredentialStorageStatus();
         RefreshUploadEnvironmentStatus();
     }
 
@@ -2653,6 +2654,14 @@ public partial class MainWindow : Window
 
         SetUploadSettingsStatus("已保存", (Brush)FindResource("SuccessBrush"));
         RecordHistory("保存设置", OperationHistoryStatus.Success, "已保存", FormatUploadSettingsDetail(settings));
+
+        if (!settings.SaveSensitiveValues)
+        {
+            UploadJwtPasswordBox.Clear();
+            UploadAppSpecificPasswordBox.Clear();
+        }
+
+        RefreshCredentialStorageStatus();
     }
 
     private void ClearUploadSettings()
@@ -2710,6 +2719,7 @@ public partial class MainWindow : Window
         UploadJwtPasswordBox.Password = settings.Jwt;
         UploadAppSpecificPasswordBox.Password = settings.AppSpecificPassword;
         lastIpaImportedPath = settings.PackagePath;
+        RefreshCredentialStorageStatus();
         RefreshUploadSettingsInputs();
         ClearAppleApiConnectionResult();
     }
@@ -2730,6 +2740,20 @@ public partial class MainWindow : Window
 
         UploadSettingsStatusText.Text = status;
         UploadSettingsStatusText.Foreground = foreground;
+    }
+
+    private void RefreshCredentialStorageStatus()
+    {
+        if (CredentialStorageStatusText is null || SaveSensitiveValuesCheckBox is null)
+        {
+            return;
+        }
+
+        var savesSecrets = SaveSensitiveValuesCheckBox.IsChecked == true;
+        CredentialStorageStatusText.Text = savesSecrets ? "本机保存" : "不保存";
+        CredentialStorageStatusText.Foreground = savesSecrets
+            ? (Brush)FindResource("WarningBrush")
+            : (Brush)FindResource("MutedTextBrush");
     }
 
     private void RefreshUploadEnvironmentStatus()
