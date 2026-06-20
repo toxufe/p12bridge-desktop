@@ -34,6 +34,7 @@ public partial class MainWindow : Window
     private readonly IAssetExpirationReminderService assetExpirationReminderService;
     private readonly Dictionary<string, PageDefinition> _pages;
     private string? lastCertificateProjectDirectory;
+    private string lastCertificateBackupPath = string.Empty;
     private ProvisioningProfile? lastImportedProfile;
     private string lastImportedProfilePath = string.Empty;
     private IpaMetadata? lastIpaMetadata;
@@ -943,11 +944,70 @@ public partial class MainWindow : Window
 
         AssetStatusText.Text = "已备份";
         AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+        lastCertificateBackupPath = result.BackupPath;
         RecordHistory(
             "备份证书",
             OperationHistoryStatus.Success,
             "已备份",
             $"{Path.GetFileName(result.BackupPath)} / {result.FilesIncluded} 文件{Environment.NewLine}{result.BackupPath}");
+    }
+
+    private void OnCopyLastCertificateBackupClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(lastCertificateBackupPath) || !File.Exists(lastCertificateBackupPath))
+        {
+            AssetStatusText.Text = "备份不存在";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制备份", OperationHistoryStatus.Failed, "备份不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(lastCertificateBackupPath);
+            AssetStatusText.Text = "已复制";
+            AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制备份", OperationHistoryStatus.Success, "已复制", lastCertificateBackupPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            AssetStatusText.Text = "复制失败";
+            AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制备份", OperationHistoryStatus.Failed, "复制失败", lastCertificateBackupPath);
+        }
+    }
+
+    private void OnOpenLastCertificateBackupClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(lastCertificateBackupPath) || !File.Exists(lastCertificateBackupPath))
+        {
+            AssetStatusText.Text = "备份不存在";
+            AssetStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开备份", OperationHistoryStatus.Failed, "备份不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = lastCertificateBackupPath,
+                UseShellExecute = true
+            });
+            AssetStatusText.Text = "已打开";
+            AssetStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("打开备份", OperationHistoryStatus.Success, "已打开", lastCertificateBackupPath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            AssetStatusText.Text = "打开失败";
+            AssetStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("打开备份", OperationHistoryStatus.Failed, "打开失败", lastCertificateBackupPath);
+        }
     }
 
     private void OnSelectTransporterClick(object sender, RoutedEventArgs e)
