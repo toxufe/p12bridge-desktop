@@ -25,16 +25,17 @@ The MVP is local-first: it helps Windows users generate private keys and CSRs, i
 - [Product requirements](docs/prd.md)
 - [Technical design](docs/design.md)
 - [Implementation plan](docs/implement.md)
+- [Manual verification checklist](docs/manual-verification.md)
 
 ## Repository Status
 
-This repository is in planning/bootstrap stage. The .NET solution skeleton is present, but local build validation requires the .NET 8 SDK.
+The Desktop MVP implementation is in place for local certificate workflows, profile import, IPA inspection, upload readiness, settings, asset management, and operation history.
 
-The next engineering step is to prove the core technical paths:
+Automated local validation covers the main non-Apple service chain. The remaining verification work is:
 
-1. Generate private key, CSR, and P12 locally on Windows.
-2. Parse `.mobileprovision` and `.ipa` metadata.
-3. Validate a practical IPA upload path.
+1. Run the manual end-to-end walkthrough with real Apple-issued certificate/profile assets.
+2. Verify a real signed IPA upload attempt with valid credentials.
+3. Capture only redacted evidence listed in the manual verification checklist.
 
 ## Security Principles
 

@@ -131,6 +131,7 @@ Tasks:
 
 Validation:
 
+- Use [Manual verification checklist](manual-verification.md) for evidence capture.
 - Run an upload verification against a real signed IPA when credentials are available.
 - Confirm upload logs can be copied with secrets redacted.
 
@@ -147,6 +148,7 @@ Tasks:
 
 Validation:
 
+- Use [Manual verification checklist](manual-verification.md) for evidence capture.
 - [x] Automated local MVP walkthrough:
   1. create certificate project,
   2. import synthetic App Store profile,
