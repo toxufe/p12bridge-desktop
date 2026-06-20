@@ -2187,6 +2187,21 @@ public partial class MainWindow : Window
         RefreshUploadSettingsInputs();
         ClearUploadVerifyResult();
 
+        var readiness = EvaluateUploadReadiness();
+        if (UploadExecutionGuard.ShouldBlockExecution(executionMode, readiness))
+        {
+            SetUploadVerifyStatus("已阻断", (Brush)FindResource("DangerBrush"));
+            UploadVerifyProgressTextBox.Text = "检查 IPA";
+            UploadVerifyIssuesPanel.Children.Clear();
+            UploadVerifyIssuesPanel.Children.Add(CreateUploadIssueRow("检查", "修复阻断", false));
+            RecordHistory(
+                FormatUploadActionName(executionMode),
+                OperationHistoryStatus.Failed,
+                "已阻断",
+                lastUploadReadinessCopyText);
+            return;
+        }
+
         var request = BuildUploadRequest(executionMode);
         var cancellation = new CancellationTokenSource();
         uploadVerificationCancellation = cancellation;
