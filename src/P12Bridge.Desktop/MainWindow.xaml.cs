@@ -211,6 +211,7 @@ public partial class MainWindow : Window
         CertificatePrivateKeyPathTextBox.Text = result.Artifacts.PrivateKeyPath;
         CertificateCsrPathTextBox.Text = result.Artifacts.CertificateSigningRequestPath;
         OpenCertificateProjectButton.IsEnabled = true;
+        CopyCertificateProjectButton.IsEnabled = true;
         SetCertificateStatus("已生成", isSuccess: true);
         RecordHistory(
             "制作证书",
@@ -219,19 +220,56 @@ public partial class MainWindow : Window
             $"项目: {result.Artifacts.ProjectDirectory}{Environment.NewLine}CSR: {result.Artifacts.CertificateSigningRequestPath}");
     }
 
+    private void OnCopyCertificateProjectClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(lastCertificateProjectDirectory) || !Directory.Exists(lastCertificateProjectDirectory))
+        {
+            SetCertificateStatus("目录不存在", isSuccess: false);
+            RecordHistory("复制项目", OperationHistoryStatus.Failed, "目录不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(lastCertificateProjectDirectory);
+            SetCertificateStatus("已复制", isSuccess: true);
+            RecordHistory("复制项目", OperationHistoryStatus.Success, "已复制", lastCertificateProjectDirectory);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetCertificateStatus("复制失败", isSuccess: false);
+            RecordHistory("复制项目", OperationHistoryStatus.Failed, "复制失败", lastCertificateProjectDirectory);
+        }
+    }
+
     private void OnOpenCertificateProjectClick(object sender, RoutedEventArgs e)
     {
         if (string.IsNullOrWhiteSpace(lastCertificateProjectDirectory) || !Directory.Exists(lastCertificateProjectDirectory))
         {
             SetCertificateStatus("目录不存在", isSuccess: false);
+            RecordHistory("打开项目", OperationHistoryStatus.Failed, "目录不存在");
             return;
         }
 
-        Process.Start(new ProcessStartInfo
+        try
         {
-            FileName = lastCertificateProjectDirectory,
-            UseShellExecute = true
-        });
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = lastCertificateProjectDirectory,
+                UseShellExecute = true
+            });
+            SetCertificateStatus("已打开", isSuccess: true);
+            RecordHistory("打开项目", OperationHistoryStatus.Success, "已打开", lastCertificateProjectDirectory);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetCertificateStatus("打开失败", isSuccess: false);
+            RecordHistory("打开项目", OperationHistoryStatus.Failed, "打开失败", lastCertificateProjectDirectory);
+        }
     }
 
     private void OnCopyCertificateCsrClick(object sender, RoutedEventArgs e)
@@ -1851,6 +1889,7 @@ public partial class MainWindow : Window
     {
         lastCertificateProjectDirectory = null;
         OpenCertificateProjectButton.IsEnabled = false;
+        CopyCertificateProjectButton.IsEnabled = false;
         CertificateProjectDirectoryTextBox.Text = string.Empty;
         CertificatePrivateKeyPathTextBox.Text = string.Empty;
         CertificateCsrPathTextBox.Text = string.Empty;
