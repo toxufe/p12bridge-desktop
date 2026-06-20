@@ -870,6 +870,47 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnOpenHistoryPathClick(object sender, RoutedEventArgs e)
+    {
+        if (HistoryListBox.SelectedItem is not HistoryListItem selectedItem)
+        {
+            HistoryStatusText.Text = "未选择";
+            HistoryStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开历史", OperationHistoryStatus.Failed, "未选择");
+            return;
+        }
+
+        var targetDirectory = FindExistingHistoryTargetDirectory(selectedItem.Paths);
+        if (string.IsNullOrWhiteSpace(targetDirectory))
+        {
+            HistoryStatusText.Text = "路径不存在";
+            HistoryStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("打开历史", OperationHistoryStatus.Failed, "路径不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = targetDirectory,
+                UseShellExecute = true
+            });
+            HistoryStatusText.Text = "已打开";
+            HistoryStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("打开历史", OperationHistoryStatus.Success, "已打开", targetDirectory);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            HistoryStatusText.Text = "打开失败";
+            HistoryStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("打开历史", OperationHistoryStatus.Failed, "打开失败", targetDirectory);
+        }
+    }
+
     private void OnExportHistoryClick(object sender, RoutedEventArgs e)
     {
         var text = OperationHistoryExportFormatter.Format(operationHistoryService.List().Items);
@@ -915,6 +956,24 @@ public partial class MainWindow : Window
         HistoryDetailTextBox.Text = HistoryListBox.SelectedItem is HistoryListItem selectedItem
             ? selectedItem.Detail
             : string.Empty;
+    }
+
+    private static string FindExistingHistoryTargetDirectory(IReadOnlyList<string> paths)
+    {
+        foreach (var path in paths)
+        {
+            if (Directory.Exists(path))
+            {
+                return path;
+            }
+
+            if (File.Exists(path))
+            {
+                return Path.GetDirectoryName(path) ?? string.Empty;
+            }
+        }
+
+        return string.Empty;
     }
 
     private void OnOpenSelectedAssetClick(object sender, RoutedEventArgs e)
@@ -4925,7 +4984,8 @@ public partial class MainWindow : Window
         string Summary,
         string Detail,
         string TimeText,
-        string CopyText)
+        string CopyText,
+        IReadOnlyList<string> Paths)
     {
         public static HistoryListItem FromHistory(
             OperationHistoryItem item,
@@ -4943,7 +5003,8 @@ public partial class MainWindow : Window
                 item.Summary,
                 detail,
                 localTime.ToString("MM-dd HH:mm"),
-                copyText);
+                copyText,
+                OperationHistoryPathExtractor.ExtractLocalPaths(item));
         }
     }
 }
