@@ -1232,6 +1232,60 @@ public partial class MainWindow : Window
         SetUploadSettingsStatus("未找到", (Brush)FindResource("WarningBrush"));
     }
 
+    private void OnCopyUploadPackagePathClick(object sender, RoutedEventArgs e)
+    {
+        var packagePath = UploadPackagePathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
+        {
+            SetUploadSettingsStatus("IPA 不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("复制 IPA", OperationHistoryStatus.Failed, "IPA 不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(packagePath);
+            SetUploadSettingsStatus("IPA 已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制 IPA", OperationHistoryStatus.Success, "已复制", packagePath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetUploadSettingsStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制 IPA", OperationHistoryStatus.Failed, "复制失败", packagePath);
+        }
+    }
+
+    private void OnOpenUploadPackageClick(object sender, RoutedEventArgs e)
+    {
+        var packagePath = UploadPackagePathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(packagePath) || !File.Exists(packagePath))
+        {
+            SetUploadSettingsStatus("IPA 不存在", (Brush)FindResource("WarningBrush"));
+            RecordHistory("打开 IPA", OperationHistoryStatus.Failed, "IPA 不存在");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = packagePath,
+                UseShellExecute = true
+            });
+            SetUploadSettingsStatus("IPA 已打开", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("打开 IPA", OperationHistoryStatus.Success, "已打开", packagePath);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("打开 IPA", OperationHistoryStatus.Failed, "打开失败", packagePath);
+        }
+    }
+
     private void OnCopyUploadAssetDescriptionClick(object sender, RoutedEventArgs e)
     {
         var assetDescriptionPath = UploadAssetDescriptionPathTextBox.Text;
