@@ -2048,9 +2048,18 @@ public partial class MainWindow : Window
             return;
         }
 
-        Clipboard.SetText(copyText);
-        SetUploadVerifyStatus("已复制", (Brush)FindResource("SuccessBrush"));
-        RecordHistory("复制日志", OperationHistoryStatus.Success, "已复制", copyText);
+        try
+        {
+            Clipboard.SetText(copyText);
+            SetUploadVerifyStatus("已复制", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("复制日志", OperationHistoryStatus.Success, "已复制", copyText);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetUploadVerifyStatus("复制失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("复制日志", OperationHistoryStatus.Failed, "复制失败");
+        }
     }
 
     private UploadReadinessResult EvaluateUploadReadiness()
