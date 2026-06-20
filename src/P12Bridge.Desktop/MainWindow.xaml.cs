@@ -272,6 +272,30 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopyCertificatePrivateKeyPathClick(object sender, RoutedEventArgs e)
+    {
+        var privateKeyPath = CertificatePrivateKeyPathTextBox.Text;
+        if (string.IsNullOrWhiteSpace(privateKeyPath) || !File.Exists(privateKeyPath))
+        {
+            SetCertificateStatus("私钥不存在", isSuccess: false);
+            RecordHistory("复制私钥", OperationHistoryStatus.Failed, "私钥不存在");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(privateKeyPath);
+            SetCertificateStatus("私钥已复制", isSuccess: true);
+            RecordHistory("复制私钥", OperationHistoryStatus.Success, "已复制", privateKeyPath);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            SetCertificateStatus("复制失败", isSuccess: false);
+            RecordHistory("复制私钥", OperationHistoryStatus.Failed, "复制失败", privateKeyPath);
+        }
+    }
+
     private void OnCopyCertificateCsrClick(object sender, RoutedEventArgs e)
     {
         var csrPath = CertificateCsrPathTextBox.Text;

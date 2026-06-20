@@ -696,9 +696,20 @@
                                              IsReadOnly="True" />
 
                                     <TextBlock Text="私钥" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
-                                    <TextBox x:Name="CertificatePrivateKeyPathTextBox"
-                                             Style="{StaticResource InputTextBoxStyle}"
-                                             IsReadOnly="True" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox x:Name="CertificatePrivateKeyPathTextBox"
+                                                 Style="{StaticResource InputTextBoxStyle}"
+                                                 IsReadOnly="True" />
+                                        <Button Grid.Column="2"
+                                                Content="复制"
+                                                Click="OnCopyCertificatePrivateKeyPathClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                    </Grid>
 
                                     <TextBlock Text="CSR" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
                                     <Grid>
