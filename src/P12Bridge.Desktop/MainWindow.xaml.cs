@@ -12,6 +12,7 @@ namespace P12Bridge.Desktop;
 public partial class MainWindow : Window
 {
     private const string ProjectCertificateFileName = "certificate.cer";
+    private const string AppStoreInfoFileName = "AppStoreInfo.plist";
 
     private readonly ICertificateProjectService certificateProjectService;
     private readonly IProvisioningProfileImportService profileImportService;
@@ -449,6 +450,7 @@ public partial class MainWindow : Window
             ShowIpa(result.Metadata, result.ImportedPath);
             lastIpaMetadata = result.Metadata;
             lastIpaImportedPath = result.ImportedPath;
+            ApplyDiscoveredAppStoreInfo(recordHistory: true);
         }
 
         RefreshUploadInputs();
@@ -657,6 +659,24 @@ public partial class MainWindow : Window
             lastUploadEnvironmentValidation = null;
             RefreshUploadEnvironmentStatus();
         }
+    }
+
+    private void OnFindUploadAssetDescriptionClick(object sender, RoutedEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(IpaSourcePathTextBox.Text) && string.IsNullOrWhiteSpace(lastIpaImportedPath))
+        {
+            SetUploadSettingsStatus("未选择 IPA", (Brush)FindResource("WarningBrush"));
+            RecordHistory("查找元数据", OperationHistoryStatus.Failed, "未选择 IPA");
+            return;
+        }
+
+        if (ApplyDiscoveredAppStoreInfo(force: true, recordHistory: true))
+        {
+            SetUploadSettingsStatus("已找到", (Brush)FindResource("SuccessBrush"));
+            return;
+        }
+
+        SetUploadSettingsStatus("未找到", (Brush)FindResource("WarningBrush"));
     }
 
     private void OnSelectAppleApiPrivateKeyClick(object sender, RoutedEventArgs e)
@@ -1435,6 +1455,61 @@ public partial class MainWindow : Window
             ? "未检查"
             : lastIpaImportedPath;
         SetCredentialPanelsVisibility();
+    }
+
+    private bool ApplyDiscoveredAppStoreInfo(bool force = false, bool recordHistory = false)
+    {
+        if (!force && File.Exists(UploadAssetDescriptionPathTextBox.Text))
+        {
+            return false;
+        }
+
+        var discoveredPath = FindAppStoreInfoPath(IpaSourcePathTextBox.Text, lastIpaImportedPath);
+        if (string.IsNullOrWhiteSpace(discoveredPath))
+        {
+            if (recordHistory)
+            {
+                RecordHistory("查找元数据", OperationHistoryStatus.Warning, "未找到");
+            }
+
+            return false;
+        }
+
+        UploadAssetDescriptionPathTextBox.Text = discoveredPath;
+        lastUploadEnvironmentValidation = null;
+        RefreshUploadEnvironmentStatus();
+
+        if (recordHistory)
+        {
+            RecordHistory("查找元数据", OperationHistoryStatus.Success, "已找到", discoveredPath);
+        }
+
+        return true;
+    }
+
+    private static string FindAppStoreInfoPath(params string[] packagePaths)
+    {
+        foreach (var packagePath in packagePaths)
+        {
+            if (string.IsNullOrWhiteSpace(packagePath))
+            {
+                continue;
+            }
+
+            var packageDirectory = Path.GetDirectoryName(packagePath);
+            if (string.IsNullOrWhiteSpace(packageDirectory))
+            {
+                continue;
+            }
+
+            var candidatePath = Path.Combine(packageDirectory, AppStoreInfoFileName);
+            if (File.Exists(candidatePath))
+            {
+                return candidatePath;
+            }
+        }
+
+        return string.Empty;
     }
 
     private void LoadUploadSettings()
