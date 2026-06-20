@@ -1177,6 +1177,10 @@
                                         <Button Content="检查"
                                                 Click="OnCheckUploadReadinessClick"
                                                 Style="{StaticResource ActionButtonStyle}" />
+                                        <Button Content="证据"
+                                                Click="OnCopyUploadEvidenceClick"
+                                                Style="{StaticResource SecondaryButtonStyle}"
+                                                Margin="10,0,0,0" />
                                         <Button x:Name="RunUploadRemotePreflightButton"
                                                 Content="远端"
                                                 Click="OnRunUploadRemotePreflightClick"

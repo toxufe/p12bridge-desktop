@@ -802,6 +802,33 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OnCopyUploadEvidenceClick(object sender, RoutedEventArgs e)
+    {
+        var copyText = FormatUploadEvidenceCopy();
+        if (string.IsNullOrWhiteSpace(copyText))
+        {
+            UploadStatusText.Text = "无证据";
+            UploadStatusText.Foreground = (Brush)FindResource("WarningBrush");
+            RecordHistory("复制证据", OperationHistoryStatus.Failed, "无证据");
+            return;
+        }
+
+        try
+        {
+            Clipboard.SetText(copyText);
+            UploadStatusText.Text = "已复制";
+            UploadStatusText.Foreground = (Brush)FindResource("SuccessBrush");
+            RecordHistory("复制证据", OperationHistoryStatus.Success, "已复制", copyText);
+        }
+        catch (Exception exception) when (exception is NotSupportedException
+            or System.Runtime.InteropServices.ExternalException)
+        {
+            UploadStatusText.Text = "复制失败";
+            UploadStatusText.Foreground = (Brush)FindResource("DangerBrush");
+            RecordHistory("复制证据", OperationHistoryStatus.Failed, "复制失败");
+        }
+    }
+
     private void OnUploadGoIpaClick(object sender, RoutedEventArgs e)
     {
         SelectNavigation("IpaCheck");
@@ -2924,6 +2951,44 @@ public partial class MainWindow : Window
         return string.Join($"{Environment.NewLine}{Environment.NewLine}", parts);
     }
 
+    private string FormatUploadEvidenceCopy()
+    {
+        var sections = new List<string>();
+        var detailSections = new List<string>();
+        var summary = new List<string>();
+
+        AddEvidenceLine(summary, "Bundle ID", lastIpaMetadata?.BundleIdentifier);
+        AddEvidenceLine(summary, "版本", lastIpaMetadata?.ShortVersion);
+        AddEvidenceLine(summary, "Build", lastIpaMetadata?.BuildVersion);
+        AddEvidenceLine(summary, "Team ID", lastImportedProfile?.TeamId);
+        AddEvidenceLine(summary, "IPA", UploadIpaTextBox.Text);
+        AddEvidenceLine(summary, "IPA 路径", lastIpaImportedPath);
+        AddEvidenceLine(summary, "描述", UploadProfileTextBox.Text);
+        AddEvidenceLine(summary, "描述路径", lastImportedProfilePath);
+        AddEvidenceLine(summary, "元数据", UploadAssetDescriptionTextBox.Text);
+        AddEvidenceLine(summary, "元数据路径", UploadAssetDescriptionPathTextBox.Text);
+        AddEvidenceLine(summary, "检查", UploadStatusText.Text);
+        AddEvidenceLine(summary, "环境", UploadEnvironmentStatusText.Text);
+        AddEvidenceLine(summary, "链路", UploadProofStatusText.Text);
+        AddEvidenceLine(summary, "校验", UploadVerifyStatusText.Text);
+
+        AddEvidenceSection(detailSections, "检查项", lastUploadReadinessCopyText);
+        AddEvidenceSection(detailSections, "远端检查", lastUploadRemotePreflightCopyText);
+        AddEvidenceSection(detailSections, "构建查询", UploadAppStoreBuildLookupResultTextBox.Text);
+        AddEvidenceSection(detailSections, "Transporter", FormatCurrentUploadLog());
+
+        if (summary.Count == 0 && detailSections.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        summary.Insert(0, $"时间: {DateTimeOffset.Now:yyyy-MM-dd HH:mm:ss}");
+        AddEvidenceSection(sections, "概览", summary);
+        sections.AddRange(detailSections);
+
+        return string.Join($"{Environment.NewLine}{Environment.NewLine}", sections);
+    }
+
     private void ClearAppleApiConnectionResult()
     {
         SetAppleApiConnectionStatus("未检查", (Brush)FindResource("MutedTextBrush"));
@@ -4000,6 +4065,45 @@ public partial class MainWindow : Window
         return File.Exists(path)
             ? Path.GetFileName(path)
             : "文件缺失";
+    }
+
+    private static void AddEvidenceLine(ICollection<string> lines, string label, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)
+            || value == "未检查"
+            || value == "未导入"
+            || value == "未选择"
+            || value == "未验证"
+            || value == "未校验"
+            || value == "未查询"
+            || value == "待实测"
+            || value == "校验链路")
+        {
+            return;
+        }
+
+        lines.Add($"{label}: {value}");
+    }
+
+    private static void AddEvidenceSection(ICollection<string> sections, string title, IEnumerable<string> lines)
+    {
+        var sectionLines = lines.Where(line => !string.IsNullOrWhiteSpace(line)).ToArray();
+        if (sectionLines.Length == 0)
+        {
+            return;
+        }
+
+        sections.Add($"{title}{Environment.NewLine}{string.Join(Environment.NewLine, sectionLines)}");
+    }
+
+    private static void AddEvidenceSection(ICollection<string> sections, string title, string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        sections.Add($"{title}{Environment.NewLine}{text.Trim()}");
     }
 
     private static string FormatAssetCounts(IReadOnlyList<LocalAssetItem> items)
