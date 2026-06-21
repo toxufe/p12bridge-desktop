@@ -42,6 +42,7 @@ public static class UploadEvidenceFormatter
         var detailSections = new List<string>();
         var overview = new List<string>();
 
+        AddLine(overview, "构建", evidence.BuildIdentity);
         AddLine(overview, "Windows", evidence.WindowsVersion);
         AddLine(overview, ".NET", evidence.DotNetVersion);
         AddLine(overview, "Transporter", evidence.TransporterPath);

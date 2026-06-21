@@ -20,6 +20,7 @@ public sealed class UploadEvidenceFormatterTests
     {
         var text = UploadEvidenceFormatter.Format(new UploadEvidence(
             CapturedAt,
+            BuildIdentity: "1.0.0+abc123",
             WindowsVersion: "Microsoft Windows 10.0.26100",
             DotNetVersion: ".NET 8.0.22",
             TransporterPath: @"C:\Transporter\iTMSTransporter.cmd",
@@ -42,6 +43,7 @@ public sealed class UploadEvidenceFormatterTests
 
         Assert.Contains("概览", text, StringComparison.Ordinal);
         Assert.Contains("时间: 2026-06-21 10:15:30", text, StringComparison.Ordinal);
+        Assert.Contains("构建: 1.0.0+abc123", text, StringComparison.Ordinal);
         Assert.Contains("Windows: Microsoft Windows 10.0.26100", text, StringComparison.Ordinal);
         Assert.Contains(".NET: .NET 8.0.22", text, StringComparison.Ordinal);
         Assert.Contains(@"Transporter: C:\Transporter\iTMSTransporter.cmd", text, StringComparison.Ordinal);
@@ -78,6 +80,7 @@ public sealed class UploadEvidenceFormatterTests
     {
         var text = UploadEvidenceFormatter.Format(new UploadEvidence(
             CapturedAt,
+            BuildIdentity: string.Empty,
             IpaSummary: "未检查",
             ProfileSummary: "未导入",
             AssetDescriptionSummary: "未选择",

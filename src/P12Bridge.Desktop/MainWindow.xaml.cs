@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -3007,6 +3008,7 @@ public partial class MainWindow : Window
     private string FormatUploadEvidenceCopy()
         => UploadEvidenceFormatter.Format(new UploadEvidence(
             DateTimeOffset.Now,
+            BuildIdentity: GetBuildIdentity(),
             WindowsVersion: RuntimeInformation.OSDescription,
             DotNetVersion: $".NET {Environment.Version}",
             TransporterPath: TransporterPathTextBox.Text,
@@ -3031,6 +3033,21 @@ public partial class MainWindow : Window
             BuildLookupDetail: UploadAppStoreBuildLookupResultTextBox.Text,
             CommandPreview: FormatUploadCommandPreview(BuildUploadRequest(activeUploadExecutionMode)),
             TransporterDetail: FormatCurrentUploadLog()));
+
+    private static string GetBuildIdentity()
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        var informationalVersion = assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
+            .InformationalVersion;
+
+        if (!string.IsNullOrWhiteSpace(informationalVersion))
+        {
+            return informationalVersion;
+        }
+
+        return assembly.GetName().Version?.ToString() ?? string.Empty;
+    }
 
     private string FormatUploadCommandPreview(UploadRequest request)
     {
