@@ -76,6 +76,37 @@ public sealed class UploadEvidenceFormatterTests
     }
 
     [Fact]
+    public void Format_IncludesProfileDetailFieldsWhenProvided()
+    {
+        var text = UploadEvidenceFormatter.Format(new UploadEvidence(
+            CapturedAt,
+            ProfileSummary: "App Store / 有效 / com.example.app / demo.mobileprovision",
+            ProfilePath: @"C:\Safe\demo.mobileprovision",
+            ProfileType: "商店",
+            ProfileExpiration: "2027-06-21 18:30",
+            ProfileCertificateCount: "2"));
+
+        Assert.Contains("描述类型: 商店", text, StringComparison.Ordinal);
+        Assert.Contains("描述到期: 2027-06-21 18:30", text, StringComparison.Ordinal);
+        Assert.Contains("描述证书数: 2", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Format_OmitsEmptyProfileDetailFields()
+    {
+        var text = UploadEvidenceFormatter.Format(new UploadEvidence(
+            CapturedAt,
+            ProfileSummary: "App Store / 有效 / com.example.app / demo.mobileprovision",
+            ProfileType: string.Empty,
+            ProfileExpiration: " ",
+            ProfileCertificateCount: string.Empty));
+
+        Assert.DoesNotContain("描述类型:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("描述到期:", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("描述证书数:", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Format_FiltersDefaultStatuses()
     {
         var text = UploadEvidenceFormatter.Format(new UploadEvidence(

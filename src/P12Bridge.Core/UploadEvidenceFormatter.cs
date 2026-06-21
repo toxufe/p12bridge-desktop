@@ -55,6 +55,9 @@ public static class UploadEvidenceFormatter
         AddLine(overview, "IPA 路径", evidence.IpaPath);
         AddLine(overview, "描述", evidence.ProfileSummary);
         AddLine(overview, "描述路径", evidence.ProfilePath);
+        AddLine(overview, "描述类型", evidence.ProfileType);
+        AddLine(overview, "描述到期", evidence.ProfileExpiration);
+        AddLine(overview, "描述证书数", evidence.ProfileCertificateCount);
         AddLine(overview, "元数据", evidence.AssetDescriptionSummary);
         AddLine(overview, "元数据路径", evidence.AssetDescriptionPath);
         AddLine(overview, "检查", evidence.ReadinessStatus);

@@ -3021,6 +3021,11 @@ public partial class MainWindow : Window
             IpaPath: lastIpaImportedPath,
             ProfileSummary: UploadProfileTextBox.Text,
             ProfilePath: lastImportedProfilePath,
+            ProfileType: lastImportedProfile is null ? string.Empty : FormatProfileType(lastImportedProfile.Type),
+            ProfileExpiration: lastImportedProfile?.ExpirationDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm") ?? string.Empty,
+            ProfileCertificateCount: lastImportedProfile is null
+                ? string.Empty
+                : lastImportedProfile.DeveloperCertificateFingerprints.Count.ToString(),
             AssetDescriptionSummary: UploadAssetDescriptionTextBox.Text,
             AssetDescriptionPath: UploadAssetDescriptionPathTextBox.Text,
             ReadinessStatus: UploadStatusText.Text,
