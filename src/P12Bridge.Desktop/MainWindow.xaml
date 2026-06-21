@@ -1162,6 +1162,10 @@
                                     <TextBox Text="App Store"
                                              Style="{StaticResource InputTextBoxStyle}"
                                              IsReadOnly="True" />
+                                    <TextBlock Text="Windows 需 Transporter"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               Margin="0,6,0,0" />
 
                                     <TextBlock Text="IPA" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
                                     <TextBox x:Name="UploadIpaTextBox"
@@ -1829,7 +1833,17 @@
                                                FontSize="18"
                                                FontWeight="SemiBold" />
 
-                                    <TextBlock Text="Transporter" Style="{StaticResource FieldLabelStyle}" Margin="0,16,0,5" />
+                                    <Grid Margin="0,16,0,5">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Transporter" Style="{StaticResource FieldLabelStyle}" />
+                                        <Button Grid.Column="1"
+                                                Content="指南"
+                                                Click="OnOpenTransporterGuideClick"
+                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                    </Grid>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -1850,6 +1864,11 @@
                                                 Click="OnOpenTransporterClick"
                                                 Style="{StaticResource SecondaryButtonStyle}" />
                                     </Grid>
+                                    <TextBlock Text="默认路径: C:\Program Files\itms\iTMSTransporter.woa\iTMSTransporter.cmd"
+                                               Foreground="{StaticResource MutedTextBrush}"
+                                               FontSize="12"
+                                               TextWrapping="Wrap"
+                                               Margin="0,6,0,0" />
 
                                     <TextBlock Text="IPA" Style="{StaticResource FieldLabelStyle}" Margin="0,12,0,5" />
                                     <Grid>

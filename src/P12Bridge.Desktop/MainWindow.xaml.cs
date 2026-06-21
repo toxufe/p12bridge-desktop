@@ -18,6 +18,7 @@ public partial class MainWindow : Window
     private const string ProjectCertificateFileName = "certificate.cer";
     private const string AppStoreInfoFileName = "AppStoreInfo.plist";
     private const string AppleAccountManageUrl = "https://account.apple.com/account/manage";
+    private const string TransporterGuideUrl = "https://help.apple.com/itc/transporteruserguide/en.lproj/static.html";
 
     private readonly ICertificateProjectService certificateProjectService;
     private readonly IProvisioningProfileImportService profileImportService;
@@ -1407,6 +1408,28 @@ public partial class MainWindow : Window
         {
             SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
             RecordHistory("打开工具", OperationHistoryStatus.Failed, "打开失败", transporterPath);
+        }
+    }
+
+    private void OnOpenTransporterGuideClick(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = TransporterGuideUrl,
+                UseShellExecute = true
+            });
+            SetUploadSettingsStatus("指南已打开", (Brush)FindResource("SuccessBrush"));
+            RecordHistory("打开指南", OperationHistoryStatus.Success, "已打开", TransporterGuideUrl);
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or NotSupportedException
+            or System.ComponentModel.Win32Exception)
+        {
+            SetUploadSettingsStatus("打开失败", (Brush)FindResource("DangerBrush"));
+            RecordHistory("打开指南", OperationHistoryStatus.Failed, "打开失败", TransporterGuideUrl);
         }
     }
 

@@ -29,6 +29,26 @@ The MVP is local-first: it helps Windows users generate private keys and CSRs, i
 - [Implementation plan](docs/implement.md)
 - [Manual verification checklist](docs/manual-verification.md)
 
+## Transporter Setup
+
+Local IPA upload requires Apple's Transporter command-line tool.
+
+1. Open the Apple Transporter User Guide.
+2. Go to `Install Transporter on Windows`.
+3. Download and install the Windows iTMSTransporter package.
+4. Select the Transporter path in P12Bridge `Settings`.
+
+The default Windows path is usually:
+
+```text
+C:\Program Files\itms\iTMSTransporter.woa\iTMSTransporter.cmd
+```
+
+Apple guide:
+https://help.apple.com/itc/transporteruserguide/en.lproj/static.html
+
+Windows local upload also requires `AppStoreInfo.plist`. This file usually comes from the Apple/Xcode export package; P12Bridge only selects and validates the path.
+
 ## Repository Status
 
 The Desktop MVP implementation is in place for local certificate workflows, profile import, IPA inspection, upload readiness, settings, asset management, and operation history.

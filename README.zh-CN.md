@@ -29,6 +29,26 @@ MVP 采用本地优先方案：帮助 Windows 用户在本机生成私钥与 CSR
 - [实施计划](docs/implement.md)
 - [手动验证清单](docs/manual-verification.md)
 
+## Transporter 安装
+
+本机上传 IPA 需要安装 Apple Transporter 命令行工具。
+
+1. 打开 Apple Transporter User Guide。
+2. 进入 `Install Transporter on Windows`。
+3. 下载并安装 Windows 版 iTMSTransporter。
+4. 在 P12Bridge `设置` 中选择 Transporter 路径。
+
+Windows 默认路径通常是：
+
+```text
+C:\Program Files\itms\iTMSTransporter.woa\iTMSTransporter.cmd
+```
+
+Apple 官方指南：
+https://help.apple.com/itc/transporteruserguide/en.lproj/static.html
+
+Windows 本机上传还需要 `AppStoreInfo.plist`。该文件通常来自 Apple/Xcode 导出的上传包，P12Bridge 只选择和校验路径，不生成或修改文件内容。
+
 ## 仓库状态
 
 桌面端 MVP 已实现本地证书流程、描述文件导入、IPA 检查、上传前检查、设置、资产管理和操作历史。
