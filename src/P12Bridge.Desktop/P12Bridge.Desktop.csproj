@@ -3,7 +3,12 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <ApplicationIcon>Assets\p12bridge.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\p12bridge.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\P12Bridge.Core\P12Bridge.Core.csproj" />

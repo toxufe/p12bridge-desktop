@@ -2,28 +2,36 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="P12Bridge"
+        Icon="Assets/p12bridge.ico"
         Height="720"
         Width="1120"
         MinHeight="560"
         MinWidth="880"
-        Background="#F4F6F8"
+        Background="#F7F4EF"
         FontFamily="Microsoft YaHei UI, Segoe UI"
         TextOptions.TextFormattingMode="Display"
         TextOptions.TextRenderingMode="ClearType">
     <Window.Resources>
-        <SolidColorBrush x:Key="PageBackgroundBrush" Color="#F4F6F8" />
-        <SolidColorBrush x:Key="PanelBrush" Color="#FFFFFF" />
-        <SolidColorBrush x:Key="MutedPanelBrush" Color="#EEF2F6" />
-        <SolidColorBrush x:Key="BorderBrushSoft" Color="#D9E1EA" />
-        <SolidColorBrush x:Key="PrimaryBrush" Color="#1663D6" />
-        <SolidColorBrush x:Key="PrimarySoftBrush" Color="#E8F1FF" />
-        <SolidColorBrush x:Key="TextBrush" Color="#172033" />
-        <SolidColorBrush x:Key="MutedTextBrush" Color="#637083" />
+        <SolidColorBrush x:Key="PageBackgroundBrush" Color="#F7F4EF" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#FFFEFB" />
+        <SolidColorBrush x:Key="MutedPanelBrush" Color="#EEF2ED" />
+        <SolidColorBrush x:Key="BorderBrushSoft" Color="#D8DDD6" />
+        <SolidColorBrush x:Key="PrimaryBrush" Color="#08786F" />
+        <SolidColorBrush x:Key="PrimarySoftBrush" Color="#E4F3EF" />
+        <SolidColorBrush x:Key="TextBrush" Color="#18201E" />
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#68726E" />
         <SolidColorBrush x:Key="SuccessBrush" Color="#16835D" />
-        <SolidColorBrush x:Key="WarningBrush" Color="#986A00" />
+        <SolidColorBrush x:Key="WarningBrush" Color="#A15C08" />
         <SolidColorBrush x:Key="DangerBrush" Color="#B42318" />
-        <SolidColorBrush x:Key="SidebarBrush" Color="#101827" />
-        <SolidColorBrush x:Key="SidebarMutedBrush" Color="#AAB4C3" />
+        <SolidColorBrush x:Key="SidebarBrush" Color="#111513" />
+        <SolidColorBrush x:Key="SidebarPanelBrush" Color="#1A211E" />
+        <SolidColorBrush x:Key="SidebarActiveBrush" Color="#20312D" />
+        <SolidColorBrush x:Key="SidebarActiveBorderBrush" Color="#2D6E65" />
+        <SolidColorBrush x:Key="SidebarMutedBrush" Color="#A6B0AB" />
+        <SolidColorBrush x:Key="ChipNeutralBrush" Color="#EEF2ED" />
+        <SolidColorBrush x:Key="ChipSuccessBrush" Color="#E5F5ED" />
+        <SolidColorBrush x:Key="ChipWarningBrush" Color="#FFF0D9" />
+        <SolidColorBrush x:Key="CodeTextBrush" Color="#33423E" />
 
         <Style x:Key="NavButtonStyle" TargetType="RadioButton">
             <Setter Property="Foreground" Value="{StaticResource SidebarMutedBrush}" />
@@ -45,12 +53,12 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#182235" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource SidebarPanelBrush}" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#20314F" />
-                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#395A92" />
+                                <Setter TargetName="Chrome" Property="Background" Value="{StaticResource SidebarActiveBrush}" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="{StaticResource SidebarActiveBorderBrush}" />
                                 <Setter Property="Foreground" Value="#FFFFFF" />
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -86,10 +94,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#0E55C2" />
+                                <Setter TargetName="Chrome" Property="Background" Value="#06665E" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter TargetName="Chrome" Property="Background" Value="#0B469E" />
+                                <Setter TargetName="Chrome" Property="Background" Value="#05544D" />
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter TargetName="Chrome" Property="Background" Value="#D7DEE8" />
@@ -111,6 +119,21 @@
             <Setter Property="Foreground" Value="{StaticResource MutedTextBrush}" />
             <Setter Property="FontSize" Value="12" />
             <Setter Property="Margin" Value="0,0,0,5" />
+        </Style>
+
+        <Style x:Key="StatusChipTextStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="StatusChipBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource ChipSuccessBrush}" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="8,3" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
 
         <Style x:Key="InputTextBoxStyle" TargetType="TextBox">
@@ -148,24 +171,24 @@
                                Foreground="#FFFFFF"
                                FontSize="22"
                                FontWeight="SemiBold" />
-                    <TextBlock Text="Windows iOS 工具"
+                    <TextBlock Text="签名作业台"
                                Foreground="{StaticResource SidebarMutedBrush}"
                                FontSize="12"
                                Margin="0,4,0,0" />
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Bottom" Margin="16">
-                    <Border Background="#182235"
-                            BorderBrush="#263A5C"
+                    <Border Background="{StaticResource SidebarPanelBrush}"
+                            BorderBrush="{StaticResource SidebarActiveBorderBrush}"
                             BorderThickness="1"
                             CornerRadius="8"
                             Padding="12">
                         <StackPanel>
-                            <TextBlock Text="本地优先"
+                            <TextBlock Text="本机密钥"
                                        Foreground="#FFFFFF"
                                        FontSize="13"
                                        FontWeight="SemiBold" />
-                            <TextBlock Text="私钥留本机"
+                            <TextBlock Text="路径可查"
                                        Foreground="{StaticResource SidebarMutedBrush}"
                                        FontSize="12"
                                        TextWrapping="Wrap"
@@ -240,20 +263,20 @@
                                FontSize="28"
                                FontWeight="SemiBold" />
                     <TextBlock x:Name="PageSubtitleText"
-                               Text="证书到上传总览"
+                               Text="证书 / 描述 / IPA / 上传"
                                Foreground="{StaticResource MutedTextBrush}"
                                FontSize="13"
                                Margin="0,5,0,0" />
                 </StackPanel>
 
                 <Border Grid.Column="1"
-                        Background="{StaticResource PrimarySoftBrush}"
-                        BorderBrush="#C8DDFF"
+                        Background="{StaticResource ChipNeutralBrush}"
+                        BorderBrush="{StaticResource BorderBrushSoft}"
                         BorderThickness="1"
                         CornerRadius="8"
                         Padding="12,8"
                         VerticalAlignment="Center">
-                    <TextBlock Text="本地版"
+                    <TextBlock Text="本机"
                                Foreground="{StaticResource PrimaryBrush}"
                                FontSize="13"
                                FontWeight="SemiBold" />
@@ -273,11 +296,11 @@
 
                             <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
                                 <StackPanel>
-                                    <TextBlock Text="1. 制作证书"
+                                    <TextBlock Text="01 证书"
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="生成私钥与 CSR"
+                                    <TextBlock Text="CSR / P12"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -291,11 +314,11 @@
 
                             <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
                                 <StackPanel>
-                                    <TextBlock Text="2. 描述文件"
+                                    <TextBlock Text="02 描述"
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="导入描述文件"
+                                    <TextBlock Text="Profile"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -309,11 +332,11 @@
 
                             <Border Grid.Column="2" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
                                 <StackPanel>
-                                    <TextBlock Text="3. IPA 检查"
+                                    <TextBlock Text="03 IPA"
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="读取版本与签名"
+                                    <TextBlock Text="版本 / 签名"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -327,11 +350,11 @@
 
                             <Border Grid.Column="3" Style="{StaticResource CardBorderStyle}">
                                 <StackPanel>
-                                    <TextBlock Text="4. IPA 上传"
+                                    <TextBlock Text="04 上传"
                                                Foreground="{StaticResource TextBrush}"
                                                FontWeight="SemiBold"
                                                FontSize="15" />
-                                    <TextBlock Text="上传前检查"
+                                    <TextBlock Text="校验 / 发送"
                                                Foreground="{StaticResource MutedTextBrush}"
                                                FontSize="12"
                                                TextWrapping="Wrap"
@@ -352,7 +375,7 @@
 
                             <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}" Margin="0,0,10,0">
                                 <StackPanel>
-                                    <TextBlock Text="能力状态"
+                                    <TextBlock Text="作业状态"
                                                Foreground="{StaticResource TextBrush}"
                                                FontSize="16"
                                                FontWeight="SemiBold" />
@@ -372,28 +395,40 @@
                                         </Grid.ColumnDefinitions>
 
                                         <TextBlock Grid.Row="0" Text="私钥 / CSR / P12" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="可导出" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="P12 就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource StatusChipBorderStyle}">
+                                            <TextBlock Text="就绪" Style="{StaticResource StatusChipTextStyle}" />
+                                        </Border>
+                                        <TextBlock Grid.Row="0" Grid.Column="2" Text="本机路径" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="1" Text="描述文件解析" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="可解析" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="字段就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource StatusChipBorderStyle}">
+                                            <TextBlock Text="就绪" Style="{StaticResource StatusChipTextStyle}" />
+                                        </Border>
+                                        <TextBlock Grid.Row="1" Grid.Column="2" Text="字段检查" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="2" Text="IPA 元数据" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="可读取" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="元数据就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource StatusChipBorderStyle}">
+                                            <TextBlock Text="就绪" Style="{StaticResource StatusChipTextStyle}" />
+                                        </Border>
+                                        <TextBlock Grid.Row="2" Grid.Column="2" Text="版本签名" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="3" Text="上传前检查" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="可校验" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="3" Grid.Column="2" Text="规则就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource StatusChipBorderStyle}" Background="{StaticResource ChipWarningBrush}">
+                                            <TextBlock Text="待检查" Style="{StaticResource StatusChipTextStyle}" Foreground="{StaticResource WarningBrush}" />
+                                        </Border>
+                                        <TextBlock Grid.Row="3" Grid.Column="2" Text="规则检查" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="4" Text="API Key / JWT" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="可认证" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="4" Grid.Column="2" Text="令牌就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="4" Grid.Column="1" Style="{StaticResource StatusChipBorderStyle}" Background="{StaticResource ChipWarningBrush}">
+                                            <TextBlock Text="待检查" Style="{StaticResource StatusChipTextStyle}" Foreground="{StaticResource WarningBrush}" />
+                                        </Border>
+                                        <TextBlock Grid.Row="4" Grid.Column="2" Text="连接检查" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
 
                                         <TextBlock Grid.Row="5" Text="上传服务" Foreground="{StaticResource TextBrush}" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="5" Grid.Column="1" Text="可调用" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center" />
-                                        <TextBlock Grid.Row="5" Grid.Column="2" Text="上传就绪" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
+                                        <Border Grid.Row="5" Grid.Column="1" Style="{StaticResource StatusChipBorderStyle}" Background="{StaticResource ChipWarningBrush}">
+                                            <TextBlock Text="待检查" Style="{StaticResource StatusChipTextStyle}" Foreground="{StaticResource WarningBrush}" />
+                                        </Border>
+                                        <TextBlock Grid.Row="5" Grid.Column="2" Text="工具路径" Foreground="{StaticResource MutedTextBrush}" VerticalAlignment="Center" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -462,7 +497,7 @@
                                          MinHeight="72">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#F8FAFC"
+                                            <Border Background="{StaticResource MutedPanelBrush}"
                                                     BorderBrush="{StaticResource BorderBrushSoft}"
                                                     BorderThickness="1"
                                                     CornerRadius="6"
@@ -558,7 +593,7 @@
                                          MinHeight="72">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#F8FAFC"
+                                            <Border Background="{StaticResource MutedPanelBrush}"
                                                     BorderBrush="{StaticResource BorderBrushSoft}"
                                                     BorderThickness="1"
                                                     CornerRadius="6"
@@ -1906,6 +1941,8 @@
                                                 <ColumnDefinition Width="*" />
                                                 <ColumnDefinition Width="8" />
                                                 <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="8" />
+                                                <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
                                             <TextBox x:Name="AppleApiPrivateKeyPathTextBox"
                                                      Style="{StaticResource InputTextBoxStyle}"
@@ -1914,53 +1951,11 @@
                                                     Content="复制"
                                                     Click="OnCopyAppleApiPrivateKeyPathClick"
                                                     Style="{StaticResource SecondaryButtonStyle}" />
-                                        </Grid>
-
-                                        <WrapPanel Margin="0,16,0,0">
-                                            <Button Content="选择"
+                                            <Button Grid.Column="4"
+                                                    Content="选择"
                                                     Click="OnSelectAppleApiPrivateKeyClick"
                                                     Style="{StaticResource SecondaryButtonStyle}" />
-                                            <Button x:Name="CheckAppleApiConnectionButton"
-                                                    Content="检查"
-                                                    Click="OnCheckAppleApiConnectionClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="RunAppStoreRemotePreflightButton"
-                                                    Content="远端检"
-                                                    Click="OnRunAppStoreRemotePreflightClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="LookupAppStoreBundleIdButton"
-                                                    Content="查包名"
-                                                    Click="OnLookupAppStoreBundleIdClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="LookupAppStoreAppButton"
-                                                    Content="查App"
-                                                    Click="OnLookupAppStoreAppClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="LookupAppStoreBuildsButton"
-                                                    Content="查构建"
-                                                    Click="OnLookupAppStoreBuildsClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="LookupAppStoreProfilesButton"
-                                                    Content="查描述"
-                                                    Click="OnLookupAppStoreProfilesClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="LookupAppStoreCertificatesButton"
-                                                    Content="查证书"
-                                                    Click="OnLookupAppStoreCertificatesClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                            <Button x:Name="LookupAppStoreDevicesButton"
-                                                    Content="查设备"
-                                                    Click="OnLookupAppStoreDevicesClick"
-                                                    Style="{StaticResource ActionButtonStyle}"
-                                                    Margin="10,0,0,0" />
-                                        </WrapPanel>
+                                        </Grid>
                                     </StackPanel>
 
                                     <StackPanel x:Name="JwtCredentialPanel" Visibility="Collapsed">
@@ -2025,14 +2020,10 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
                                         <Button Content="保存"
                                                 Click="OnSaveUploadSettingsClick"
-                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                                Style="{StaticResource ActionButtonStyle}" />
                                         <Button Content="清除"
                                                 Click="OnClearUploadSettingsClick"
                                                 Style="{StaticResource SecondaryButtonStyle}"
-                                                Margin="10,0,0,0" />
-                                        <Button Content="验证"
-                                                Click="OnValidateUploadEnvironmentClick"
-                                                Style="{StaticResource ActionButtonStyle}"
                                                 Margin="10,0,0,0" />
                                     </StackPanel>
                                 </StackPanel>
@@ -2056,6 +2047,87 @@
                                             Margin="0,18,0,0"
                                             Padding="0,16,0,0">
                                         <StackPanel>
+                                            <TextBlock Text="账号操作"
+                                                       Foreground="{StaticResource TextBrush}"
+                                                       FontSize="18"
+                                                       FontWeight="SemiBold" />
+
+                                            <Grid Margin="0,14,0,0">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="10" />
+                                                    <ColumnDefinition Width="*" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <Button x:Name="CheckAppleApiConnectionButton"
+                                                        Grid.Row="0"
+                                                        Grid.Column="0"
+                                                        Content="检查"
+                                                        Click="OnCheckAppleApiConnectionClick"
+                                                        Style="{StaticResource ActionButtonStyle}" />
+                                                <Button x:Name="RunAppStoreRemotePreflightButton"
+                                                        Grid.Row="0"
+                                                        Grid.Column="2"
+                                                        Content="远端检"
+                                                        Click="OnRunAppStoreRemotePreflightClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}" />
+                                                <Button x:Name="LookupAppStoreBundleIdButton"
+                                                        Grid.Row="1"
+                                                        Grid.Column="0"
+                                                        Content="查包名"
+                                                        Click="OnLookupAppStoreBundleIdClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="0,10,0,0" />
+                                                <Button x:Name="LookupAppStoreAppButton"
+                                                        Grid.Row="1"
+                                                        Grid.Column="2"
+                                                        Content="查App"
+                                                        Click="OnLookupAppStoreAppClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="0,10,0,0" />
+                                                <Button x:Name="LookupAppStoreBuildsButton"
+                                                        Grid.Row="2"
+                                                        Grid.Column="0"
+                                                        Content="查构建"
+                                                        Click="OnLookupAppStoreBuildsClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="0,10,0,0" />
+                                                <Button x:Name="LookupAppStoreProfilesButton"
+                                                        Grid.Row="2"
+                                                        Grid.Column="2"
+                                                        Content="查描述"
+                                                        Click="OnLookupAppStoreProfilesClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="0,10,0,0" />
+                                                <Button x:Name="LookupAppStoreCertificatesButton"
+                                                        Grid.Row="3"
+                                                        Grid.Column="0"
+                                                        Content="查证书"
+                                                        Click="OnLookupAppStoreCertificatesClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="0,10,0,0" />
+                                                <Button x:Name="LookupAppStoreDevicesButton"
+                                                        Grid.Row="3"
+                                                        Grid.Column="2"
+                                                        Content="查设备"
+                                                        Click="OnLookupAppStoreDevicesClick"
+                                                        Style="{StaticResource SecondaryButtonStyle}"
+                                                        Margin="0,10,0,0" />
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Border BorderBrush="{StaticResource BorderBrushSoft}"
+                                            BorderThickness="0,1,0,0"
+                                            Margin="0,18,0,0"
+                                            Padding="0,16,0,0">
+                                        <StackPanel>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="*" />
@@ -2067,10 +2139,17 @@
                                                    FontSize="18"
                                                    FontWeight="SemiBold"
                                                    VerticalAlignment="Center" />
-                                        <Button Grid.Column="1"
-                                                Content="复制"
-                                                Click="OnCopyUploadEnvironmentClick"
-                                                Style="{StaticResource SecondaryButtonStyle}" />
+                                        <StackPanel Grid.Column="1"
+                                                    Orientation="Horizontal"
+                                                    HorizontalAlignment="Right">
+                                            <Button Content="验证"
+                                                    Click="OnValidateUploadEnvironmentClick"
+                                                    Style="{StaticResource ActionButtonStyle}" />
+                                            <Button Content="复制"
+                                                    Click="OnCopyUploadEnvironmentClick"
+                                                    Style="{StaticResource SecondaryButtonStyle}"
+                                                    Margin="10,0,0,0" />
+                                        </StackPanel>
                                     </Grid>
                                     <TextBlock x:Name="SettingsUploadEnvironmentStatusText"
                                                Foreground="{StaticResource MutedTextBrush}"

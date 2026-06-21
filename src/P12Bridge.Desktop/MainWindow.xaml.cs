@@ -94,14 +94,14 @@ public partial class MainWindow : Window
 
         _pages = new Dictionary<string, PageDefinition>
         {
-            ["Dashboard"] = new("工作台", "证书到上传总览", DashboardPage),
-            ["Certificate"] = new("制作证书", "私钥、CSR、P12", CertificatePage),
-            ["Profiles"] = new("描述文件", "Bundle、Team、有效期", ProfilesPage),
-            ["IpaCheck"] = new("IPA 检查", "版本、签名、阻断项", IpaCheckPage),
-            ["Upload"] = new("IPA 上传", "上传前检查", UploadPage),
-            ["Assets"] = new("资产库", "项目、文件、IPA", AssetsPage),
-            ["History"] = new("历史", "操作与日志", HistoryPage),
-            ["Settings"] = new("设置", "凭据、路径、隐私", SettingsPage),
+            ["Dashboard"] = new("工作台", "证书 / 描述 / IPA / 上传", DashboardPage),
+            ["Certificate"] = new("制作证书", "私钥 / CSR / P12", CertificatePage),
+            ["Profiles"] = new("描述文件", "Bundle / Team / 有效期", ProfilesPage),
+            ["IpaCheck"] = new("IPA 检查", "版本 / 签名 / 阻断项", IpaCheckPage),
+            ["Upload"] = new("IPA 上传", "校验 / 发送 / 构建", UploadPage),
+            ["Assets"] = new("资产库", "项目 / 文件 / IPA", AssetsPage),
+            ["History"] = new("历史", "操作 / 状态 / 路径", HistoryPage),
+            ["Settings"] = new("设置", "凭据 / 路径 / 隐私", SettingsPage),
         };
 
         ApplyLibraryDirectoryDefaults();
