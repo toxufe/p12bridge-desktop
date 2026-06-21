@@ -1,5 +1,7 @@
 # P12Bridge Desktop
 
+[中文说明](README.zh-CN.md)
+
 P12Bridge is a Windows desktop tool for iOS certificate, provisioning profile, and IPA upload workflows.
 
 The MVP is local-first: it helps Windows users generate private keys and CSRs, import Apple-issued certificates, export P12 files, validate provisioning profiles and signed IPA files, and upload IPA builds without collecting Apple ID main passwords or hosting signing assets in the cloud.
