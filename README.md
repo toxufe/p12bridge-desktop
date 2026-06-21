@@ -39,6 +39,17 @@ Automated local validation covers the main non-Apple service chain. The remainin
 2. Verify a real signed IPA upload attempt with valid credentials.
 3. Capture only redacted evidence listed in the manual verification checklist.
 
+## Release
+
+GitHub Actions publishes a Windows release package when a version tag is pushed:
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+The workflow builds and tests the solution, publishes the desktop app for `win-x64`, creates a GitHub Release, and uploads a self-contained zip named like `P12Bridge-Desktop-v0.1.0-win-x64.zip`.
+
 ## Security Principles
 
 - Keep private keys local.

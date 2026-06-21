@@ -39,6 +39,17 @@ MVP 采用本地优先方案：帮助 Windows 用户在本机生成私钥与 CSR
 2. 使用有效凭据验证真实已签名 IPA 上传。
 3. 仅按手动验证清单保留脱敏证据。
 
+## 发布版本
+
+推送版本标签后，GitHub Actions 会自动发布 Windows 安装包：
+
+```powershell
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+工作流会构建并测试解决方案，发布 `win-x64` 桌面端，创建 GitHub Release，并上传类似 `P12Bridge-Desktop-v0.1.0-win-x64.zip` 的自包含 zip 包。
+
 ## 安全原则
 
 - 私钥保留在本机。
