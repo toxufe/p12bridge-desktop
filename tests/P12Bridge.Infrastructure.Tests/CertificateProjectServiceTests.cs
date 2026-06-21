@@ -93,7 +93,7 @@ public sealed class CertificateProjectServiceTests : IDisposable
     }
 
     [Fact]
-    public void ExportP12WritesCertificateAndP12()
+    public void ExportP12WritesCertificateAndP12NamedFromCsr()
     {
         var createResult = service.Create(ValidRequest());
         Assert.True(createResult.IsSuccess);
@@ -110,7 +110,7 @@ public sealed class CertificateProjectServiceTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal(Path.Combine(createResult.Artifacts.ProjectDirectory, "certificate.cer"), result.CertificatePath);
-        Assert.Equal(Path.Combine(createResult.Artifacts.ProjectDirectory, "export.p12"), result.P12Path);
+        Assert.Equal(Path.Combine(createResult.Artifacts.ProjectDirectory, "request.p12"), result.P12Path);
 
         Assert.True(File.Exists(result.CertificatePath));
         Assert.True(File.Exists(result.P12Path));
@@ -120,7 +120,7 @@ public sealed class CertificateProjectServiceTests : IDisposable
 
         using var metadata = JsonDocument.Parse(File.ReadAllText(result.MetadataPath));
         Assert.Equal("certificate.cer", metadata.RootElement.GetProperty("Certificate").GetString());
-        Assert.Equal("export.p12", metadata.RootElement.GetProperty("P12").GetString());
+        Assert.Equal("request.p12", metadata.RootElement.GetProperty("P12").GetString());
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
@@ -11,7 +12,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
     private const string PrivateKeyFileName = "private.key";
     private const string CertificateSigningRequestFileName = "request.csr";
     private const string CertificateFileName = "certificate.cer";
-    private const string P12FileName = "export.p12";
+    private const string LegacyP12FileName = "export.p12";
     private const int BackupTimestampLength = 14;
 
     private readonly IProvisioningProfileParser profileParser;
@@ -77,7 +78,7 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
                     projectDirectory,
                     File.GetLastWriteTimeUtc(metadataPath),
                     ReadProjectNote(metadataPath),
-                    ReadCertificateArtifacts(projectDirectory),
+                    ReadCertificateArtifacts(projectDirectory, metadataPath),
                     certificateMetadata.ExpiresAt,
                     BackupSummary: ReadCertificateBackupSummary(projectDirectory, backupIndex),
                     BackupPath: ReadCertificateBackupPath(projectDirectory, backupIndex)));
@@ -262,12 +263,34 @@ public sealed class LocalAssetLibraryService : ILocalAssetLibraryService
         string Path,
         DateTimeOffset LastWriteTimeUtc);
 
-    private static CertificateProjectArtifactStatus ReadCertificateArtifacts(string projectDirectory) =>
+    private static CertificateProjectArtifactStatus ReadCertificateArtifacts(string projectDirectory, string metadataPath) =>
         new(
             File.Exists(Path.Combine(projectDirectory, PrivateKeyFileName)),
             File.Exists(Path.Combine(projectDirectory, CertificateSigningRequestFileName)),
             File.Exists(Path.Combine(projectDirectory, CertificateFileName)),
-            File.Exists(Path.Combine(projectDirectory, P12FileName)));
+            File.Exists(Path.Combine(projectDirectory, ReadP12FileName(metadataPath))));
+
+    private static string ReadP12FileName(string metadataPath)
+    {
+        try
+        {
+            using var metadata = JsonDocument.Parse(File.ReadAllText(metadataPath, Encoding.UTF8));
+            if (metadata.RootElement.TryGetProperty("P12", out var p12Element)
+                && p12Element.ValueKind == JsonValueKind.String)
+            {
+                var fileName = Path.GetFileName(p12Element.GetString());
+                return string.IsNullOrWhiteSpace(fileName) ? LegacyP12FileName : fileName;
+            }
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or JsonException)
+        {
+            return LegacyP12FileName;
+        }
+
+        return LegacyP12FileName;
+    }
 
     private static (DateTimeOffset? ExpiresAt, string Fingerprint) ReadCertificateMetadata(
         string projectDirectory,

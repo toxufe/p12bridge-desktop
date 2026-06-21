@@ -10,7 +10,6 @@ public sealed class CertificateProjectService : ICertificateProjectService
     private const string PrivateKeyFileName = "private.key";
     private const string CertificateSigningRequestFileName = "request.csr";
     private const string CertificateFileName = "certificate.cer";
-    private const string P12FileName = "export.p12";
     private const string MetadataFileName = "p12bridge.project.json";
 
     private readonly ILocalCertificateService certificateService;
@@ -117,12 +116,13 @@ public sealed class CertificateProjectService : ICertificateProjectService
             }
 
             var projectCertificatePath = Path.Combine(request.ProjectDirectory, CertificateFileName);
-            var p12Path = Path.Combine(request.ProjectDirectory, P12FileName);
             var metadataPath = Path.Combine(request.ProjectDirectory, MetadataFileName);
+            var p12FileName = CreateP12FileName(metadataPath);
+            var p12Path = Path.Combine(request.ProjectDirectory, p12FileName);
 
             File.WriteAllBytes(projectCertificatePath, certificateDer);
             File.WriteAllBytes(p12Path, p12Result.Pkcs12Bytes);
-            UpdateExportMetadata(metadataPath, CertificateFileName, P12FileName, clock.UtcNow);
+            UpdateExportMetadata(metadataPath, CertificateFileName, p12FileName, clock.UtcNow);
 
             return CertificateProjectP12ExportResult.Success(projectCertificatePath, p12Path, metadataPath);
         }
@@ -307,6 +307,43 @@ public sealed class CertificateProjectService : ICertificateProjectService
         });
 
         File.WriteAllText(metadataPath, json, Encoding.UTF8);
+    }
+
+    private static string CreateP12FileName(string metadataPath)
+    {
+        var csrFileName = ReadCertificateSigningRequestFileName(metadataPath);
+        var baseName = Path.GetFileNameWithoutExtension(csrFileName);
+        var sanitizedBaseName = SanitizeFileName(string.IsNullOrWhiteSpace(baseName)
+            ? Path.GetFileNameWithoutExtension(CertificateSigningRequestFileName)
+            : baseName);
+
+        return $"{sanitizedBaseName}.p12";
+    }
+
+    private static string ReadCertificateSigningRequestFileName(string metadataPath)
+    {
+        if (!File.Exists(metadataPath))
+        {
+            return CertificateSigningRequestFileName;
+        }
+
+        try
+        {
+            using var metadata = JsonDocument.Parse(File.ReadAllText(metadataPath, Encoding.UTF8));
+            if (metadata.RootElement.TryGetProperty("Artifacts", out var artifacts)
+                && artifacts.ValueKind == JsonValueKind.Object
+                && artifacts.TryGetProperty("CertificateSigningRequest", out var csrElement)
+                && csrElement.ValueKind == JsonValueKind.String)
+            {
+                return Path.GetFileName(csrElement.GetString()) ?? CertificateSigningRequestFileName;
+            }
+        }
+        catch (JsonException)
+        {
+            return CertificateSigningRequestFileName;
+        }
+
+        return CertificateSigningRequestFileName;
     }
 
     private static void UpdateExportMetadata(

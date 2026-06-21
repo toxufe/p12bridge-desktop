@@ -144,6 +144,29 @@ public sealed class LocalAssetLibraryServiceTests : IDisposable
     }
 
     [Fact]
+    public void ScanReportsP12ArtifactStatusFromMetadataFileName()
+    {
+        var projectDirectory = Path.Combine(certificateDirectory, "ExportedFromMetadata");
+        Directory.CreateDirectory(projectDirectory);
+        File.WriteAllText(Path.Combine(projectDirectory, "p12bridge.project.json"), """
+            {
+              "Artifacts": {
+                "CertificateSigningRequest": "request.csr"
+              },
+              "P12": "request.p12"
+            }
+            """);
+        File.WriteAllText(Path.Combine(projectDirectory, "request.p12"), "P12 CONTENT");
+        var service = new LocalAssetLibraryService();
+
+        var result = service.Scan(ValidRequest());
+
+        var item = Assert.Single(result.Items, item => item.Type == LocalAssetType.CertificateProject);
+        Assert.NotNull(item.CertificateArtifacts);
+        Assert.True(item.CertificateArtifacts.HasP12);
+    }
+
+    [Fact]
     public void ScanReportsNewestCertificateBackupSummary()
     {
         var projectDirectory = Path.Combine(certificateDirectory, "BackedUp");
