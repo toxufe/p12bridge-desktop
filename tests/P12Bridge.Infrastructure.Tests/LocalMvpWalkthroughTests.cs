@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text;
 using P12Bridge.Core;
 using P12Bridge.Infrastructure;
@@ -8,6 +9,7 @@ namespace P12Bridge.Infrastructure.Tests;
 
 public sealed class LocalMvpWalkthroughTests : IDisposable
 {
+    private static readonly byte[] ProfileCertificatePayload = [1, 2, 3];
     private readonly string temporaryDirectory;
     private readonly DateTimeOffset now = DateTimeOffset.Parse("2026-06-20T08:30:00Z");
 
@@ -81,7 +83,8 @@ public sealed class LocalMvpWalkthroughTests : IDisposable
             ipaResult.Metadata,
             profileResult.Profile,
             ipaResult.ImportedPath,
-            assetDescriptionPath),
+            assetDescriptionPath,
+            [Convert.ToHexString(SHA256.HashData(ProfileCertificatePayload))]),
             now);
 
         Assert.True(readiness.IsReady);
@@ -135,7 +138,7 @@ public sealed class LocalMvpWalkthroughTests : IDisposable
     }
 
     private static string ProfilePlist() =>
-        """
+        $$"""
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
@@ -146,6 +149,8 @@ public sealed class LocalMvpWalkthroughTests : IDisposable
             <array><string>TEAM123456</string></array>
             <key>CreationDate</key><date>2026-01-01T00:00:00Z</date>
             <key>ExpirationDate</key><date>2026-12-31T00:00:00Z</date>
+            <key>DeveloperCertificates</key>
+            <array><data>{{Convert.ToBase64String(ProfileCertificatePayload)}}</data></array>
             <key>Entitlements</key>
             <dict>
                 <key>application-identifier</key><string>TEAM123456.com.example.demo</string>

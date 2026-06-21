@@ -19,7 +19,7 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
         var profile = AppStoreProfile();
         var ipa = Metadata(profile);
 
-        var result = evaluator.Evaluate(Request(ipa, profile));
+        var result = evaluator.Evaluate(Request(ipa, profile, localCertificateFingerprints: ["CERT1"]));
 
         Assert.True(result.IsReady);
         Assert.Equal(UploadReadinessStatus.Ready, result.Status);
@@ -136,13 +136,60 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
         var importedProfile = AppStoreProfile(uuid: "imported-uuid");
         var ipa = Metadata(embeddedProfile);
 
-        var result = evaluator.Evaluate(Request(ipa, importedProfile));
+        var result = evaluator.Evaluate(Request(ipa, importedProfile, localCertificateFingerprints: ["CERT1"]));
 
         Assert.Equal(UploadReadinessStatus.ReadyWithWarnings, result.Status);
         Assert.Contains(result.Checks, check =>
             check.Code == UploadReadinessErrorCodes.ImportedProfileUuidMismatch
             && check.Status == UploadReadinessCheckStatus.Warning);
         Assert.DoesNotContain(result.Issues, issue => issue.Severity == ValidationSeverity.Error);
+    }
+
+    [Fact]
+    public void EvaluatePassesWhenLocalCertificateMatchesImportedProfile()
+    {
+        var profile = AppStoreProfile(certificateFingerprints: ["CERT1", "CERT2"]);
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile, localCertificateFingerprints: ["cert2"]));
+
+        Assert.Contains(result.Checks, check =>
+            check.Code == UploadReadinessErrorCodes.LocalCertificateProfileMatch
+            && check.Status == UploadReadinessCheckStatus.Passed);
+    }
+
+    [Fact]
+    public void EvaluateWarnsWhenImportedProfileExistsAndLocalCertificateIsMissing()
+    {
+        var profile = AppStoreProfile(certificateFingerprints: ["CERT1"]);
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile));
+
+        Assert.Equal(UploadReadinessStatus.ReadyWithWarnings, result.Status);
+        Assert.Contains(result.Checks, check =>
+            check.Code == UploadReadinessErrorCodes.LocalCertificateProfileMatch
+            && check.Status == UploadReadinessCheckStatus.Warning);
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == UploadReadinessErrorCodes.LocalCertificateProfileMatch
+            && issue.Severity == ValidationSeverity.Warning);
+    }
+
+    [Fact]
+    public void EvaluateWarnsWhenLocalCertificateDoesNotMatchImportedProfile()
+    {
+        var profile = AppStoreProfile(certificateFingerprints: ["CERT1"]);
+        var ipa = Metadata(profile);
+
+        var result = evaluator.Evaluate(Request(ipa, profile, localCertificateFingerprints: ["CERT2"]));
+
+        Assert.Equal(UploadReadinessStatus.ReadyWithWarnings, result.Status);
+        Assert.Contains(result.Checks, check =>
+            check.Code == UploadReadinessErrorCodes.LocalCertificateProfileMatch
+            && check.Status == UploadReadinessCheckStatus.Warning);
+        Assert.Contains(result.Issues, issue =>
+            issue.Code == UploadReadinessErrorCodes.LocalCertificateProfileMatch
+            && issue.Severity == ValidationSeverity.Warning);
     }
 
     [Fact]
@@ -261,13 +308,15 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
         IpaMetadata? ipa,
         ProvisioningProfile? importedProfile = null,
         string? packagePath = null,
-        string? assetDescriptionPath = null) =>
+        string? assetDescriptionPath = null,
+        IReadOnlyList<string>? localCertificateFingerprints = null) =>
         new(
             UploadTarget.AppStore,
             ipa,
             importedProfile,
             packagePath ?? ExistingIpaPath(),
-            assetDescriptionPath ?? ExistingAssetDescriptionPath());
+            assetDescriptionPath ?? ExistingAssetDescriptionPath(),
+            localCertificateFingerprints);
 
     private string ExistingIpaPath()
     {
@@ -306,7 +355,8 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
         string teamId = "TEAM123456",
         string bundleIdentifier = "com.example.demo",
         ProvisioningProfileType type = ProvisioningProfileType.AppStore,
-        ProvisioningProfileStatus status = ProvisioningProfileStatus.Active) =>
+        ProvisioningProfileStatus status = ProvisioningProfileStatus.Active,
+        IReadOnlyList<string>? certificateFingerprints = null) =>
         new(
             uuid,
             "Demo App Store",
@@ -318,5 +368,5 @@ public sealed class UploadReadinessEvaluatorTests : IDisposable
             type,
             status,
             0,
-            Array.Empty<string>());
+            certificateFingerprints ?? new[] { "CERT1" });
 }

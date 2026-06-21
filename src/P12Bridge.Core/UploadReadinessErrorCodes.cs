@@ -21,5 +21,6 @@ public static class UploadReadinessErrorCodes
     public const string ImportedProfileBundleIdMismatch = "UPLOAD_IMPORTED_PROFILE_BUNDLE_ID_MISMATCH";
     public const string ImportedProfileTeamIdMismatch = "UPLOAD_IMPORTED_PROFILE_TEAM_ID_MISMATCH";
     public const string ImportedProfileUuidMismatch = "UPLOAD_IMPORTED_PROFILE_UUID_MISMATCH";
+    public const string LocalCertificateProfileMatch = "UPLOAD_LOCAL_CERTIFICATE_PROFILE_MATCH";
     public const string AppStoreTargetSupported = "UPLOAD_TARGET_APP_STORE_SUPPORTED";
 }

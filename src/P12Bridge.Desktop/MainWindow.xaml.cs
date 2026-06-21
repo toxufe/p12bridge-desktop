@@ -2,6 +2,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -2317,7 +2319,8 @@ public partial class MainWindow : Window
             lastIpaMetadata,
             lastImportedProfile,
             lastIpaImportedPath,
-            UploadAssetDescriptionPathTextBox.Text));
+            UploadAssetDescriptionPathTextBox.Text,
+            ReadLocalCertificateFingerprints()));
 
         ShowUploadReadiness(result);
         return result;
@@ -3878,6 +3881,40 @@ public partial class MainWindow : Window
         }
     }
 
+    private IReadOnlyList<string> ReadLocalCertificateFingerprints()
+    {
+        var certificatePath = CurrentCertificatePath();
+        if (string.IsNullOrWhiteSpace(certificatePath) || !File.Exists(certificatePath))
+        {
+            return Array.Empty<string>();
+        }
+
+        try
+        {
+            using var certificate = new X509Certificate2(certificatePath);
+            return new[] { Convert.ToHexString(SHA256.HashData(certificate.Export(X509ContentType.Cert))) };
+        }
+        catch (Exception exception) when (exception is IOException
+            or UnauthorizedAccessException
+            or CryptographicException)
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    private string CurrentCertificatePath()
+    {
+        var projectCertificatePath = string.IsNullOrWhiteSpace(CertificateProjectDirectoryTextBox.Text)
+            ? string.Empty
+            : Path.Combine(CertificateProjectDirectoryTextBox.Text, ProjectCertificateFileName);
+        if (!string.IsNullOrWhiteSpace(projectCertificatePath) && File.Exists(projectCertificatePath))
+        {
+            return projectCertificatePath;
+        }
+
+        return CertificateCerPathTextBox.Text;
+    }
+
     private void SetCertificateStatus(string message, bool isSuccess)
     {
         CertificateStatusText.Text = message;
@@ -4443,6 +4480,7 @@ public partial class MainWindow : Window
             UploadReadinessErrorCodes.ImportedProfileBundleIdMismatch => "导入 Bundle",
             UploadReadinessErrorCodes.ImportedProfileTeamIdMismatch => "Team",
             UploadReadinessErrorCodes.ImportedProfileUuidMismatch => "UUID",
+            UploadReadinessErrorCodes.LocalCertificateProfileMatch => "本地证书",
             _ => "检查项"
         };
 
@@ -4474,6 +4512,7 @@ public partial class MainWindow : Window
             UploadReadinessErrorCodes.ImportedProfileBundleIdMismatch => "匹配 Bundle",
             UploadReadinessErrorCodes.ImportedProfileTeamIdMismatch => "匹配 Team",
             UploadReadinessErrorCodes.ImportedProfileUuidMismatch => "可继续",
+            UploadReadinessErrorCodes.LocalCertificateProfileMatch => "导入 CER",
             _ => "处理"
         };
     }

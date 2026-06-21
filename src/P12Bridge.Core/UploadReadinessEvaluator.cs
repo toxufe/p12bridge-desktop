@@ -27,7 +27,7 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
         var ipa = request.IpaMetadata;
         AddIpaMetadataChecks(checks, ipa);
         AddEmbeddedProfileChecks(checks, ipa);
-        AddImportedProfileChecks(checks, ipa, request.ImportedProvisioningProfile);
+        AddImportedProfileChecks(checks, ipa, request.ImportedProvisioningProfile, request.LocalCertificateFingerprints);
 
         return UploadReadinessResult.FromChecks(checks);
     }
@@ -129,7 +129,8 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
     private static void AddImportedProfileChecks(
         List<UploadReadinessCheck> checks,
         IpaMetadata ipa,
-        ProvisioningProfile? importedProfile)
+        ProvisioningProfile? importedProfile,
+        IReadOnlyList<string>? localCertificateFingerprints)
     {
         if (importedProfile is null)
         {
@@ -141,6 +142,7 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
         }
 
         AddProfileCompatibilityChecks(checks, importedProfile, "imported", isImportedProfile: true);
+        AddLocalCertificateProfileMatchCheck(checks, importedProfile, localCertificateFingerprints);
 
         checks.Add(string.Equals(ipa.BundleIdentifier, importedProfile.BundleIdentifier, StringComparison.Ordinal)
             ? Passed(UploadReadinessErrorCodes.ImportedProfileBundleIdMismatch, "IPA Bundle ID matches the imported profile.")
@@ -172,6 +174,31 @@ public sealed class UploadReadinessEvaluator : IUploadReadinessEvaluator
                 "Imported profile UUID differs from the embedded profile UUID.",
                 "This can still be acceptable if Bundle ID, Team ID, profile type, and expiration are compatible."));
         }
+    }
+
+    private static void AddLocalCertificateProfileMatchCheck(
+        List<UploadReadinessCheck> checks,
+        ProvisioningProfile importedProfile,
+        IReadOnlyList<string>? localCertificateFingerprints)
+    {
+        if (localCertificateFingerprints is null || localCertificateFingerprints.Count == 0)
+        {
+            checks.Add(Warning(
+                UploadReadinessErrorCodes.LocalCertificateProfileMatch,
+                "No local certificate metadata was provided for profile matching.",
+                "Import the certificate for this project to enable the local match check."));
+            return;
+        }
+
+        var localFingerprintSet = new HashSet<string>(localCertificateFingerprints, StringComparer.OrdinalIgnoreCase);
+        checks.Add(importedProfile.DeveloperCertificateFingerprints.Any(localFingerprintSet.Contains)
+            ? Passed(
+                UploadReadinessErrorCodes.LocalCertificateProfileMatch,
+                "A local certificate matches the imported profile.")
+            : Warning(
+                UploadReadinessErrorCodes.LocalCertificateProfileMatch,
+                "No local certificate matches the imported profile.",
+                "Use the certificate that belongs to the selected provisioning profile."));
     }
 
     private static void AddProfileCompatibilityChecks(

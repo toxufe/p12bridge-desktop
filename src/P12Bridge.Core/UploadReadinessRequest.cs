@@ -5,4 +5,5 @@ public sealed record UploadReadinessRequest(
     IpaMetadata? IpaMetadata,
     ProvisioningProfile? ImportedProvisioningProfile = null,
     string PackagePath = "",
-    string AssetDescriptionPath = "");
+    string AssetDescriptionPath = "",
+    IReadOnlyList<string>? LocalCertificateFingerprints = null);
