@@ -1,7 +1,29 @@
 namespace P12Bridge.Core;
 
+using System.Text.RegularExpressions;
+
 public static class UploadEvidenceFormatter
 {
+    private static readonly Regex JwtLikePattern = new(
+        @"eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+",
+        RegexOptions.Compiled);
+
+    private static readonly Regex PrivateKeyPattern = new(
+        @"-----BEGIN [^-]*PRIVATE KEY-----[\s\S]*?-----END [^-]*PRIVATE KEY-----",
+        RegexOptions.Compiled);
+
+    private static readonly Regex BearerPattern = new(
+        @"Authorization:\s*Bearer\s+\S+",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static readonly Regex PasswordPattern = new(
+        @"(?i)\b(password|passwd|pwd|p12password|app[-_ ]?specific[-_ ]?password)\s*[:=]\s*\S+",
+        RegexOptions.Compiled);
+
+    private static readonly Regex AppSpecificPasswordPattern = new(
+        @"\b[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}-[A-Za-z0-9]{4}\b",
+        RegexOptions.Compiled);
+
     private static readonly HashSet<string> DefaultValues = new(StringComparer.Ordinal)
     {
         "未检查",
@@ -65,7 +87,7 @@ public static class UploadEvidenceFormatter
             return;
         }
 
-        lines.Add($"{label}: {value}");
+        lines.Add($"{label}: {Redact(value)}");
     }
 
     private static void AddSection(ICollection<string> sections, string title, IEnumerable<string> lines)
@@ -86,6 +108,20 @@ public static class UploadEvidenceFormatter
             return;
         }
 
-        sections.Add($"{title}{Environment.NewLine}{text.Trim()}");
+        sections.Add($"{title}{Environment.NewLine}{Redact(text.Trim())}");
+    }
+
+    private static string Redact(string value)
+    {
+        var redacted = PrivateKeyPattern.Replace(value, "[REDACTED-PRIVATE-KEY]");
+        redacted = JwtLikePattern.Replace(redacted, "[REDACTED-JWT]");
+        redacted = BearerPattern.Replace(redacted, "Authorization: Bearer [REDACTED]");
+        redacted = PasswordPattern.Replace(redacted, match =>
+        {
+            var key = match.Groups[1].Value;
+            return $"{key}=[REDACTED]";
+        });
+        redacted = AppSpecificPasswordPattern.Replace(redacted, "[REDACTED-PASSWORD]");
+        return redacted;
     }
 }

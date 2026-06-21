@@ -99,4 +99,51 @@ public sealed class UploadEvidenceFormatterTests
         Assert.Contains("构建查询", text, StringComparison.Ordinal);
         Assert.Contains("时间: 2026-06-21 10:15:30", text, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Format_RedactsKnownSecretPatternsFromOverviewFields()
+    {
+        var token = "eyJheader.payload.signature";
+        var password = "abcd-efgh-ijkl-mnop";
+
+        var text = UploadEvidenceFormatter.Format(new UploadEvidence(
+            CapturedAt,
+            TransporterPath: @"C:\Transporter\iTMSTransporter.cmd",
+            CredentialMode: $"JWT {token}",
+            BundleIdentifier: "com.example.app",
+            TeamId: "TEAM123456",
+            IpaPath: @"C:\Safe\demo.ipa",
+            ProfilePath: $"password=secret {password}"));
+
+        Assert.Contains(@"Transporter: C:\Transporter\iTMSTransporter.cmd", text, StringComparison.Ordinal);
+        Assert.Contains("Bundle ID: com.example.app", text, StringComparison.Ordinal);
+        Assert.Contains("Team ID: TEAM123456", text, StringComparison.Ordinal);
+        Assert.Contains(@"IPA 路径: C:\Safe\demo.ipa", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(token, text, StringComparison.Ordinal);
+        Assert.DoesNotContain(password, text, StringComparison.Ordinal);
+        Assert.DoesNotContain("password=secret", text, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED-JWT]", text, StringComparison.Ordinal);
+        Assert.Contains("password=[REDACTED]", text, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED-PASSWORD]", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Format_RedactsKnownSecretPatternsFromDetailSections()
+    {
+        var token = "eyJheader.payload.signature";
+        var privateKey = "-----BEGIN PRIVATE KEY-----\nsecret\n-----END PRIVATE KEY-----";
+
+        var text = UploadEvidenceFormatter.Format(new UploadEvidence(
+            CapturedAt,
+            ReadinessDetail: "状态: 可上传",
+            CommandPreview: $"命令: iTMSTransporter -m verify -jwt {token}",
+            TransporterDetail: $"Authorization: Bearer {token}{Environment.NewLine}{privateKey}"));
+
+        Assert.Contains($"检查项{Environment.NewLine}状态: 可上传", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(token, text, StringComparison.Ordinal);
+        Assert.DoesNotContain(privateKey, text, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED-JWT]", text, StringComparison.Ordinal);
+        Assert.Contains("Authorization: Bearer [REDACTED]", text, StringComparison.Ordinal);
+        Assert.Contains("[REDACTED-PRIVATE-KEY]", text, StringComparison.Ordinal);
+    }
 }
